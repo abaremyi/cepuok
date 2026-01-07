@@ -1,0 +1,29 @@
+RewriteEngine On
+
+# ==================== SECURITY ====================
+# Block direct access to sensitive directories
+RewriteRule ^(config|helpers|vendor)/(.*) - [F,L]
+
+# Block access to .env, .htaccess, etc.
+<FilesMatch "\.(env|htaccess|log|sql|bak|swp)$">
+    Order deny,allow
+    Deny from all
+</FilesMatch>
+
+# ==================== URL HANDLING ====================
+# Remove trailing slashes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)/$ /$1 [L,R=301]
+
+# Allow direct access to existing files and directories
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# ==================== MAIN ROUTING ====================
+# Route everything else through index.php
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# ==================== ERROR PAGES ====================
+ErrorDocument 404 /index.php
+ErrorDocument 403 /index.php

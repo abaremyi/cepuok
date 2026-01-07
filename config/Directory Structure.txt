@@ -1,0 +1,257 @@
+mount-carmel/
+├── config
+│   ├── config.php
+│   ├── database.php
+│   ├── paths.php
+│   ├── seed.php
+├── css
+│   ├── plugins
+│   │   ├── animate.min.css
+│   │   ├── bootstrap.css
+│   │   ├── bootstrap.min.css
+│   ├── plugins.css
+│   ├── style-temp.css
+│   └── style.css
+├── fonts
+│   
+├── helpers
+│   ├── AuthMiddleware.php
+│   └── JWTHandler.php
+├── img
+│   ├── about
+│   ├── clients
+│   ├── facilities
+│   ├── gallery
+│   ├── news
+│   ├── projects
+│   ├── services
+│   ├── slider
+│   ├── team
+│   └── testimonials
+├── js
+│   ├── bootstrap.js
+│   ├── bootstrap.min.js
+│   ├── custom.js
+│   ├── datepicker.js
+│   ├── easing.js
+│   ├── imagesloaded.pkgd.min.js
+│   ├── jquery-2.1.4.min.js
+├── layouts
+│   ├── footer.php
+│   ├── header.php
+│   ├── logout_modal.php
+│   ├── navbar.php
+│   └── scripts.php
+├── modules
+│   ├── Authentication
+│   │   ├── api
+│   │   │   └── authApi.php
+│   │   ├── controllers
+│   │   │   └── AuthController.php
+│   │   ├── models
+│   │   │   └── UserModel.php
+│   │   ├── static
+│   │   │   └── view_user_model.php
+│   │   └── views
+│   │       ├── admin_manage_user.php
+│   │       ├── dashboard.php
+│   │       ├── forgot-password.php
+│   │       ├── login.php
+│   │       ├── logintemp.php
+│   │       ├── logout.php
+│   │       ├── manageaccount.php
+│   │       ├── profile.php
+│   │       ├── register.php
+│   │       ├── registertemp.php
+│   │       ├── resetPassword.php
+│   │       ├── users.php
+│   │       └── verifyEmail.php
+│   ├── Contact
+│   │   ├── api
+│   │   │   └── contactApi.php
+│   │   ├── controllers
+│   │   │   ├── ContactController.php
+│   │   │   └── emailcongTemp.php
+│   │   ├── models
+│   │   │   └── ContactModel.php
+│   │   └── views
+│   │       ├── export_subscribers.php
+│   │       ├── messages.php
+│   │       └── subscribers.php
+│   ├── Dashboard
+│   │   ├── api
+│   │   ├── controllers
+│   │   ├── models
+│   │   │   └── GalleryModel.php
+│   │   ├── static
+│   │   │   ├── add_package_day.php
+│   │   │   ├── add_package.php
+│   │   │   ├── add_section.php
+│   │   │   ├── admin_modals.php
+│   │   │   ├── delete_day.php
+│   │   │   ├── delete_package.php
+│   │   │   ├── delete_section.php
+│   │   │   ├── get_package_day.php
+│   │   │   ├── get_package_days.php
+│   │   │   ├── get_package.php
+│   │   │   ├── get_packages.php
+│   │   │   ├── get_page_data.php
+│   │   │   ├── get_sections.php
+│   │   │   ├── tourism_packages_management.js
+│   │   │   ├── tourism-management.js
+│   │   │   ├── update_package_day.php
+│   │   │   ├── update_package.php
+│   │   │   ├── update_page.php
+│   │   │   └── update_section.php
+│   │   └── views
+│   │   	 	├── components
+│   │   	    │   └── admin-navbar.php
+│   │   	 	│	├── admin-scripts.php
+│   │   	 	│   ├── admin-sidebar.php
+│   │   	 	│   └── admin-styles.php
+│   │       	├── admin.php
+│   │       	├── admin-dashboard.php
+│   │       	├── gallery-management.php
+│   │       	├── hero-sliders.php
+│   │       	├── leadership-management
+│   │       	├── news-events-management
+│   │       	├── page-content-management.php
+│   │       	├── team-management.php
+│   │       	├── testimonial-management.php
+│   │       	├── contact-management.php
+│   │       	├── programs-management.php
+│   │       	├── tourism_social_mngt.php
+│   │       	├── videosManager.php
+│   │       	└── welcome.php
+│   ├── Gallery
+│   │   ├── api
+│   │   │   └── galleryApi.php
+│   │   ├── controllers
+│   │   │   └── GalleryController.php
+│   │   └── models
+│   │       └── GalleryModel.php
+│   ├── General
+│   │   ├── static
+│   │   │   ├── get_news_sidebar.php
+│   │   │   ├── get_news.php
+│   │   │   ├── get_packages.php
+│   │   │   ├── get_project_gallery.php
+│   │   │   ├── get_projects.php
+│   │   │   ├── get_related_projects.php
+│   │   │   ├── getPackageDetails.php
+│   │   │   └── tourism-styles.php
+│   │   └── views
+│   │       ├── about.php
+│   │       ├── administration.php
+│   │       ├── contact.php
+│   │       ├── gallery.php
+│   │       ├── index.php
+│   │       ├── news.php
+│   │       ├── products.php
+│   │       ├── project-details.php
+│   │       ├── projects.php
+│   │       ├── service-details.php
+│   │       ├── services.php
+│   │       ├── team-single.php
+│   │       ├── team.php
+│   │       └── template.php
+│   ├── Hero
+│   │   ├── api
+│   │   │   └── heroApi.php
+│   │   ├── controllers
+│   │   │   └── HeroController.php
+│   │   └── models
+│   │       └── HeroModel.php
+│   ├── News
+│   │   ├── api
+│   │   │   └── newsApi.php
+│   │   ├── controllers
+│   │   │   └── NewsController.php
+│   │   └── models
+│   │       └── NewsModel.php
+│   ├── Newsletter
+│   │   └── api
+│   │       └── newsletterApi.php
+│   └── Testimonials
+│       ├── api
+│       │   └── testimonialsApi.php
+│       ├── controllers
+│       │   └── TestimonialController.php
+│       └── models
+│           └── TestimonialModel.php
+├── scripts
+│   └── import-database.php
+├── vendor
+│   ├── bin
+│   ├── composer
+│   │   ├── autoload_classmap.php
+│   │   ├── autoload_files.php
+│   │   ├── autoload_namespaces.php
+│   │   ├── autoload_psr4.php
+│   │   ├── autoload_real.php
+│   │   ├── autoload_static.php
+│   │   ├── ClassLoader.php
+│   │   ├── installed.json
+│   │   ├── installed.php
+│   │   ├── InstalledVersions.php
+│   │   ├── LICENSE
+│   │   └── platform_check.php
+│   ├── datatables
+│   ├── fancybox
+│   ├── firebase
+│   │   └── php-jwt
+│   │       ├── src
+│   │       │   ├── BeforeValidException.php
+│   │       │   ├── CachedKeySet.php
+│   │       │   ├── ExpiredException.php
+│   │       │   ├── JWK.php
+│   │       │   ├── JWT.php
+│   │       │   ├── JWTExceptionWithPayloadInterface.php
+│   │       │   ├── Key.php
+│   │       │   └── SignatureInvalidException.php
+│   │       ├── CHANGELOG.md
+│   │       ├── composer.json
+│   │       ├── LICENSE
+│   │       └── README.md
+│   ├── graham-campbell
+│   │   └── result-type
+│   │       ├── src
+│   │       │   ├── Error.php
+│   │       │   ├── Result.php
+│   │       │   └── Success.php
+│   │       ├── composer.json
+│   │       └── LICENSE
+│   ├── phpmailer
+│   │   └── phpmailer
+│   │       ├── language
+│   ├── phpoption
+│   │   └── phpoption
+│   ├── sweetalert
+│   │   └── sweetalert2.js
+│   ├── symfony
+│   │   ├── polyfill-ctype
+│   │   ├── polyfill-mbstring
+│   │   └── polyfill-php80
+│   ├── vlucas
+│   │   └── phpdotenv
+│   │       ├── src
+│   │       │   ├── Exception
+│   │       │   ├── Loader
+│   │       │   ├── Parser
+│   │       │   ├── Repository
+│   │       │   ├── Store
+│   │       │   ├── Util
+│   │       │   ├── Dotenv.php
+│   │       │   └── Validator.php
+│   │       ├── composer.json
+│   │       └── LICENSE
+│   └── autoload.php
+├── .env
+├── .htaccess
+├── composer.json
+├── composer.lock
+├── debug.php
+├── error.php
+├── index.php
+├── README.md
+└── test.php
