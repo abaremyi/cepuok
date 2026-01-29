@@ -1,5 +1,5 @@
 <?php
-// Mount_Carmel/index.php - Main Router
+// CEPUOK/index.php - Main Router
 
 // Include paths configuration - use require_once to prevent multiple inclusion
 require_once 'config/paths.php';
@@ -24,11 +24,12 @@ $routes = [
     '' => 'modules/General/views/index.php',
     '/' => 'modules/General/views/index.php',
     '/home' => 'modules/General/views/index.php',
-    '/about' => 'modules/General/views/about.php',
-    '/administration' => 'modules/General/views/administration.php',
-    '/admission' => 'modules/General/views/admission.php', 
+    '/about' => 'modules/General/views/about.php', 
     '/contact' => 'modules/General/views/contact.php',
+    '/departments' => 'modules/General/views/departments.php',
     '/gallery' => 'modules/General/views/gallery.php',
+    '/leadership-team' => 'modules/General/views/leadership-team.php',
+    '/local-church' => 'modules/General/views/local-church.php',
     '/news' => 'modules/General/views/news.php',
     '/programs' => 'modules/General/views/programs.php',
     '/projects' => 'modules/General/views/projects.php',

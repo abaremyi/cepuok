@@ -1,68 +1,65 @@
-mount-carmel/
+.cepuok
 ├── config
 │   ├── config.php
 │   ├── database.php
-│   ├── paths.php
-│   ├── seed.php
+│   └── paths.php
 ├── css
-│   ├── plugins
-│   │   ├── animate.min.css
-│   │   ├── bootstrap.css
-│   │   ├── bootstrap.min.css
-│   ├── plugins.css
-│   ├── style-temp.css
-│   └── style.css
 ├── fonts
-│   
 ├── helpers
 │   ├── AuthMiddleware.php
 │   └── JWTHandler.php
 ├── img
 │   ├── about
+│   ├── bg
+│   │   ├── bg-1.jpg
+│   │   └── footer-bg.jpg
 │   ├── clients
-│   ├── facilities
 │   ├── gallery
+│   ├── leadership
 │   ├── news
+│   ├── programs
 │   ├── projects
 │   ├── services
-│   ├── slider
 │   ├── team
-│   └── testimonials
+│   ├── testimonials
+│   ├── hero-contact.jpg
+│   ├── logo-only.png
+│   ├── org-chart.png
+│   ├── photo-gallery.jpg
+│   ├── services-hero.jpg
+│   └── video-gallery.jpg
 ├── js
-│   ├── bootstrap.js
-│   ├── bootstrap.min.js
-│   ├── custom.js
-│   ├── datepicker.js
-│   ├── easing.js
-│   ├── imagesloaded.pkgd.min.js
-│   ├── jquery-2.1.4.min.js
 ├── layouts
 │   ├── footer.php
 │   ├── header.php
+│   ├── hero-slider-scripts.php
+│   ├── hero-slider.php
+│   ├── loader.php
 │   ├── logout_modal.php
+│   ├── mobile-header.php
 │   ├── navbar.php
-│   └── scripts.php
+│   ├── scripts.php
+│   └── topbar.php
 ├── modules
+│   ├── About
+│   │   └── models
+│   │       └── AboutModel.php
 │   ├── Authentication
 │   │   ├── api
 │   │   │   └── authApi.php
 │   │   ├── controllers
 │   │   │   └── AuthController.php
 │   │   ├── models
+│   │   │   ├── RoleModel.php
 │   │   │   └── UserModel.php
 │   │   ├── static
 │   │   │   └── view_user_model.php
 │   │   └── views
 │   │       ├── admin_manage_user.php
 │   │       ├── dashboard.php
-│   │       ├── forgot-password.php
 │   │       ├── login.php
-│   │       ├── logintemp.php
 │   │       ├── logout.php
-│   │       ├── manageaccount.php
 │   │       ├── profile.php
-│   │       ├── register.php
-│   │       ├── registertemp.php
 │   │       ├── resetPassword.php
 │   │       ├── users.php
 │   │       └── verifyEmail.php
@@ -80,49 +77,32 @@ mount-carmel/
 │   │       └── subscribers.php
 │   ├── Dashboard
 │   │   ├── api
+│   │   │   └── dashboardApi.php
 │   │   ├── controllers
 │   │   ├── models
 │   │   │   └── GalleryModel.php
-│   │   ├── static
-│   │   │   ├── add_package_day.php
-│   │   │   ├── add_package.php
-│   │   │   ├── add_section.php
-│   │   │   ├── admin_modals.php
-│   │   │   ├── delete_day.php
-│   │   │   ├── delete_package.php
-│   │   │   ├── delete_section.php
-│   │   │   ├── get_package_day.php
-│   │   │   ├── get_package_days.php
-│   │   │   ├── get_package.php
-│   │   │   ├── get_packages.php
-│   │   │   ├── get_page_data.php
-│   │   │   ├── get_sections.php
-│   │   │   ├── tourism_packages_management.js
-│   │   │   ├── tourism-management.js
-│   │   │   ├── update_package_day.php
-│   │   │   ├── update_package.php
-│   │   │   ├── update_page.php
-│   │   │   └── update_section.php
 │   │   └── views
-│   │   	 	├── components
-│   │   	    │   └── admin-navbar.php
-│   │   	 	│	├── admin-scripts.php
-│   │   	 	│   ├── admin-sidebar.php
-│   │   	 	│   └── admin-styles.php
-│   │       	├── admin.php
-│   │       	├── admin-dashboard.php
-│   │       	├── gallery-management.php
-│   │       	├── hero-sliders.php
-│   │       	├── leadership-management
-│   │       	├── news-events-management
-│   │       	├── page-content-management.php
-│   │       	├── team-management.php
-│   │       	├── testimonial-management.php
-│   │       	├── contact-management.php
-│   │       	├── programs-management.php
-│   │       	├── tourism_social_mngt.php
-│   │       	├── videosManager.php
-│   │       	└── welcome.php
+│   │       ├── components
+│   │       │   ├── admin-navbar.php
+│   │       │   ├── admin-scripts.php
+│   │       │   ├── admin-sidebar.php
+│   │       │   └── admin-styles.php
+│   │       ├── admin-dashboard.php
+│   │       ├── admission-management.php
+│   │       ├── departments-management.php
+│   │       ├── gallery-management.php
+│   │       ├── hero-sliders.php
+│   │       ├── homepage.php
+│   │       ├── leadership-management.php
+│   │       ├── locations.php
+│   │       ├── news-events-management.php
+│   │       ├── quick-stats-management.php
+│   │       ├── roles-permissions-management.php
+│   │       ├── testimonials-management.php
+│   │       ├── users-management.php
+│   │       ├── video-gallery-management.php
+│   │       ├── videosManager.php
+│   │       ├── welcome.php
 │   ├── Gallery
 │   │   ├── api
 │   │   │   └── galleryApi.php
@@ -131,30 +111,22 @@ mount-carmel/
 │   │   └── models
 │   │       └── GalleryModel.php
 │   ├── General
+│   │   ├── models
+│   │   │   └── HomeModel.php
 │   │   ├── static
 │   │   │   ├── get_news_sidebar.php
-│   │   │   ├── get_news.php
-│   │   │   ├── get_packages.php
-│   │   │   ├── get_project_gallery.php
-│   │   │   ├── get_projects.php
-│   │   │   ├── get_related_projects.php
-│   │   │   ├── getPackageDetails.php
-│   │   │   └── tourism-styles.php
+│   │   │   └── get_news.php
 │   │   └── views
 │   │       ├── about.php
-│   │       ├── administration.php
+│   │       ├── local-church.php
+│   │       ├── leadership-team.php
+│   │       ├── admission.php
 │   │       ├── contact.php
 │   │       ├── gallery.php
 │   │       ├── index.php
 │   │       ├── news.php
-│   │       ├── products.php
-│   │       ├── project-details.php
-│   │       ├── projects.php
-│   │       ├── service-details.php
-│   │       ├── services.php
-│   │       ├── team-single.php
-│   │       ├── team.php
-│   │       └── template.php
+│   │       ├── departments.php
+│   │       └── videos-gallery.php
 │   ├── Hero
 │   │   ├── api
 │   │   │   └── heroApi.php
@@ -170,81 +142,52 @@ mount-carmel/
 │   │   └── models
 │   │       └── NewsModel.php
 │   ├── Newsletter
+│   ├── PageContent
 │   │   └── api
-│   │       └── newsletterApi.php
-│   └── Testimonials
+│   │       └── pageContentApi.php
+│   ├── Programs
+│   │   ├── api
+│   │   │   └── programsApi.php
+│   │   ├── controllers
+│   │   │   └── ProgramsController.php
+│   │   └── models
+│   │       └── ProgramsModel.php
+│   ├── Testimonials
+│   │   ├── api
+│   │   │   └── testimonialsApi.php
+│   │   ├── controllers
+│   │   │   └── TestimonialController.php
+│   │   └── models
+│   │       └── TestimonialModel.php
+│   └── Videos
 │       ├── api
-│       │   └── testimonialsApi.php
+│       │   └── videoApi.php
 │       ├── controllers
-│       │   └── TestimonialController.php
+│       │   └── VideoController.php
 │       └── models
-│           └── TestimonialModel.php
-├── scripts
-│   └── import-database.php
+│           └── VideoModel.php
+├── rs-plugin
+│   ├── assets
+│   ├── css
+│   ├── fonts
+├── uploads
+│   └── admission_documents
+│       └── doc_695903c842893_1767441352.pdf
 ├── vendor
 │   ├── bin
 │   ├── composer
-│   │   ├── autoload_classmap.php
-│   │   ├── autoload_files.php
-│   │   ├── autoload_namespaces.php
-│   │   ├── autoload_psr4.php
-│   │   ├── autoload_real.php
-│   │   ├── autoload_static.php
-│   │   ├── ClassLoader.php
-│   │   ├── installed.json
-│   │   ├── installed.php
-│   │   ├── InstalledVersions.php
-│   │   ├── LICENSE
-│   │   └── platform_check.php
 │   ├── datatables
 │   ├── fancybox
 │   ├── firebase
 │   │   └── php-jwt
-│   │       ├── src
-│   │       │   ├── BeforeValidException.php
-│   │       │   ├── CachedKeySet.php
-│   │       │   ├── ExpiredException.php
-│   │       │   ├── JWK.php
-│   │       │   ├── JWT.php
-│   │       │   ├── JWTExceptionWithPayloadInterface.php
-│   │       │   ├── Key.php
-│   │       │   └── SignatureInvalidException.php
-│   │       ├── CHANGELOG.md
-│   │       ├── composer.json
-│   │       ├── LICENSE
-│   │       └── README.md
 │   ├── graham-campbell
-│   │   └── result-type
-│   │       ├── src
-│   │       │   ├── Error.php
-│   │       │   ├── Result.php
-│   │       │   └── Success.php
-│   │       ├── composer.json
-│   │       └── LICENSE
 │   ├── phpmailer
-│   │   └── phpmailer
-│   │       ├── language
 │   ├── phpoption
-│   │   └── phpoption
 │   ├── sweetalert
 │   │   └── sweetalert2.js
 │   ├── symfony
-│   │   ├── polyfill-ctype
-│   │   ├── polyfill-mbstring
-│   │   └── polyfill-php80
 │   ├── vlucas
 │   │   └── phpdotenv
-│   │       ├── src
-│   │       │   ├── Exception
-│   │       │   ├── Loader
-│   │       │   ├── Parser
-│   │       │   ├── Repository
-│   │       │   ├── Store
-│   │       │   ├── Util
-│   │       │   ├── Dotenv.php
-│   │       │   └── Validator.php
-│   │       ├── composer.json
-│   │       └── LICENSE
 │   └── autoload.php
 ├── .env
 ├── .htaccess
@@ -252,6 +195,5 @@ mount-carmel/
 ├── composer.lock
 ├── debug.php
 ├── error.php
-├── index.php
-├── README.md
-└── test.php
+├── generate_hash.php
+└── index.php

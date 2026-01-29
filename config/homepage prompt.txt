@@ -1,0 +1,218 @@
+I want to create my database called 'cep_uok_db'. so I want to make all required tables to handle some of the pages content including the homepage,about us(but for now I need homepage only no need of other pages or dashboard). the homepage sections to make dynamic include (the sliders and also the other parts of it. For example I must have the quick stats, gallery, what people say (testimonials) the testimonial part, gallery part should look the same as the sample shared in mount carmel homepage, Events Main Slider(where the events I have do not have the exact date but they are always repeating events which are {[Monday at Kacyiru Campus we have the English Service from 11:30 - 13:00],[Wednesday at Kacyiru Campus we have the Kinyarwanda Fellowship (Amateraniro) from 11:30 - 13:00],[Thursday at Remera Campus we have the Kinyarwanda Fellowship (Amateraniro) from 11:30 - 13:00],[Sunday at Kacyiru Campus we have the Sunday service (Amateraniro) from 14:00 - 15:30]}, those events sliders shows all repeting events each week only and they should come from the database. my home page shows 'CEP UoK ' information but some parts of it I want to make them dynamic. so I will need database tables, full codes to revise my homepage. so sliders I don't want to interrupt the way images and words written if possible we can use the simple php to includes those texts from database to sliders not by fetching them using javascript but this is for only sliders other parts we may use javascript (jquery). after that 'Revolution Slider Section' comes about us which also I want it to come from the database mainly the used image '<div class="about-img bf-pattern mb-5 mb-xl-0"> <img
+                                             src="<?= img_url('about/about-1.jpeg') ?>" class="" alt="about-img">
+                                       </div>' i want to replace the image with the welcome video which is a youtube link and which is fetched from the database and later by the time of designing the dashboard not right now we should see the option to update that video link, and also when I click on this video it must open widely like pop up window and played in well enough designed full screen like pro. the following part of this about section must be dynamic and fetched from db:{ part 1 "Building Christ-Centered Leaders at the University of Kigali", part2 "CEP–UoK (Communauté des Étudiants Pentecôtistes à l'Université de Kigali) is a Christian students' fellowship that brings together university students who desire to grow spiritually, live out their faith, and serve God within the academic environment", part 3 "To raise Christ-centered leaders who honor God, uphold biblical values, and positively influence the Church, the University, and society.", part 4 "[sub part 1 icon, sub part 1 title(Spiritual Growth), sub part 1 description (We nurture students through prayer, worship, biblical teaching, and discipleship, creating a supportive community of faith.)], [sub part 2 icon, sub part 2 Title(Unity & Service), sub part 2 description(We foster unity among believers and impact the university community through evangelism, outreach, and acts of love.)"}.
+ 
+after about section comes the quick stats section which you should fetch from the database and help deign it for me (10+ Years of Service, 500+ Post CEPiens, 80 Day Members, 120 Weekend Members, 4 Fellowship Services, 2 Sessions, 2 Campuses, 1 Choir, 1 Worship Team), this design should be aesthetic and responsive no big size of stats.after quick stats comes Gallery where its structure is the same as the one  i shared on the mount carmel homepage but the difference is that I will need 9 photos only to be displayed from many where they must be selected 1 in each categories(Fellowship, event, choir, Families, Outreach, initiative, seminar, community work, social welfare). the next section is 'Get a Quote Section' which is already there and I want to make that video url dynamic from the database and it is about the cep history this content bellow it "<div class="section-title typo-white margin-bottom-40">
+                                    <h2 class="title mb-3">“Pray! And listen to God! You can do this alone,
+                                       but find somebody to do it with you”</h2> <span class="dancing-text">Real Story
+                                       Cross Journey from Anna
+                                       Hampton</span>
+                                 </div>
+                                 <div class="get-quote-btn"> <a class="btn btn-default" href="donate-now.html"
+                                       title="Donate Online">Donate Online</a>
+                                 </div>"  should be changed to let people know about the history but full details are on about 'href="<?= url(path: 'about') ?>"'. the next section is "Ministries Section" which is already there on cepuok homepage but it must come from the database and also the following Titles must be changed '<span
+                                    class="sub-title theme-color text-uppercase">Ministries</span>' changed to '<span
+                                    class="sub-title theme-color text-uppercase">CEP Departments</span>', and '<h2 class="section-title margin-top-5">Our Ministries</h2>' changed to '<h2 class="section-title margin-top-5">Our Departments</h2>' and other design follows as is. 
+
+the next section is 'Contact Section'  where you will change the contacts to be CEP UoK contacts and the link of contacts goes to 'href="<?= url(path: 'contact') ?>"'.
+the next section is 'Blog Section' where i want to put news section and displays not greater than 6 latest news and readmore points to 'href="<?= url(path: 'news') ?>"', the template I am using to display news on the homepage needs(photo, date, title and readmore link) and this sectiona is already there the needs are to make it dynamic to fetch the content from the database.
+the next section is 'Testimonial section' which is designed like it is on the mount carmel homepage. the testimonials we will not be having the ratings because it contains different people who are talking about CEP. under that tesponial section then comes the footer which is the final part and I need you to update the information on it 
+ all required files you must provide them. CEP UoK has different social media but limited to 4 (twitter or x 'https://x.com/cepuok01', youtube 'https://www.youtube.com/@cepuok9716', facebook 'https://www.facebook.com/profile.php?id=100069626831778', instagram 'https://www.instagram.com/cepuok01?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=='. cep uok email is "cepuok01@gmail.com"; phone numbers (+250 791 619 272, +250 722 276 153), address ' KG 541 St, Kigali, Rwanda'. those contacts and the social media should come from the database. so will you provide the required database and the pages. my directory structure is "cepuok/
+├── config
+│   ├── config.php
+│   ├── database.php
+│   └── paths.php
+├── css
+├── fonts
+├── helpers
+│   ├── AuthMiddleware.php
+│   └── JWTHandler.php
+├── img
+│   ├── about
+│   ├── bg
+│   │   ├── bg-1.jpg
+│   │   └── footer-bg.jpg
+│   ├── clients
+│   ├── gallery
+│   ├── leadership
+│   ├── news
+│   ├── programs
+│   ├── projects
+│   ├── services
+│   ├── team
+│   ├── testimonials
+│   ├── hero-contact.jpg
+│   ├── logo-only.png
+│   ├── org-chart.png
+│   ├── photo-gallery.jpg
+│   ├── services-hero.jpg
+│   └── video-gallery.jpg
+├── js
+├── layouts
+│   ├── footer.php
+│   ├── header.php
+│   ├── hero-slider-scripts.php
+│   ├── hero-slider.php
+│   ├── loader.php
+│   ├── logout_modal.php
+│   ├── mobile-header.php
+│   ├── navbar.php
+│   ├── scripts.php
+│   └── topbar.php
+├── modules
+│   ├── About
+│   │   └── models
+│   │       └── AboutModel.php
+│   ├── Authentication
+│   │   ├── api
+│   │   │   └── authApi.php
+│   │   ├── controllers
+│   │   │   └── AuthController.php
+│   │   ├── models
+│   │   │   ├── RoleModel.php
+│   │   │   └── UserModel.php
+│   │   ├── static
+│   │   │   └── view_user_model.php
+│   │   └── views
+│   │       ├── admin_manage_user.php
+│   │       ├── dashboard.php
+│   │       ├── login.php
+│   │       ├── logout.php
+│   │       ├── profile.php
+│   │       ├── resetPassword.php
+│   │       ├── users.php
+│   │       └── verifyEmail.php
+│   ├── Contact
+│   │   ├── api
+│   │   │   └── contactApi.php
+│   │   ├── controllers
+│   │   │   ├── ContactController.php
+│   │   │   └── emailcongTemp.php
+│   │   ├── models
+│   │   │   └── ContactModel.php
+│   │   └── views
+│   │       ├── export_subscribers.php
+│   │       ├── messages.php
+│   │       └── subscribers.php
+│   ├── Dashboard
+│   │   ├── api
+│   │   │   └── dashboardApi.php
+│   │   ├── controllers
+│   │   ├── models
+│   │   │   └── GalleryModel.php
+│   │   └── views
+│   │       ├── components
+│   │       │   ├── admin-navbar.php
+│   │       │   ├── admin-scripts.php
+│   │       │   ├── admin-sidebar.php
+│   │       │   └── admin-styles.php
+│   │       ├── admin-dashboard.php
+│   │       ├── admission-management.php
+│   │       ├── departments-management.php
+│   │       ├── gallery-management.php
+│   │       ├── hero-sliders.php
+│   │       ├── homepage.php
+│   │       ├── leadership-management.php
+│   │       ├── locations.php
+│   │       ├── news-events-management.php
+│   │       ├── quick-stats-management.php
+│   │       ├── roles-permissions-management.php
+│   │       ├── testimonials-management.php
+│   │       ├── users-management.php
+│   │       ├── video-gallery-management.php
+│   │       ├── videosManager.php
+│   │       ├── welcome.php
+│   ├── Gallery
+│   │   ├── api
+│   │   │   └── galleryApi.php
+│   │   ├── controllers
+│   │   │   └── GalleryController.php
+│   │   └── models
+│   │       └── GalleryModel.php
+│   ├── General
+│   │   ├── models
+│   │   │   └── HomeModel.php
+│   │   ├── static
+│   │   │   ├── get_news_sidebar.php
+│   │   │   └── get_news.php
+│   │   └── views
+│   │       ├── about.php
+│   │       ├── local-church.php
+│   │       ├── leadership-team.php
+│   │       ├── admission.php
+│   │       ├── contact.php
+│   │       ├── gallery.php
+│   │       ├── index.php
+│   │       ├── news.php
+│   │       ├── departments.php
+│   │       └── videos-gallery.php
+│   ├── Hero
+│   │   ├── api
+│   │   │   └── heroApi.php
+│   │   ├── controllers
+│   │   │   └── HeroController.php
+│   │   └── models
+│   │       └── HeroModel.php
+│   ├── News
+│   │   ├── api
+│   │   │   └── newsApi.php
+│   │   ├── controllers
+│   │   │   └── NewsController.php
+│   │   └── models
+│   │       └── NewsModel.php
+│   ├── Newsletter
+│   ├── PageContent
+│   │   └── api
+│   │       └── pageContentApi.php
+│   ├── Programs
+│   │   ├── api
+│   │   │   └── programsApi.php
+│   │   ├── controllers
+│   │   │   └── ProgramsController.php
+│   │   └── models
+│   │       └── ProgramsModel.php
+│   ├── Testimonials
+│   │   ├── api
+│   │   │   └── testimonialsApi.php
+│   │   ├── controllers
+│   │   │   └── TestimonialController.php
+│   │   └── models
+│   │       └── TestimonialModel.php
+│   └── Videos
+│       ├── api
+│       │   └── videoApi.php
+│       ├── controllers
+│       │   └── VideoController.php
+│       └── models
+│           └── VideoModel.php
+├── rs-plugin
+│   ├── assets
+│   ├── css
+│   ├── fonts
+├── uploads
+│   └── admission_documents
+│       └── doc_695903c842893_1767441352.pdf
+├── vendor
+│   ├── bin
+│   ├── composer
+│   ├── datatables
+│   ├── fancybox
+│   ├── firebase
+│   │   └── php-jwt
+│   ├── graham-campbell
+│   ├── phpmailer
+│   ├── phpoption
+│   ├── sweetalert
+│   │   └── sweetalert2.js
+│   ├── symfony
+│   ├── vlucas
+│   │   └── phpdotenv
+│   └── autoload.php
+├── .env
+├── .htaccess
+├── composer.json
+├── composer.lock
+├── debug.php
+├── error.php
+├── generate_hash.php
+└── index.php
