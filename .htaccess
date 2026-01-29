@@ -1,5 +1,6 @@
 RewriteEngine On
 
+# CEPUOK WEBSITE .htaccess FILE
 # ==================== SECURITY ====================
 # Block direct access to sensitive directories
 RewriteRule ^(config|helpers|vendor)/(.*) - [F,L]

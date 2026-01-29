@@ -18,18 +18,7 @@ class HeroModel {
      */
     public function getSliders($limit = 10) {
         try {
-            $query = "SELECT 
-                        id,
-                        title,
-                        subtitle,
-                        description,
-                        image_url,
-                        button1_text,
-                        button1_link,
-                        button2_text,
-                        button2_link,
-                        display_order
-                      FROM hero_sliders 
+            $query = "SELECT * FROM hero_sliders 
                       WHERE status = 'active' 
                       ORDER BY display_order ASC, created_at DESC 
                       LIMIT :limit";
@@ -45,5 +34,24 @@ class HeroModel {
             return [];
         }
     }
+
+    /**
+     * Get single slider by ID
+     * @param int $id Slider ID
+     * @return array|null Slider data or null
+     */
+    public function getSliderById($id) {
+        try {
+            $query = "SELECT * FROM hero_sliders WHERE id = :id AND status = 'active'";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+            
+        } catch (PDOException $e) {
+            error_log("Hero Model Error: " . $e->getMessage());
+            return null;
+        }
+    }
 }
-?>
