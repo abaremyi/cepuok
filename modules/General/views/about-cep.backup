@@ -1,0 +1,323 @@
+<?php
+/**
+ * CEP History Page
+ * File: modules/General/views/history.php
+ */
+
+require_once __DIR__ . '/../../../config/paths.php';
+require_once __DIR__ . '/../../../config/database.php';
+require_once __DIR__ . '/../../../modules/Leadership/models/LeadershipModel.php';
+
+// Get database instance
+$db = Database::getInstance();
+$leadershipModel = new LeadershipModel($db);
+
+
+// Fetch history timeline
+$historyTimeline = $leadershipModel->getHistoryTimeline();
+
+// Fetch page content
+$pageContent = [];
+try {
+    $query = "SELECT section_name, content FROM page_content 
+              WHERE page_name = 'home' AND section_name IN ('history_video', 'history_title', 'history_description') 
+              AND status = 'active'";
+    $stmt = $db->prepare($query);
+    $stmt->execute();
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($results as $row) {
+        $pageContent[$row['section_name']] = $row['content'];
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching history content: " . $e->getMessage());
+}
+
+// Set defaults if not found in database
+$videoUrl = isset($pageContent['history_video']) ? $pageContent['history_video'] : 'https://www.youtube.com/embed/DaGMZsmDKBU';
+$historyTitle = isset($pageContent['history_title']) ? $pageContent['history_title'] : 'Our Journey of Faith';
+$historyDescription = isset($pageContent['history_description']) ? $pageContent['history_description'] : 'Journey through the remarkable history of CEP UoK, from our humble beginnings to becoming a vibrant community of faith at the University of Kigali.';
+?>
+<!DOCTYPE html>
+<html lang="en">
+
+<?php
+
+
+// Include header
+include_once get_layout('header-2');
+?>
+
+<body data-res-from="1025">
+    <?php include get_layout('loader'); ?>
+    
+    <!-- Mobile Menu Wrapper -->
+    <?php include get_layout('mobile-header'); ?>
+    
+    <!-- Main wrapper-->
+    <div class="page-wrapper">
+        <div class="page-wrapper-inner">
+            <!-- Header -->
+            <header>
+                <?php include get_layout('navbar'); ?>
+            </header>
+            
+            <!-- History Hero Section -->
+            <section class="history-hero">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="container">
+                        <div class="hero-icon">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <h1 class="hero-title">Our History</h1>
+                        <p class="hero-subtitle">A Legacy of Faith, Fellowship, and Transformation</p>
+                        <div class="hero-verse">
+                            <i class="fas fa-book-open"></i>
+                            <p>"Remember the days of old; consider the generations long past." 
+                            <span>— Deuteronomy 32:7</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="scroll-indicator">
+                    <div class="scroll-icon"></div>
+                    <span>Scroll to explore our journey</span>
+                </div>
+            </section>
+
+            <!-- Video Section -->
+            <section class="history-video-section pad-tb-100">
+                <div class="container">
+                    <div class="section-header text-center">
+                        <span class="section-label">Watch Our Story</span>
+                        <h2 class="section-title"><?= htmlspecialchars($historyTitle) ?></h2>
+                        <p class="section-subtitle"><?= htmlspecialchars($historyDescription) ?></p>
+                    </div>
+                    
+                    <div class="video-container">
+                        <div class="video-wrapper">
+                            <div class="video-overlay" id="videoOverlay">
+                                <button class="play-button" id="playButton">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                            <iframe id="historyVideo" 
+                                    src="<?= htmlspecialchars($videoUrl) ?>" 
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                        <div class="video-description">
+                            <p id="videoDescription"><?= htmlspecialchars($historyDescription) ?></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Timeline Section -->
+            <section class="milestones-section bg-light pad-tb-100">
+                <div class="container">
+                    <div class="section-header text-center">
+                        <span class="section-label">Our Journey</span>
+                        <h2 class="section-title">Key Milestones</h2>
+                        <p class="section-subtitle">Celebrating God's faithfulness through the years</p>
+                    </div>
+                    
+                    <div class="milestones-timeline">
+                        <?php 
+                        $isLeft = true;
+                        foreach ($historyTimeline as $index => $milestone): 
+                            $isCurrent = isset($milestone['is_current']) && $milestone['is_current'] == 1;
+                        ?>
+                        <div class="milestone-item <?= $isLeft ? 'left' : 'right' ?>">
+                            <div class="milestone-content">
+                                <div class="milestone-year"><?= htmlspecialchars($milestone['year']) ?></div>
+                                <h3><?= htmlspecialchars($milestone['title']) ?></h3>
+                                <p><?= htmlspecialchars($milestone['description']) ?></p>
+                                <div class="milestone-icon">
+                                    <i class="<?= htmlspecialchars($milestone['icon_class']) ?>"></i>
+                                </div>
+                            </div>
+                            <div class="timeline-dot <?= $isCurrent ? 'current' : '' ?>"></div>
+                        </div>
+                        <?php 
+                            $isLeft = !$isLeft;
+                        endforeach; 
+                        ?>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Legacy Section -->
+            <section class="legacy-section pad-tb-100">
+                <div class="container">
+                    <div class="section-header text-center">
+                        <span class="section-label">Our Heritage</span>
+                        <h2 class="section-title">The CEP Legacy</h2>
+                        <p class="section-subtitle">Building on a foundation of faith and service</p>
+                    </div>
+                    
+                    <div class="row align-items-center">
+                        <div class="col-lg-6">
+                            <div class="legacy-content">
+                                <h3>From Humble Beginnings</h3>
+                                <p>CEP UoK was officially established in 2016 at the University of Kigali, bringing together Pentecostal students with a shared vision to impact the campus for Christ. What started as a small group of committed believers has grown into a vibrant fellowship of over 200 active members.</p>
+                                
+                                <h3 class="mt-4">Growth Through Challenges</h3>
+                                <p>Throughout our journey, we have faced various challenges including financial constraints, periods of low attendance, and the unique difficulties posed by the COVID-19 pandemic. However, each challenge has strengthened our faith and dependence on God, teaching us valuable lessons about perseverance, unity, and divine provision.</p>
+                                
+                                <h3 class="mt-4">Emphasis on Self-Reliance</h3>
+                                <p>From 2019 onwards, CEP leadership intentionally emphasized preparing members for life beyond university. We introduced continuous sensitization programs on entrepreneurship, job creation, and leadership accountability, recognizing that strong faith must be combined with practical responsibility.</p>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="legacy-images">
+                                <div class="legacy-img primary">
+                                    <img src="<?= img_url('about/legacy-1.jpg') ?>" alt="CEP Early Days" class="img-fluid">
+                                    <div class="img-caption">
+                                        <span>2016</span>
+                                        <p>The Beginning</p>
+                                    </div>
+                                </div>
+                                <div class="legacy-img secondary">
+                                    <img src="<?= img_url('about/legacy-2.jpg') ?>" alt="CEP Growth" class="img-fluid">
+                                    <div class="img-caption">
+                                        <span>2022</span>
+                                        <p>Dual Sessions Era</p>
+                                    </div>
+                                </div>
+                                <div class="legacy-img tertiary">
+                                    <img src="<?= img_url('about/legacy-3.jpg') ?>" alt="CEP Today" class="img-fluid">
+                                    <div class="img-caption">
+                                        <span>2026</span>
+                                        <p>Thriving Today</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Impact Statistics -->
+            <section class="impact-stats bg-primary text-white pad-tb-100">
+                <div class="container">
+                    <div class="section-header text-center text-white">
+                        <span class="section-label text-white">Our Impact</span>
+                        <h2 class="section-title text-white">By the Numbers</h2>
+                        <p class="section-subtitle text-white">The fruit of faithful service and God's blessing</p>
+                    </div>
+                    
+                    <div class="row stats-row">
+                        <?php
+                        // Fetch quick stats
+                        try {
+                            $query = "SELECT * FROM quick_stats WHERE status = 'active' ORDER BY display_order ASC LIMIT 8";
+                            $stmt = $db->prepare($query);
+                            $stmt->execute();
+                            $stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                            
+                            foreach ($stats as $stat):
+                        ?>
+                        <div class="col-lg-3 col-md-6 mb-4">
+                            <div class="stat-item">
+                                <div class="stat-icon">
+                                    <i class="<?= htmlspecialchars($stat['stat_icon']) ?>"></i>
+                                </div>
+                                <h3 class="stat-number" data-count="<?= htmlspecialchars($stat['stat_value']) ?>">
+                                    <?= htmlspecialchars($stat['stat_value']) ?>
+                                </h3>
+                                <p class="stat-label"><?= htmlspecialchars($stat['stat_label']) ?></p>
+                            </div>
+                        </div>
+                        <?php 
+                            endforeach;
+                        } catch (PDOException $e) {
+                            error_log("Error fetching stats: " . $e->getMessage());
+                        }
+                        ?>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Vision Forward -->
+            <section class="vision-forward pad-tb-100">
+                <div class="container">
+                    <div class="row align-items-center">
+                        <div class="col-lg-6">
+                            <div class="vision-image">
+                                <img src="<?= img_url('about/vision-forward.jpg') ?>" alt="Future Vision" class="img-fluid">
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="vision-content">
+                                <span class="section-label">Looking Ahead</span>
+                                <h2 class="section-title">Our Vision Forward</h2>
+                                <p>As we look to the future, CEP UoK remains committed to raising Christ-centered leaders who will impact not only the university but also the Church and society at large. We envision:</p>
+                                <ul class="vision-list">
+                                    <li>
+                                        <i class="fas fa-arrow-right"></i>
+                                        <div>
+                                            <strong>Expanded Ministry Reach</strong>
+                                            <p>Extending our impact to more campuses and communities</p>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <i class="fas fa-arrow-right"></i>
+                                        <div>
+                                            <strong>Leadership Development</strong>
+                                            <p>Producing more equipped, empowered, and effective Christian leaders</p>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <i class="fas fa-arrow-right"></i>
+                                        <div>
+                                            <strong>Economic Empowerment</strong>
+                                            <p>Supporting members' entrepreneurship and self-reliance initiatives</p>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <i class="fas fa-arrow-right"></i>
+                                        <div>
+                                            <strong>Stronger Partnerships</strong>
+                                            <p>Deepening relationships with local churches and ministry organizations</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Call to Action -->
+            <section class="history-cta bg-gradient pad-tb-100">
+                <div class="container text-center">
+                    <div class="cta-content">
+                        <h2 class="text-white">Be Part of Our Story</h2>
+                        <p class="text-white">The history of CEP UoK is still being written, and you can be part of it. Join us as we continue to serve God, grow in faith, and impact the university for Christ.</p>
+                        <div class="cta-buttons">
+                            <a href="<?= url('contact') ?>" class="btn btn-light btn-lg">
+                                <i class="fas fa-envelope"></i> Connect With Us
+                            </a>
+                            <a href="<?= url('leadership') ?>" class="btn btn-outline-light btn-lg">
+                                <i class="fas fa-users"></i> Meet Our Leaders
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <?php include get_layout('footer'); ?>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <?php include get_layout('scripts'); ?>
+    
+    <!-- History Page Custom JS -->
+    <script src="<?= js_url('history.js') ?>"></script>
+</body>
+</html>

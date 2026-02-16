@@ -1,6 +1,6 @@
 <?php
 /**
- * Testimonial Model
+ * CEP UOK WEBSITE Testimonial Model
  * File: modules/Testimonials/models/TestimonialModel.php
  * Handles all database operations for testimonials
  */
@@ -25,7 +25,7 @@ class TestimonialModel {
                         role,
                         content,
                         image_url,
-                        rating,
+                        display_order,
                         created_at
                       FROM testimonials 
                       WHERE status = 'active' 
@@ -61,6 +61,24 @@ class TestimonialModel {
         } catch (PDOException $e) {
             error_log("Testimonial Model Error: " . $e->getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Get all testimonials (including inactive)
+     * @return array Array of all testimonials
+     */
+    public function getAllTestimonials() {
+        try {
+            $query = "SELECT * FROM testimonials ORDER BY display_order ASC, created_at DESC";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+        } catch (PDOException $e) {
+            error_log("Testimonial Model Error: " . $e->getMessage());
+            return [];
         }
     }
 }

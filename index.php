@@ -1,6 +1,10 @@
 <?php
 // CEPUOK/index.php - Main Router
 
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // Include paths configuration - use require_once to prevent multiple inclusion
 require_once 'config/paths.php';
 
@@ -24,12 +28,18 @@ $routes = [
     '' => 'modules/General/views/index.php',
     '/' => 'modules/General/views/index.php',
     '/home' => 'modules/General/views/index.php',
-    '/about' => 'modules/General/views/about.php', 
+    '/about' => 'modules/General/views/about-cep.php', 
+    '/about-cep' => 'modules/General/views/about-cep.php',
+    '/history' => 'modules/General/views/history.php',
+    '/leadership' => 'modules/General/views/leadership.php',
     '/contact' => 'modules/General/views/contact.php',
     '/departments' => 'modules/General/views/departments.php',
-    '/gallery' => 'modules/General/views/gallery.php',
+    '/gallery' => 'modules/General/views/gallery-photo.php',
+    '/gallery-photo' => 'modules/General/views/gallery-photo.php',
+    '/gallery-video' => 'modules/General/views/gallery-video.php',
     '/leadership-team' => 'modules/General/views/leadership-team.php',
     '/local-church' => 'modules/General/views/local-church.php',
+    '/membership' => 'modules/General/views/membership.php',
     '/news' => 'modules/General/views/news.php',
     '/programs' => 'modules/General/views/programs.php',
     '/projects' => 'modules/General/views/projects.php',
@@ -42,7 +52,6 @@ $routes = [
     '/services-facilities' => 'modules/General/views/services-facilities.php',
     '/services' => 'modules/General/views/services.php',
     '/service-details' => 'modules/General/views/service-details.php',
-    '/video-gallery' => 'modules/General/views/videos.php',
     
     // Add static file routes
     '/static/get_projects' => 'modules/General/static/get_projects.php',
@@ -50,12 +59,14 @@ $routes = [
     '/static/get_related_projects' => 'modules/General/static/get_related_projects.php',
     
     // Add API routes
+    '/api/leadership' => 'modules/Leadership/api/leadershipApi.php',
     '/api/administration' => 'modules/Administration/api/administrationApi.php',
     '/api/admission' => 'modules/Admission/api/admissionApi.php',
     '/api/contact' => 'modules/Contact/api/contactApi.php',
     '/api/facilities' => 'modules/Facilities/api/facilitiesApi.php',
     '/api/gallery' => 'modules/Gallery/api/galleryApi.php',
     '/api/hero' => 'modules/Hero/api/heroApi.php',
+    '/api/membership' => 'modules/Membership/api/membershipApi.php',
     '/api/news' => 'modules/News/api/newsApi.php',
     '/api/programs' => 'modules/Programs/api/programsApi.php',
     '/api/testimonials' => 'modules/Testimonials/api/testimonialsApi.php',
@@ -69,30 +80,31 @@ $routes = [
     '/reset-password' => 'modules/Authentication/views/reset-password.php',
     '/verify-email' => 'modules/Authentication/views/verifyEmail.php',
     
-    // Dashboard routes
-    '/admin' => 'modules/Dashboard/views/admin.php',
-    '/dashboard' => 'modules/Dashboard/views/dashboard.php',
-    '/parent' => 'modules/Dashboard/views/parent.php',
-    '/student' => 'modules/Dashboard/views/student.php',
-    '/teacher' => 'modules/Dashboard/views/teacher.php',
+    // Admin dashboard routes
+    '/admin/dashboard' => 'modules/Dashboard/views/admin-dashboard.php',
+    '/admin/welcome' => 'modules/Dashboard/views/admin-welcome.php',
+    '/admin/profile' => 'modules/Dashboard/views/profile.php',
+    '/admin/settings' => 'modules/Dashboard/views/settings.php',
     
     // Admin management routes
-    '/admin/admission' => 'modules/Dashboard/views/admission-management.php',
-    '/admin/dashboard' => 'modules/Dashboard/views/admin-dashboard.php',
-    '/admin/departments' => 'modules/Dashboard/views/departments-management.php',
-    '/admin/educational-programs' => 'modules/Dashboard/views/educational-programs.php',
-    '/admin/facilities' => 'modules/Dashboard/views/facilities-management.php',
-    '/admin/gallery' => 'modules/Dashboard/views/gallery-management.php',
-    '/admin/hero-sliders' => 'modules/Dashboard/views/hero-sliders.php',
-    '/admin/leadership' => 'modules/Dashboard/views/leadership-management.php', 
-    '/admin/news-events' => 'modules/Dashboard/views/news-events-management.php',
-    '/admin/page-content' => 'modules/Dashboard/views/page-content-management.php',
-    '/admin/quick-stats' => 'modules/Dashboard/views/quick-stats-management.php',
-    '/admin/roles-permissions' => 'modules/Dashboard/views/roles-permissions-management.php',
-    '/admin/testimonials' => 'modules/Dashboard/views/testimonials-management.php',
     '/admin/users-management' => 'modules/Dashboard/views/users-management.php',
-    '/admin/video-gallery' => 'modules/Dashboard/views/video-gallery-management.php',
-    '/admin/why-choose' => 'modules/Dashboard/views/why-choose-management.php',
+    '/admin/users-add-user' => 'modules/Dashboard/views/users-add-user.php',
+    '/admin/roles-permissions-management' => 'modules/Dashboard/views/roles-permissions-management.php',
+    '/admin/membership-management' => 'modules/Dashboard/views/membership-management.php',
+    '/admin/membership-applications' => 'modules/Dashboard/views/membership-applications.php',
+    '/admin/news-events-management' => 'modules/Dashboard/views/news-events-management.php',
+    '/admin/gallery-management' => 'modules/Dashboard/views/gallery-management.php',
+    '/admin/video-gallery-management' => 'modules/Dashboard/views/video-gallery-management.php',
+    '/admin/testimonials-management' => 'modules/Dashboard/views/testimonials-management.php',
+    '/admin/leadership-management' => 'modules/Dashboard/views/leadership-management.php',
+    '/admin/programs-management' => 'modules/Dashboard/views/programs-management.php',
+    '/admin/departments-management' => 'modules/Dashboard/views/departments-management.php',
+    '/admin/messages-management' => 'modules/Dashboard/views/messages-management.php',
+    
+    // Session-specific routes
+    '/admin/session/members' => 'modules/Dashboard/views/session-members.php',
+    '/admin/session/activities' => 'modules/Dashboard/views/session-activities.php',
+    '/admin/session/reports' => 'modules/Dashboard/views/session-reports.php',
     
     // API routes
     '/api/auth' => 'modules/Authentication/api/authApi.php',
@@ -117,4 +129,5 @@ if (array_key_exists($path, $routes)) {
     http_response_code(404);
     echo "Page not found: " . $path;
 }
+
 ?>

@@ -1,0 +1,53 @@
+/* admin/assets/css/admin.css */
+
+:root {
+    --primary-color: #82ae46;
+    --primary-dark: #6a9438;
+    --secondary-color: #2d3748;
+    --light-gray: #f7fafc;
+    --dark-gray: #4a5568;
+}
+
+.admin-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+.admin-sidebar {
+    width: 250px;
+    background: var(--secondary-color);
+    color: white;
+    padding: 20px 0;
+}
+
+.admin-content {
+    flex: 1;
+    background: var(--light-gray);
+    padding: 20px;
+}
+
+.dashboard-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table-responsive {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-pending { background: #fed7d7; color: #c53030; }
+.badge-processing { background: #feebc8; color: #dd6b20; }
+.badge-completed { background: #c6f6d5; color: #276749; }
+.badge-cancelled { background: #e2e8f0; color: #4a5568; }

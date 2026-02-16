@@ -1,8 +1,7 @@
 <?php
 /**
- * Video Gallery API Endpoint
+ * Video API Endpoint - CEP UOK WEBSITE
  * File: modules/Videos/api/videoApi.php
- * Handles all video gallery API requests
  */
 
 error_reporting(E_ALL);
@@ -10,86 +9,60 @@ ini_set('display_errors', 1);
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
 
-// Calculate the root path
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
 $root_path = dirname(dirname(dirname(dirname(__FILE__))));
 require_once $root_path . "/config/paths.php";
 require_once $root_path . "/config/database.php";
 require_once $root_path . "/modules/Videos/controllers/VideoController.php";
-require_once $root_path . "/modules/Videos/models/VideoModel.php";
 
-$action = isset($_GET['action']) ? $_GET['action'] : (isset($_POST['action']) ? $_POST['action'] : '');
-
-error_log("Video API called with action: " . $action);
+$action = isset($_GET['action']) ? $_GET['action'] : '';
+if (empty($action) && isset($_POST['action'])) {
+    $action = $_POST['action'];
+}
 
 try {
     $videoController = new VideoController();
 
     switch ($action) {
         case 'get_videos':
-        case 'getVideos':
         case '':
-            // Get all videos with optional filters
             $params = [
-                'limit' => isset($_GET['limit']) ? (int)$_GET['limit'] : 50,
+                'limit' => isset($_GET['limit']) ? (int)$_GET['limit'] : 12,
                 'offset' => isset($_GET['offset']) ? (int)$_GET['offset'] : 0,
-                'category' => isset($_GET['category']) ? $_GET['category'] : null,
                 'status' => 'active'
             ];
-
             $result = $videoController->getVideos($params);
             echo json_encode($result);
             break;
 
-        case 'get_video_by_id':
-        case 'getVideoById':
-            // Get single video by ID
-            $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-            $result = $videoController->getVideoById($id);
-            echo json_encode($result);
-            break;
-
-        case 'get_by_category':
-        case 'getByCategory':
-            // Get videos by category
-            $category = isset($_GET['category']) ? $_GET['category'] : null;
-            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
-            
-            $result = $videoController->getVideosByCategory($category, $limit);
-            echo json_encode($result);
-            break;
-
-        case 'get_stats':
-        case 'getStats':
-            // Get video statistics
-            $result = $videoController->getVideoStats();
-            echo json_encode($result);
-            break;
-
         case 'increment_views':
-        case 'incrementViews':
-            // Increment video views
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+                break;
+            }
+            
             $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
             $result = $videoController->incrementViews($id);
             echo json_encode($result);
             break;
 
-        case 'get_featured':
-        case 'getFeatured':
-            // Get featured/popular videos
-            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 6;
-            $result = $videoController->getFeaturedVideos($limit);
-            echo json_encode($result);
-            break;
-
         default:
+            http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'message' => 'Invalid action. Available actions: get_videos, get_video_by_id, get_by_category, get_stats, increment_views, get_featured'
+                'message' => 'Invalid action.',
+                'available_actions' => ['get_videos', 'increment_views']
             ]);
             break;
     }
-
 } catch (Exception $e) {
     error_log("Video API Exception: " . $e->getMessage());
     http_response_code(500);

@@ -1,381 +1,376 @@
-<!DOCTYPE html>
-<html lang="en">
-
 <?php
-// Include paths configuration
-$root_path = dirname(dirname(dirname(dirname(__FILE__))));
-require_once $root_path . "/config/paths.php";
+/**
+ * About CEP Page
+ * File: modules/General/views/about-cep.php
+ */
 
-// Include header
-include_once get_layout('header');
+require_once __DIR__ . '/../../../config/paths.php';
+require_once __DIR__ . '/../../../config/database.php';
+
+// Fetch page content from database
+$db = Database::getInstance();
+$pageContent = [];
+
+$home='';
+$if_not_home_class = '';
+
+try {
+    $query = "SELECT section_name, title, content, image_url 
+              FROM page_content 
+              WHERE page_name = 'about_cep' AND status = 'active' 
+              ORDER BY display_order ASC";
+    $stmt = $db->prepare($query);
+    $stmt->execute();
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($results as $row) {
+        $pageContent[$row['section_name']] = $row;
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching about content: " . $e->getMessage());
+}
+
+// Helper function to get content
+function getContent($key, $field = 'content', $default = '') {
+    global $pageContent;
+    return isset($pageContent[$key]) ? $pageContent[$key][$field] : $default;
+}
 ?>
-
-<body>
-
-    <!-- Control Active Nav Link -->
-    <?php
-    $home = 'active';
-    $services = 'off';
-    $work = 'off';
-    $about = 'off';
-    $news = 'off';
-    $contacts = 'off';
-    ?>
-    <!-- Navbar -->
-    <?php include_once get_layout('navbar'); ?>
-
-    <!-- Page Header -->
-    <header class="page-x-header">
-        <div class="container">
-            <h1>About Mount Carmel School</h1>
-            <p>Excellence in Education, Rooted in Faith</p>
-            <div class="page-x-breadcrumb">
-                <a href="/">Home</a>
-                <span><i class="fas fa-chevron-right"></i></span>
-                <span>About Us</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- Who We Are Section -->
-    <section class="who-we-are tmp-section">
-        <div class="container">
-            <div class="w3l-heading">
-                <h2 class="w3ls_head">Who We Are</h2>
-            </div>
-            <div class="who-content">
-                <div class="who-text">
-                    <h3>Building Tomorrow's Leaders</h3>
-                    <p>Mount Carmel School is a nurturing bilingual institution founded in 2013 by Reverend Pastor
-                        Jeanne D'Arc Uwanyiligira. We are dedicated to providing quality education that combines
-                        academic excellence with spiritual growth.</p>
-                    <p>Our commitment extends beyond academics. We nurture curiosity, character, and a lifelong love of
-                        learning through comprehensive programs in academics, outdoor education, arts, sports,
-                        leadership, and community service.</p>
-                    <div class="highlight-box">
-                        <h4><i class="fas fa-quote-left"></i> Our Commitment</h4>
-                        <p>"We encourage students to go beyond their limits — guided by exceptional teachers, small
-                            class sizes, and personalized support. Our goal is to bless Rwanda with God-fearing
-                            citizens, highly skilled and generation transformers for God's glory."</p>
-                    </div>
-                </div>
-                <div class="who-image">
-                    <img src="<?= img_url('about/school-venue-1.jpg') ?>"
-                        alt="Mount Carmel School Campus">
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- NEW: Mission, Vision & Philosophy -->
-    <section class="mvp-about-section tmp-section" id="mvp-about-section"> <!-- Changed from mvp-section -->
-        <div class="container">
-            <div class="w3l-heading">
-                <h2 class="w3ls_head">Mission, Vision & Philosophy</h2>
-            </div>
-            <div class="mvp-about-container"> <!-- Changed from mvp-container -->
-                <!-- Mission Card -->
-                <div class="cause-about-card"> <!-- Changed from cause-card -->
-                    <div class="bg-about-thumbnail" style="background-image: url('<?= img_url('about/about-1.jpg') ?>')"></div> <!-- Changed from bg-thumbnail -->
-                    <div class="card-about-content"> <!-- Changed from card-content -->
-                        <img src="<?= img_url('about/mission2.png') ?>" alt="Mission Icon"
-                            class="card-about-icon"> <!-- Changed from card-icon -->
-                        <h3>Our Mission</h3>
-                        <p>To train children to honor GOD, develop their potential skills; achieve excellence in
-                            academics, wisdom and character.</p>
-                    </div>
-                </div>
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <?php include get_layout('header'); ?>
+    <title>About CEP - <?php echo getContent('hero_title', 'content', 'CEP University of Kigali'); ?></title>
     
-                <!-- Vision Card -->
-                <div class="cause-about-card">
-                    <div class="bg-about-thumbnail" style="background-image: url('<?= img_url('about/about-2.jpg') ?>')"></div>
-                    <div class="card-about-content">
-                        <img src="<?= img_url('about/vision.png') ?>" alt="Vision Icon"
-                            class="card-about-icon">
-                        <h3>Our Vision</h3>
-                        <p>To bless Rwanda with GOD fearing citizens, highly skilled and generation transformers for
-                            GOD'S glory.</p>
-                    </div>
-                </div>
+    <!-- Google Fonts for the beautiful typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Crimson+Text:wght@400;600;700&display=swap" rel="stylesheet">
     
-                <!-- Philosophy Card -->
-                <div class="cause-about-card">
-                    <div class="bg-about-thumbnail" style="background-image: url('<?= img_url('about/about-3.jpg') ?>')"></div>
-                    <div class="card-about-content">
-                        <img src="<?= img_url('about/philosophy.png') ?>" alt="Philosophy Icon"
-                            class="card-about-icon">
-                        <h3>Our Philosophy</h3>
-                        <p>We believe in holistic education that nurtures the mind, body, and spirit. Every child is
-                            unique and capable of excellence when given proper guidance, support, and a nurturing
-                            environment rooted in faith.</p>
-                    </div>
-                </div>
+    <!-- CEP Custom Styles -->
+    <link rel="stylesheet" href="<?= css_url('cep-custom.css') ?>">
+</head>
 
-                <!-- Motto Card -->
-                
-                <div class="cause-about-card">
-                    <div class="bg-about-thumbnail" style="background-image: url('<?= img_url('about/about-4.jpg') ?>')"></div>
-                    <div class="card-about-content">
-                        <img src="<?= img_url('about/motto.png') ?>" alt="Motto Icon"
-                            class="card-about-icon">
-                        <h3>Our Motto</h3>
-                        <p>"In God We Hope Wisdom and Knowledge" <br><em>Job 12:13</em></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    <!-- NEW: Mission, Vision & Philosophy -->
-
-    <!-- NEW: Core Values -->
-    <section class="values-section tmp-section">
-        <div class="container">
-            <div class="w3l-heading">
-                <h2 class="w3ls_head">Our Core Values</h2>
-            </div>
-            <div class="values-container">
-                <div class="value-card">
-                    <div class="value-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <h4>Academic Excellence</h4>
-                    <p>We maintain high academic standards and provide rigorous, engaging curriculum.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">
-                        <i class="fas fa-hands-holding"></i>
-                    </div>
-                    <h4>Stewardship</h4>
-                    <p>Responsible management of resources entrusted to us for God's glory.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">
-                        <i class="fas fa-hammer"></i>
-                    </div>
-                    <h4>Hard Work & Unity</h4>
-                    <p>Diligence and collaboration as foundations for success and growth.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">
-                        <i class="fas fa-flag"></i>
-                    </div>
-                    <h4>Patriotism</h4>
-                    <p>Love for our country and commitment to its development.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">
-                        <i class="fas fa-cross"></i>
-                    </div>
-                    <h4>Discipleship</h4>
-                    <p>Following Christ's teachings and making disciples of all nations.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">
-                        <i class="fas fa-brain"></i>
-                    </div>
-                    <h4>Wisdom</h4>
-                    <p>Pursuing knowledge and understanding guided by God's word.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h4>Integrity</h4>
-                    <p>Moral uprightness and consistency in words and actions.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">
-                        <i class="fas fa-heart"></i>
-                    </div>
-                    <h4>Love for All</h4>
-                    <p>Showing Christ's love to everyone regardless of background.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- History Section -->
-    <section class="history-section tmp-section">
-        <div class="container">
-            <div class="w3l-heading">
-                <h2 class="w3ls_head">Our History</h2>
-            </div>
-            <div class="history-content">
-                <div class="history-text">
-                    <h3>A Legacy of Faith and Excellence</h3>
-                    <p>Mount Carmel School was founded in 2013 by <strong>Reverend Pastor Jeanne D'Arc Uwanyiligira</strong>, who was inspired by a deep desire to promote quality education rooted in Christian values. Her vision was to create an institution where academic excellence meets spiritual growth, forming the foundation of wisdom.</p>
-                    
-                    <p>From its humble beginnings, the school has remained steadfast on its path of seeking knowledge based on the Holy Scriptures. Our commitment to this founding principle has consistently produced students who grow not only in posture and mind but also in character and faith.</p>
-                    
-                    <div class="history-highlight">
-                        <h4><i class="fas fa-award"></i> Academic Milestones</h4>
-                        <p>In the 2021-2022 academic year, Mount Carmel School achieved remarkable success in the National Primary Leaving Examinations (PLE), with all students passing with First and Second Division honors. We proudly celebrated our student who became the <strong>2nd best pupil at national level</strong> and the <strong>top student in Kigali City</strong>.</p>
-                    </div>
-                    
-                    <p>Today, we continue to build on this legacy with a team of professional teachers qualified at regional (EAC) standards. Our bilingual curriculum, offered from Nursery through Primary Six, ensures students master both English and French while receiving a comprehensive education that prepares them for global opportunities.</p>
-                    
-                    <blockquote class="history-quote">
-                        <i class="fas fa-quote-left"></i>
-                        <p>"We believe in the intersection of quality education and the fear of God—the beginning of true wisdom. Every child enrolled at Mount Carmel becomes a testament to effective growth in both mind and character."</p>
-                        <cite>– Our Founding Principle</cite>
-                    </blockquote>
-                </div>
-                <div class="history-image">
-                    <div class="history-image-container">
-                        <img src="<?= img_url('about/school-venue-2.jpg') ?>" 
-                             alt="Mount Carmel School History">
-                        <div class="history-image-caption">
-                            <h4>Since 2013</h4>
-                            <p>Building foundations for future generations</p>
-                        </div>
-                    </div>
-                    
-                    <div class="history-facts">
-                        <div class="history-fact">
-                            <i class="fas fa-calendar-check"></i>
-                            <div>
-                                <h5>Founded</h5>
-                                <p>2013</p>
-                            </div>
-                        </div>
-                        <div class="history-fact">
-                            <i class="fas fa-user-graduate"></i>
-                            <div>
-                                <h5>Educational Sections</h5>
-                                <p>Nursery to Upper Primary</p>
-                            </div>
-                        </div>
-                        <div class="history-fact">
-                            <i class="fas fa-language"></i>
-                            <div>
-                                <h5>Languages</h5>
-                                <p>Bilingual (English & French)</p>
-                            </div>
-                        </div>
-                        <div class="history-fact">
-                            <i class="fas fa-trophy"></i>
-                            <div>
-                                <h5>National Recognition</h5>
-                                <p>Top student in Kigali City</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+<body data-res-from="1025">
+    <?php include get_layout('loader'); ?>
     
-    <!-- Quick Links to Detailed Pages -->
-    <section class="quick-links tmp-section" >
-        <div class="container">
-            <div class="w3l-heading">
-                <h2 class="w3ls_head">Explore More</h2>
-            </div>
-            <div class="links-grid">
-                <a href="<?= url('programs') ?>" class="link-card">
-                    <div class="link-icon">
-                        <i class="fas fa-graduation-cap"></i>
+    <!-- Mobile Menu Wrapper -->
+    <?php include get_layout('mobile-header'); ?>
+    
+    <!-- Main wrapper-->
+    <div class="page-wrapper">
+        <div class="page-wrapper-inner">
+            <!-- Header -->
+            <header>
+                <?php include get_layout('topbar'); ?>
+                <?php include get_layout('navbar'); ?>
+            </header>
+            
+            <!-- About Hero Section -->
+            <section class="about-hero">
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <div class="container">
+                        <div class="hero-icon">
+                            <i class="fas fa-church"></i>
+                        </div>
+                        <h1 class="hero-title">
+                            <?= getContent('hero_title', 'content', 'About CEP UoK') ?>
+                        </h1>
+                        <p class="hero-subtitle">
+                            <?= getContent('hero_subtitle', 'content', 'Communauté des Étudiants Pentecôtistes à l\'Université de Kigali') ?>
+                        </p>
+                        <div class="hero-verse">
+                            <i class="fas fa-book-open"></i>
+                            <p>
+                                <?= getContent('hero_verse', 'content', '"For where two or three gather in my name, there am I with them."') ?>
+                                <span><?= getContent('hero_verse_ref', 'content', '— Matthew 18:20') ?></span>
+                            </p>
+                        </div>
                     </div>
-                    <h3>Our Programs</h3>
-                    <p>Explore our comprehensive educational programs from Nursery to Upper Primary</p>
-                    <div class="link-arrow">
-                        <i class="fas fa-arrow-right"></i>
+                </div>
+                <div class="scroll-indicator">
+                    <div class="scroll-icon"></div>
+                    <span>Scroll to explore</span>
+                </div>
+            </section>
+
+            <!-- Who We Are Section -->
+            <section class="who-we-are-section pad-tb-100">
+                <div class="container">
+                    <div class="row align-items-center">
+                        <div class="col-lg-6">
+                            <div class="section-intro">
+                                <span class="section-label">Our Identity</span>
+                                <h2 class="section-title">
+                                    <?= getContent('who_title', 'content', 'Who We Are') ?>
+                                </h2>
+                                <div class="intro-content">
+                                    <?= getContent('who_content', 'content', '<p>CEP–UoK (Communauté des Étudiants Pentecôtistes à l\'Université de Kigali) is a Christian students\' fellowship that brings together university students who desire to grow spiritually, live according to biblical values, and serve God within the academic environment of the University of Kigali.</p>') ?>
+                                </div>
+                                <div class="identity-features">
+                                    <div class="feature-item">
+                                        <i class="fas fa-cross"></i>
+                                        <h4>Biblical & Pentecostal</h4>
+                                        <p>Rooted in Scripture and the power of the Holy Spirit</p>
+                                    </div>
+                                    <div class="feature-item">
+                                        <i class="fas fa-users"></i>
+                                        <h4>Student-Led</h4>
+                                        <p>By students, for students, empowering peer ministry</p>
+                                    </div>
+                                    <div class="feature-item">
+                                        <i class="fas fa-hands-helping"></i>
+                                        <h4>Service-Oriented</h4>
+                                        <p>Impacting campus, church, and community</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="identity-image">
+                                <img src="<?= getContent('who_image', 'image_url', img_url('about/who-we-are.jpg')) ?>" alt="CEP UoK Fellowship" class="img-fluid">
+                                <div class="image-overlay">
+                                    <div class="overlay-content">
+                                        <h3>Since 2016</h3>
+                                        <p>Growing in Faith & Service</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </a>
-                <a href="<?= url('administration') ?>" class="link-card">
-                    <div class="link-icon">
-                        <i class="fas fa-user-tie"></i>
+                </div>
+            </section>
+
+            <!-- Mission & Vision Section -->
+            <section class="mission-vision-section bg-light pad-tb-100">
+                <div class="container">
+                    <div class="section-header text-center">
+                        <span class="section-label">Our Purpose</span>
+                        <h2 class="section-title">Mission & Vision</h2>
+                        <p class="section-subtitle">Called to serve, empowered to lead, committed to Christ</p>
                     </div>
-                    <h3>Administration Team</h3>
-                    <p>Meet our dedicated leadership and teaching staff</p>
-                    <div class="link-arrow">
-                        <i class="fas fa-arrow-right"></i>
+                    
+                    <div class="row mv-cards">
+                        <!-- Vision Card -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="mv-card vision-card">
+                                <div class="mv-icon">
+                                    <i class="fas fa-eye"></i>
+                                </div>
+                                <h3 class="mv-title">Our Vision</h3>
+                                <div class="mv-content">
+                                    <p><?= getContent('vision', 'content', 'To raise Christ-centered leaders who honor God, uphold biblical values, and positively influence the Church, the University, and society.') ?></p>
+                                </div>
+                                <div class="mv-decoration">
+                                    <i class="fas fa-mountain"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mission Card -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="mv-card mission-card">
+                                <div class="mv-icon">
+                                    <i class="fas fa-bullseye"></i>
+                                </div>
+                                <h3 class="mv-title">Our Mission</h3>
+                                <div class="mv-content">
+                                    <p><?= getContent('mission_intro', 'content', 'CEP–UoK\'s mission is to nurture students spiritually and holistically by equipping them to live out their Christian faith with responsibility, leadership, and impact.') ?></p>
+                                    <ul class="mission-list">
+                                        <li><i class="fas fa-check-circle"></i> Build students spiritually through prayer, worship, and biblical teaching</li>
+                                        <li><i class="fas fa-check-circle"></i> Disciple and mentor students into mature Christian leadership</li>
+                                        <li><i class="fas fa-check-circle"></i> Foster unity, love, and mutual support among members</li>
+                                        <li><i class="fas fa-check-circle"></i> Advance evangelism and outreach within and beyond the university</li>
+                                        <li><i class="fas fa-check-circle"></i> Collaborate with the local church and university authorities</li>
+                                        <li><i class="fas fa-check-circle"></i> Promote self-reliance, leadership accountability, and economic empowerment</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </a>
-                <a href="<?= url('gallery') ?>" class="link-card">
-                    <div class="link-icon">
-                        <i class="fas fa-images"></i>
+                </div>
+            </section>
+
+            <!-- Core Values Section -->
+            <section class="core-values-section pad-tb-100">
+                <div class="container">
+                    <div class="section-header text-center">
+                        <span class="section-label">What We Stand For</span>
+                        <h2 class="section-title">Core Values</h2>
+                        <p class="section-subtitle">Principles that guide our fellowship and ministry</p>
                     </div>
-                    <h3>Photo Gallery</h3>
-                    <p>See our vibrant campus life and student activities</p>
-                    <div class="link-arrow">
-                        <i class="fas fa-arrow-right"></i>
+                    
+                    <div class="row values-grid">
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="value-card">
+                                <div class="value-icon">
+                                    <i class="fas fa-bible"></i>
+                                </div>
+                                <h4>Faithfulness to Scripture</h4>
+                                <p>The Bible is our foundation, guide, and ultimate authority in all we do.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="value-card">
+                                <div class="value-icon">
+                                    <i class="fas fa-praying-hands"></i>
+                                </div>
+                                <h4>Prayer & Worship</h4>
+                                <p>We prioritize communion with God through consistent prayer and heartfelt worship.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="value-card">
+                                <div class="value-icon">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <h4>Integrity & Accountability</h4>
+                                <p>We uphold honesty, transparency, and responsibility in all our actions.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="value-card">
+                                <div class="value-icon">
+                                    <i class="fas fa-heart"></i>
+                                </div>
+                                <h4>Unity & Love</h4>
+                                <p>We cultivate genuine fellowship and demonstrate Christ's love to all.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="value-card">
+                                <div class="value-icon">
+                                    <i class="fas fa-hands"></i>
+                                </div>
+                                <h4>Service & Responsibility</h4>
+                                <p>We serve God and others with dedication, humility, and excellence.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="value-card">
+                                <div class="value-icon">
+                                    <i class="fas fa-crown"></i>
+                                </div>
+                                <h4>Leadership & Excellence</h4>
+                                <p>We develop Christ-like leaders who pursue excellence in all endeavors.</p>
+                            </div>
+                        </div>
                     </div>
-                </a>
-            </div>
+                </div>
+            </section>
+
+            <!-- Fellowship Times Section -->
+            <section class="fellowship-times-section bg-light pad-tb-100">
+                <div class="container">
+                    <div class="section-header text-center">
+                        <span class="section-label">Join Us</span>
+                        <h2 class="section-title">Fellowship Times</h2>
+                        <p class="section-subtitle">We meet regularly for worship, prayer, and fellowship</p>
+                    </div>
+                    
+                    <div class="row times-grid">
+                        <?php
+                        // Fetch fellowship times from recurring_events table
+                        try {
+                            $query = "SELECT * FROM recurring_events WHERE status = 'active' ORDER BY display_order ASC";
+                            $stmt = $db->prepare($query);
+                            $stmt->execute();
+                            $fellowshipTimes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                            
+                            foreach ($fellowshipTimes as $time):
+                                $dayIcon = [
+                                    'Monday' => 'fa-sun',
+                                    'Wednesday' => 'fa-star',
+                                    'Thursday' => 'fa-calendar',
+                                    'Sunday' => 'fa-praying-hands'
+                                ];
+                                $icon = isset($dayIcon[$time['day_of_week']]) ? $dayIcon[$time['day_of_week']] : 'fa-calendar-alt';
+                        ?>
+                        <div class="col-lg-6 mb-4">
+                            <div class="time-card">
+                                <div class="time-icon">
+                                    <i class="fas <?= $icon ?>"></i>
+                                </div>
+                                <h4><?= htmlspecialchars($time['title']) ?></h4>
+                                <div class="time-details">
+                                    <p><i class="fas fa-calendar-day"></i> <?= $time['day_of_week'] ?></p>
+                                    <p><i class="fas fa-clock"></i> <?= date('g:i A', strtotime($time['start_time'])) ?> - <?= date('g:i A', strtotime($time['end_time'])) ?></p>
+                                    <p><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($time['campus']) ?></p>
+                                </div>
+                                <p class="time-description"><?= htmlspecialchars($time['description']) ?></p>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <?php } catch (PDOException $e) {
+                            error_log("Error fetching fellowship times: " . $e->getMessage());
+                        } ?>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Affiliation Section -->
+            <section class="affiliation-section pad-tb-100">
+                <div class="container">
+                    <div class="row align-items-center">
+                        <div class="col-lg-6">
+                            <div class="affiliation-image">
+                                <img src="<?= img_url('about/affiliation.jpg') ?>" alt="ADEPR Church" class="img-fluid">
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="affiliation-content">
+                                <span class="section-label">Our Spiritual Covering</span>
+                                <h2 class="section-title">Church Affiliation</h2>
+                                <p><?= getContent('affiliation', 'content', 'CEP–UoK operates under the spiritual supervision of <strong>ADEPR Kimihurura International Service (Local Church)</strong> and functions in full compliance with:') ?></p>
+                                <ul class="affiliation-list">
+                                    <li><i class="fas fa-check"></i> The doctrines and guidance of ADEPR – Rwanda Pentecostal Church</li>
+                                    <li><i class="fas fa-check"></i> The rules, policies, and regulations of the University of Kigali</li>
+                                    <li><i class="fas fa-check"></i> Applicable national laws governing student organizations</li>
+                                </ul>
+                                <p class="affiliation-note">CEP–UoK is a non-political, non-profit Christian fellowship committed to spiritual formation and leadership development.</p>
+                                <a href="<?= url('local-church') ?>" class="btn btn-primary mt-3">
+                                    <i class="fas fa-church"></i> Learn About Our Local Church
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Call to Action -->
+            <section class="about-cta bg-primary text-white pad-tb-100">
+                <div class="container text-center">
+                    <div class="cta-content">
+                        <div class="cta-icon">
+                            <i class="fas fa-hands"></i>
+                        </div>
+                        <h2>Join Our Fellowship</h2>
+                        <p>Whether you're a new student or have been at UoK for a while, there's a place for you in CEP. Come experience genuine Christian fellowship, spiritual growth, and purposeful service.</p>
+                        <div class="cta-buttons">
+                            <a href="<?= url('contact') ?>" class="btn btn-light btn-lg">
+                                <i class="fas fa-envelope"></i> Get Connected
+                            </a>
+                            <a href="<?= url('news') ?>" class="btn btn-outline-light btn-lg">
+                                <i class="fas fa-calendar"></i> View Events
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <?php include get_layout('footer'); ?>
         </div>
-    </section>
+    </div>
 
-    <!-- Call to Action -->
-    <section class="cta-section tmp-section">
-        <div class="container">
-            <h2>Join the Mount Carmel Family</h2>
-            <p>Discover how we can help your child reach their full potential</p>
-            <div class="cta-buttons">
-                <a href="/admissions" class="btn btn-primary">Start Application</a>
-                <a href="/contact" class="btn btn-outline">Schedule a Visit</a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <?php include_once get_layout('footer'); ?>
-
-    <!-- jQuery -->
-    <?php include_once get_layout('scripts'); ?>
-
-    <script>
-        // Smooth scroll for internal links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // Add animation on scroll
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-
-        // Animate elements on scroll
-        document.querySelectorAll('.mvp-card, .value-card, .link-card').forEach(el => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(30px)';
-            el.style.transition = 'all 0.6s ease-out';
-            observer.observe(el);
-        });
-
-        // Add active state to navigation
-        window.addEventListener('scroll', () => {
-            const scrollPos = window.scrollY;
-
-            // Add shadow to header on scroll (if you have a fixed header)
-            const header = document.querySelector('.page-x-header');
-            if (scrollPos > 100) {
-                header.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-            } else {
-                header.style.boxShadow = 'none';
-            }
-        });
-    </script>
-
+    <!-- Scripts -->
+    <?php include get_layout('scripts'); ?>
+    
+    <!-- About Page Custom JS -->
+    <script src="<?= js_url('about.js') ?>"></script>
 </body>
-
 </html>

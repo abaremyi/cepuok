@@ -25,6 +25,14 @@ class AuthMiddleware {
         
         // Validate token
         $decoded = $this->jwtHandler->validateToken($token);
+
+        if ($decoded) {
+            // Get session type for the user
+            require_once ROOT_PATH . '/modules/Authentication/controllers/AuthController.php';
+            $authController = new AuthController();
+            $sessionType = $authController->getUserSessionType($decoded->user_id);
+            $decoded->session_type = $sessionType;
+        }
         
         if (!$decoded) {
             return ['authenticated' => false, 'message' => 'Invalid token'];

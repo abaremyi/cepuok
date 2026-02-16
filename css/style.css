@@ -100,7 +100,7 @@ body {
 	width: 100%;
 	height: 100%;
 	z-index: 9999;
-	background: url(../images/page-loader.gif) 50% 50% no-repeat rgb(249,249,249);
+	background: url(../img/page-loader.gif) 50% 50% no-repeat rgb(249,249,249);
 }
 input,
 button,
@@ -6954,7 +6954,8 @@ footer .social-icons a.social-fb {
     background: #3b5999;
 }
 footer .social-icons a.social-twitter {
-    background: #55acee;
+    background: #000;
+    border: solid 1px rgba(31, 30, 30, 0.9);
 }
 footer .social-icons a.social-instagram {
     background: #e4405f;
@@ -7007,6 +7008,16 @@ footer .social-icons a.social-youtube {
 }
 span.heart-color {
     color: red;
+}
+span.designer-color {
+    color: #d96d20 !important;
+    font-family:  'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    font-style: italic;
+}
+.designed-by {
+    color: rgb(85, 172, 238)!important;
+    font-family:  'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    font-style: italic;
 }
 .footer-menu li {
     display: inline-block;

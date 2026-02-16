@@ -25,7 +25,7 @@ class Database {
                 // Use local development configuration
                 $host = 'localhost';  
                 $port = '3308';  // Your XAMPP port
-                $db = 'cep_uok_db';  
+                $db = 'cep_uokdb';  
                 $user = 'root'; 
                 $pass = ''; 
 

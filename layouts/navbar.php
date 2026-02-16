@@ -22,10 +22,10 @@
                         <li><a href="<?= url() ?>">Home</a></li>
                         <li class="dropdown dropdown-sub"><a href="#">About</a>
                            <ul class="dropdown-menu">
-                              <li class="dropdown"><a href="<?= url('about') ?>">CEP INFO</a>
+                              <li class="dropdown"><a href="<?= url('about-cep') ?>">CEP INFO</a>
                                  <ul class="dropdown-menu child-dropdown-menu">
-                                    <li><a href="<?= url(path: 'about') ?>">History</a></li>
-                                    <li><a href="<?= url(path: 'mission') ?>">Mission & Vision</a></li>
+                                    <li><a href="<?= url(path: 'about-cep') ?>">Who We Are</a></li>
+                                    <li><a href="<?= url(path: 'history') ?>">History</a></li>
                                  </ul>
                               </li>
                               <li class="dropdown"><a href="<?= url(path: 'gallery-photo') ?>">Gallery</a>

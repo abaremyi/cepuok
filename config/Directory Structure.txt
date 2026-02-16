@@ -1,42 +1,147 @@
-.cepuok
+CEPUOK
 ├── config
+│   ├── ABOUT CEP DETAILS.txt
 │   ├── config.php
 │   ├── database.php
 │   └── paths.php
 ├── css
+│   ├── color-schemes
+│   │   └── red.css
+│   ├── bootstrap.min.css
+│   ├── cep-custom.css
+│   ├── color_panel.css
+│   ├── custom.css
+│   ├── font-awesome-pro.css
+│   ├── font-awesome.min.css
+│   ├── magnific-popup.css
+│   ├── owl.carousel.min.css
+│   ├── owl.theme.default.min.css
+│   ├── simple-line-icons.min.css
+│   ├── style.css
+│   └── themify-icons.css
+├── dashboard-assets
+│   ├── css
+│   │   ├── fonts
+│   │   │   ├── bootstrap-iconsd862.woff
+│   │   │   └── bootstrap-iconsd862.woff2
+│   │   ├── images
+│   │   │   ├── layers-2x.html
+│   │   │   ├── layers.html
+│   │   │   └── marker-icon.html
+│   │   ├── admin.css
+│   │   ├── docs.css
+│   │   ├── theme-dark.html
+│   │   ├── theme-dark.min.css
+│   │   ├── theme.min.css
+│   │   ├── theme.minc619.css
+│   │   └── vendor.min.css
+│   ├── img
+│   ├── js
+│   │   ├── demo.js
+│   │   ├── hs.theme-appearance-charts.js
+│   │   ├── hs.theme-appearance.js
+│   │   ├── theme.min.js
+│   │   └── vendor.min.js
+│   ├── svg
+│   │   ├── components
+│   │   ├── layouts
+│   │   ├── layouts-light
+│   │   ├── logos
+│   │   └── logos-light
+│   │       ├── logo-short.svg
+│   │       └── logo.svg
+│   └── vendor
+│       ├── chartjs-plugin-datalabels
+│       │   └── dist
+│       │       └── chartjs-plugin-datalabels.min.js
+│       ├── flag-icon-css
 ├── fonts
 ├── helpers
 │   ├── AuthMiddleware.php
 │   └── JWTHandler.php
 ├── img
 │   ├── about
+│   │   ├── about-1-bg.png
+│   │   ├── about-1.jpeg
+│   │   ├── about-2.jpg
+│   │   ├── about-3.jpg
+│   │   ├── about-4.jpg
+│   │   ├── about-hero-1.jpg
+│   │   ├── about-hero-2.jpg
+│   │   ├── about-hero-3.jpg
 │   ├── bg
 │   │   ├── bg-1.jpg
 │   │   └── footer-bg.jpg
 │   ├── clients
+│   │   ├── partner-1.png
 │   ├── gallery
-│   ├── leadership
+│   │   ├── baptism-1.jpg
+│   │   ├── biblestudy-1.jpg
+│   ├── leaders
 │   ├── news
+│   │   ├── news-1.jpg
 │   ├── programs
+│   │   └── program-1766367483-856.jpg
 │   ├── projects
+│   │   ├── projects-bg.jpg
 │   ├── services
+│   ├── slider
 │   ├── team
+│   │   ├── member-bg.png
 │   ├── testimonials
+│   ├── academic-hero.jpg
+│   ├── administration.jpg
+│   ├── director-photo.jpg
+│   ├── hero-admission.jpg
 │   ├── hero-contact.jpg
+│   ├── hero-programs.jpg
+│   ├── journey-bg2.jpg
+│   ├── logo-dark.png
 │   ├── logo-only.png
 │   ├── org-chart.png
+│   ├── page-loader.gif
+│   ├── page-loader2.gif
+│   ├── partner-bg.jpg
+│   ├── partner-bg.png
+│   ├── partner-bg2.jpg
+│   ├── pattern-3.png
 │   ├── photo-gallery.jpg
 │   ├── services-hero.jpg
+│   ├── sports-hero.jpg
+│   ├── temp-1.png
+│   ├── title-membership.JPG
 │   └── video-gallery.jpg
 ├── js
+│   ├── about.js
+│   ├── bootstrap.bundle.min.js
+│   ├── bootstrap.min.js
+│   ├── color-panel.js
+│   ├── custom.js
+│   ├── history.js
+│   ├── isotope.pkgd.min.js
+│   ├── jquery.appear.min.js
+│   ├── jquery.circle.progress.min.js
+│   ├── jquery.countdown.min.js
+│   ├── jquery.easing.min.js
+│   ├── jquery.magnific-popup.min.js
+│   ├── jquery.min.js
+│   ├── jquery.paroller.min.js
+│   ├── leadership.js
+│   ├── owl.carousel.min.js
+│   ├── popper.min.js
+│   ├── smartresize.min.js
+│   └── validator.min.js
 ├── layouts
 │   ├── footer.php
+│   ├── header-2.php
 │   ├── header.php
 │   ├── hero-slider-scripts.php
+│   ├── hero-slider-temp.php
 │   ├── hero-slider.php
 │   ├── loader.php
 │   ├── logout_modal.php
 │   ├── mobile-header.php
+│   ├── navbar-other.php
 │   ├── navbar.php
 │   ├── scripts.php
 │   └── topbar.php
@@ -44,6 +149,20 @@
 │   ├── About
 │   │   └── models
 │   │       └── AboutModel.php
+│   ├── Administration
+│   │   ├── api
+│   │   │   └── administrationApi.php
+│   │   ├── controllers
+│   │   │   └── AdministrationController.php
+│   │   └── models
+│   │       └── AdministrationModel.php
+│   ├── Admission
+│   │   ├── api
+│   │   │   └── admissionApi.php
+│   │   ├── controllers
+│   │   │   └── AdmissionController.php
+│   │   └── models
+│   │       └── AdmissionModel.php
 │   ├── Authentication
 │   │   ├── api
 │   │   │   └── authApi.php
@@ -55,14 +174,12 @@
 │   │   ├── static
 │   │   │   └── view_user_model.php
 │   │   └── views
-│   │       ├── admin_manage_user.php
-│   │       ├── dashboard.php
+│   │       ├── forgot-password.php
 │   │       ├── login.php
+│   │       ├── logintemp.php
 │   │       ├── logout.php
+│   │       ├── manageaccount.php
 │   │       ├── profile.php
-│   │       ├── resetPassword.php
-│   │       ├── users.php
-│   │       └── verifyEmail.php
 │   ├── Contact
 │   │   ├── api
 │   │   │   └── contactApi.php
@@ -88,21 +205,28 @@
 │   │       │   ├── admin-sidebar.php
 │   │       │   └── admin-styles.php
 │   │       ├── admin-dashboard.php
-│   │       ├── admission-management.php
 │   │       ├── departments-management.php
 │   │       ├── gallery-management.php
 │   │       ├── hero-sliders.php
 │   │       ├── homepage.php
 │   │       ├── leadership-management.php
-│   │       ├── locations.php
 │   │       ├── news-events-management.php
+│   │       ├── page-content-management.php
+│   │       ├── partners.php
 │   │       ├── quick-stats-management.php
 │   │       ├── roles-permissions-management.php
+│   │       ├── staff-management.php
 │   │       ├── testimonials-management.php
 │   │       ├── users-management.php
 │   │       ├── video-gallery-management.php
-│   │       ├── videosManager.php
 │   │       ├── welcome.php
+│   ├── Facilities
+│   │   ├── api
+│   │   │   └── facilitiesApi.php
+│   │   ├── controllers
+│   │   │   └── FacilitiesController.php
+│   │   └── models
+│   │       └── FacilitiesModel.php
 │   ├── Gallery
 │   │   ├── api
 │   │   │   └── galleryApi.php
@@ -117,16 +241,29 @@
 │   │   │   ├── get_news_sidebar.php
 │   │   │   └── get_news.php
 │   │   └── views
+│   │       ├── about-cep.backup
+│   │       ├── about-cep.php
 │   │       ├── about.php
-│   │       ├── local-church.php
-│   │       ├── leadership-team.php
+│   │       ├── academic-facilities.php
+│   │       ├── administration.php
 │   │       ├── admission.php
 │   │       ├── contact.php
+│   │       ├── gallery-photo.php
+│   │       ├── gallery-video.php
 │   │       ├── gallery.php
+│   │       ├── history.php
 │   │       ├── index.php
+│   │       ├── index1.php
+│   │       ├── leadership.php
+│   │       ├── membership.php
 │   │       ├── news.php
-│   │       ├── departments.php
-│   │       └── videos-gallery.php
+│   │       ├── programs.php
+│   │       ├── project-details.php
+│   │       ├── service-details.php
+│   │       ├── services-facilities.php
+│   │       ├── sports-facilities.php
+│   │       ├── template.php
+│   │       └── videos.php
 │   ├── Hero
 │   │   ├── api
 │   │   │   └── heroApi.php
@@ -134,6 +271,18 @@
 │   │   │   └── HeroController.php
 │   │   └── models
 │   │       └── HeroModel.php
+│   ├── Leadership
+│   │   ├── api
+│   │   │   └── leadershipApi.php
+│   │   └── models
+│   │       └── LeadershipModel.php
+│   ├── Membership
+│   │   ├── api
+│   │   │   └── membershipApi.php
+│   │   ├── controllers
+│   │   │   └── MembershipController.php
+│   │   └── models
+│   │       └── MembershipModel.php
 │   ├── News
 │   │   ├── api
 │   │   │   └── newsApi.php
@@ -151,6 +300,7 @@
 │   │   ├── controllers
 │   │   │   └── ProgramsController.php
 │   │   └── models
+│   │       ├── DepartmentsModel.php
 │   │       └── ProgramsModel.php
 │   ├── Testimonials
 │   │   ├── api
@@ -167,15 +317,13 @@
 │       └── models
 │           └── VideoModel.php
 ├── rs-plugin
-│   ├── assets
-│   ├── css
-│   ├── fonts
 ├── uploads
-│   └── admission_documents
-│       └── doc_695903c842893_1767441352.pdf
+│   ├── admission_documents
+│   │   └── doc_695903c842893_1767441352.pdf
+│   └── members
+│       └── member_698f4987787fd_1770998151.jpg
 ├── vendor
 │   ├── bin
-│   ├── composer
 │   ├── datatables
 │   ├── fancybox
 │   ├── firebase
@@ -187,7 +335,6 @@
 │   │   └── sweetalert2.js
 │   ├── symfony
 │   ├── vlucas
-│   │   └── phpdotenv
 │   └── autoload.php
 ├── .env
 ├── .htaccess

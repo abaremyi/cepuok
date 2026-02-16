@@ -25,7 +25,6 @@ $root_path = dirname(dirname(dirname(dirname(__FILE__))));
 require_once $root_path . "/config/paths.php";
 require_once $root_path . "/config/database.php";
 require_once $root_path . "/modules/Gallery/controllers/GalleryController.php";
-require_once $root_path . "/modules/Gallery/models/GalleryModel.php";
 
 // Get action from GET or POST
 $action = isset($_GET['action']) ? $_GET['action'] : '';
@@ -41,7 +40,22 @@ try {
     $galleryController = new GalleryController();
 
     switch ($action) {
+        case 'get_year_counts':
+            // Get count of images per year
+            $result = $galleryController->getYearCounts();
+            echo json_encode($result);
+            break;
+
         case 'get_images':
+            // Get images by year with pagination
+            $year = isset($_GET['year']) ? (int)$_GET['year'] : date('Y');
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+            $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+            
+            $result = $galleryController->getImagesByYear($year, $limit, $offset);
+            echo json_encode($result);
+            break;
+
         case 'get_gallery':
         case '': // Default action
             // Get images with optional filters
@@ -49,6 +63,7 @@ try {
                 'limit' => isset($_GET['limit']) ? (int)$_GET['limit'] : 50,
                 'offset' => isset($_GET['offset']) ? (int)$_GET['offset'] : 0,
                 'category' => isset($_GET['category']) ? $_GET['category'] : null,
+                'year' => isset($_GET['year']) ? $_GET['year'] : null,
                 'status' => isset($_GET['status']) ? $_GET['status'] : 'active'
             ];
 
@@ -77,7 +92,8 @@ try {
             // Get navigation IDs for next/previous
             $currentId = isset($_GET['current_id']) ? (int)$_GET['currentId'] : 0;
             $category = isset($_GET['category']) ? $_GET['category'] : null;
-            $result = $galleryController->getNavigationIds($currentId, $category);
+            $year = isset($_GET['year']) ? $_GET['year'] : null;
+            $result = $galleryController->getNavigationIds($currentId, $category, $year);
             echo json_encode($result);
             break;
 
@@ -121,6 +137,7 @@ try {
                 'image_url' => $_POST['image_url'] ?? '',
                 'thumbnail_url' => $_POST['thumbnail_url'] ?? $_POST['image_url'] ?? '',
                 'category' => $_POST['category'] ?? 'general',
+                'year' => isset($_POST['year']) ? (int)$_POST['year'] : date('Y'),
                 'display_order' => $_POST['display_order'] ?? 0,
                 'status' => $_POST['status'] ?? 'active'
             ];
@@ -146,6 +163,7 @@ try {
             if (isset($_POST['image_url'])) $data['image_url'] = $_POST['image_url'];
             if (isset($_POST['thumbnail_url'])) $data['thumbnail_url'] = $_POST['thumbnail_url'];
             if (isset($_POST['category'])) $data['category'] = $_POST['category'];
+            if (isset($_POST['year'])) $data['year'] = (int)$_POST['year'];
             if (isset($_POST['display_order'])) $data['display_order'] = $_POST['display_order'];
             if (isset($_POST['status'])) $data['status'] = $_POST['status'];
             
@@ -173,9 +191,9 @@ try {
                 'success' => false,
                 'message' => 'Invalid action.',
                 'available_actions' => [
-                    'get_gallery', 'get_categories', 'get_image_by_id',
-                    'get_by_category', 'get_category_counts', 'get_featured',
-                    'create_image', 'update_image', 'delete_image'
+                    'get_gallery', 'get_categories', 'get_year_counts', 'get_images',
+                    'get_image_by_id', 'get_by_category', 'get_category_counts', 
+                    'get_featured', 'create_image', 'update_image', 'delete_image'
                 ]
             ]);
             break;

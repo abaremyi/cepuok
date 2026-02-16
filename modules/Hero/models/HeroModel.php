@@ -1,7 +1,8 @@
 <?php
 /**
- * Hero Slider Model
+ * CEP UoK Hero Model
  * File: modules/Hero/models/HeroModel.php
+ * Handles hero slider database operations
  */
 
 class HeroModel {
@@ -13,22 +14,25 @@ class HeroModel {
 
     /**
      * Get active hero sliders
-     * @param int $limit Number of sliders to retrieve
-     * @return array Array of sliders
      */
-    public function getSliders($limit = 10) {
+    public function getHeroSliders($limit = null) {
         try {
             $query = "SELECT * FROM hero_sliders 
-                      WHERE status = 'active' 
-                      ORDER BY display_order ASC, created_at DESC 
-                      LIMIT :limit";
+                     WHERE status = 'active' 
+                     ORDER BY display_order ASC, created_at DESC";
+            
+            if ($limit) {
+                $query .= " LIMIT :limit";
+            }
             
             $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+            
+            if ($limit) {
+                $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+            }
+            
             $stmt->execute();
-            
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
         } catch (PDOException $e) {
             error_log("Hero Model Error: " . $e->getMessage());
             return [];
@@ -37,21 +41,18 @@ class HeroModel {
 
     /**
      * Get single slider by ID
-     * @param int $id Slider ID
-     * @return array|null Slider data or null
      */
     public function getSliderById($id) {
         try {
-            $query = "SELECT * FROM hero_sliders WHERE id = :id AND status = 'active'";
+            $query = "SELECT * FROM hero_sliders WHERE id = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
-            
             return $stmt->fetch(PDO::FETCH_ASSOC);
-            
         } catch (PDOException $e) {
             error_log("Hero Model Error: " . $e->getMessage());
             return null;
         }
     }
 }
+?>

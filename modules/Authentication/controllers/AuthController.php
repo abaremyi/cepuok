@@ -720,5 +720,62 @@ class AuthController {
             return false;
         }
     }
+
+    /**
+     * Get user permissions
+     * @param int $userId User ID
+     * @return array Permissions array
+    */
+    public function getUserPermissions($userId) {
+        try {
+            $query = "SELECT p.module, p.action 
+                      FROM users u
+                      JOIN roles r ON u.role_id = r.id
+                      JOIN role_permissions rp ON r.id = rp.role_id
+                      JOIN permissions p ON rp.permission_id = p.id
+                      WHERE u.id = :user_id";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $permissions = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $permissions[] = $row['module'] . '.' . $row['action'];
+            }
+            
+            return $permissions;
+        } catch (PDOException $e) {
+            error_log("Error getting user permissions: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get user session type based on leadership position
+     * @param int $userId User ID
+     * @return string|null Session type (day/weekend/both)
+     */
+    public function getUserSessionType($userId) {
+        try {
+            // Check if user is a leader in current year
+            $query = "SELECT lm.session_type 
+                      FROM leadership_members lm
+                      JOIN leadership_years ly ON lm.year_id = ly.id
+                      JOIN members m ON lm.full_name = CONCAT(m.firstname, ' ', m.lastname)
+                      WHERE m.user_id = :user_id AND ly.is_current = 1 AND lm.status = 'active'
+                      LIMIT 1";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? $result['session_type'] : null;
+        } catch (PDOException $e) {
+            error_log("Error getting user session type: " . $e->getMessage());
+            return null;
+        }
+    }
 }
 ?>

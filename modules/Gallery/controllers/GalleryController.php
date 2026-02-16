@@ -1,6 +1,6 @@
 <?php
 /**
- * Gallery Controller
+ * Gallery Controller - CEP UOK WEBSITE
  * File: modules/Gallery/controllers/GalleryController.php
  * Handles gallery business logic
  */
@@ -20,7 +20,7 @@ class GalleryController {
 
     /**
      * Get gallery images with pagination
-     * @param array $params Parameters: limit, offset, category, status
+     * @param array $params Parameters: limit, offset, category, year, status
      * @return array Response array with success, data, and metadata
      */
     public function getGalleryImages($params = []) {
@@ -28,6 +28,7 @@ class GalleryController {
             $limit = isset($params['limit']) ? (int)$params['limit'] : 50;
             $offset = isset($params['offset']) ? (int)$params['offset'] : 0;
             $category = isset($params['category']) ? $params['category'] : null;
+            $year = isset($params['year']) ? $params['year'] : null;
             $status = isset($params['status']) ? $params['status'] : 'active';
 
             // Validate limit (max 100)
@@ -36,10 +37,10 @@ class GalleryController {
             }
 
             // Get images
-            $images = $this->galleryModel->getGalleryImages($limit, $offset, $category, $status);
+            $images = $this->galleryModel->getGalleryImages($limit, $offset, $category, $year, $status);
 
             // Get total count
-            $total = $this->galleryModel->getTotalCount($category, $status);
+            $total = $this->galleryModel->getTotalCount($category, $year, $status);
 
             return [
                 'success' => true,
@@ -47,7 +48,8 @@ class GalleryController {
                 'total' => $total,
                 'limit' => $limit,
                 'offset' => $offset,
-                'category' => $category
+                'category' => $category,
+                'year' => $year
             ];
 
         } catch (Exception $e) {
@@ -78,6 +80,67 @@ class GalleryController {
             return [
                 'success' => false,
                 'message' => 'Failed to retrieve categories.',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get count of images per year
+     * @return array Response array with year counts
+     */
+    public function getYearCounts() {
+        try {
+            $counts = $this->galleryModel->getYearCounts();
+
+            return [
+                'success' => true,
+                'data' => $counts
+            ];
+
+        } catch (Exception $e) {
+            error_log("Gallery Controller Error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to retrieve year counts.',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get images by year with pagination
+     * @param int $year Year to filter by
+     * @param int $limit Number of images per page
+     * @param int $offset Starting offset
+     * @return array Response array
+     */
+    public function getImagesByYear($year, $limit = 20, $offset = 0) {
+        try {
+            if (empty($year)) {
+                $year = date('Y');
+            }
+
+            // Get images for the specific year
+            $images = $this->galleryModel->getImagesByYear($year, $limit, $offset);
+            
+            // Get total count for this year
+            $total = $this->galleryModel->getTotalCount(null, $year, 'active');
+
+            return [
+                'success' => true,
+                'data' => $images,
+                'total' => $total,
+                'year' => $year,
+                'limit' => $limit,
+                'offset' => $offset
+            ];
+
+        } catch (Exception $e) {
+            error_log("Gallery Controller Error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to retrieve images for year.',
                 'error' => $e->getMessage()
             ];
         }
@@ -125,13 +188,28 @@ class GalleryController {
      * Get next and previous image IDs for navigation
      * @param int $currentId Current image ID
      * @param string $category Optional category filter
+     * @param int $year Optional year filter
      * @return array Next and previous IDs
      */
-    public function getNavigationIds($currentId, $category = null) {
+    public function getNavigationIds($currentId, $category = null, $year = null) {
         try {
             // Get all images in order
-            $images = $this->galleryModel->getGalleryImages(1000, 0, $category);
+            $params = [
+                'limit' => 1000,
+                'offset' => 0,
+                'category' => $category,
+                'year' => $year
+            ];
+            $response = $this->getGalleryImages($params);
             
+            if (!$response['success']) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to get images for navigation'
+                ];
+            }
+            
+            $images = $response['data'];
             $navigation = [
                 'prev' => null,
                 'next' => null

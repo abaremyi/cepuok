@@ -6,7 +6,7 @@
         <a href="#" class="zmm-close close"></a>
         <div class="zmm-inner bg-white typo-dark">
             <div class="text-center mobile-logo-part margin-bottom-30">
-                <a href="index-2.html" class="img-before"><img src="images/logo-dark.png" class="img-fluid changeable-dark" width="170" height="51" alt="Logo"></a>
+                <a href="<?= url() ?>" class="img-before"><img src="<?= img_url('logo-dark.png') ?>" class="img-fluid changeable-dark" width="170" height="51" alt="Logo"></a>
             </div>
             <div class="zmm-main-nav"> </div>
             <div class="search-form-wrapper margin-top-30">

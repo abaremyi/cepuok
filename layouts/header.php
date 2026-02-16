@@ -31,6 +31,8 @@
     <link rel="stylesheet" href="<?= css_url('color-schemes/red.css') ?>" id="changeable-colors">
     <!-- Main Style -->
     <link rel="stylesheet" href="<?= css_url('style.css') ?>" class="main-style">
+    <!-- CEP Custom defined Style -->
+    <link rel="stylesheet" href="<?= css_url('custom.css') ?>"  type="text/css" >
     <style>
         #rev_slider_6_1_wrapper .tp-loader.spinner1{ background-color: #FFFFFF !important; }
     </style>
