@@ -27,10 +27,7 @@ class AuthMiddleware {
         $decoded = $this->jwtHandler->validateToken($token);
 
         if ($decoded) {
-            // Get session type for the user
-            require_once ROOT_PATH . '/modules/Authentication/controllers/AuthController.php';
-            $authController = new AuthController();
-            $sessionType = $authController->getUserSessionType($decoded->user_id);
+            $sessionType = $this->getUserSessionType($decoded->user_id);
             $decoded->session_type = $sessionType;
         }
         
@@ -105,6 +102,36 @@ class AuthMiddleware {
         }
         
         return null;
+    }
+
+    /**
+     * Get user session type
+     * @param int $userId User ID
+     * @return string|null Session type (day/weekend/both)
+    */
+    private function getUserSessionType($userId) {
+        try {
+            require_once ROOT_PATH . '/config/database.php';
+            $db = Database::getConnection();
+            
+            // Check if user is a leader in current year
+            $query = "SELECT lm.session_type 
+                    FROM leadership_members lm
+                    JOIN leadership_years ly ON lm.year_id = ly.id
+                    JOIN members m ON lm.full_name = CONCAT(m.firstname, ' ', m.lastname)
+                    WHERE m.user_id = :user_id AND ly.is_current = 1 AND lm.status = 'active'
+                    LIMIT 1";
+            
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? $result['session_type'] : null;
+        } catch (Exception $e) {
+            error_log("Error getting user session type: " . $e->getMessage());
+            return null;
+        }
     }
 }
 ?>

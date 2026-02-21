@@ -4,19 +4,34 @@
  * File: modules/Dashboard/views/admin-dashboard.php
  */
 
+// Include required files
 require_once ROOT_PATH . '/helpers/AuthMiddleware.php';
+require_once ROOT_PATH . '/helpers/PermissionHelper.php';
+
 $auth = new AuthMiddleware();
 $currentUser = $auth->requireAuth(['dashboard.view']);
 
 // Get user permissions
 $userPermissions = $currentUser->permissions ?? [];
 $pageTitle = 'Dashboard';
+$currentPage = 'admin-dashboard.php';
+
+if (!$currentUser) {
+    header('Location: ' . url('logout'));
+    exit;
+}
+
 ?>
 
 <?php include LAYOUTS_PATH . '/admin-header.php'; ?>
 
-<?php include LAYOUTS_PATH . '/admin-navbar.php'; ?>
-<?php include LAYOUTS_PATH . '/admin-sidebar.php'; ?>
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
+
+  <script src="<?= admin_js_url('hs.theme-appearance.js') ?>"></script>
+  <script src="<?= ROOT_PATH ?>/dashboard-assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js"></script>
+  
+  <?php include LAYOUTS_PATH . '/admin-navbar.php'; ?>
+  <?php include LAYOUTS_PATH . '/admin-sidebar.php'; ?>
 
 <main id="content" role="main" class="main">
     <div class="content container-fluid">
@@ -27,7 +42,7 @@ $pageTitle = 'Dashboard';
                     <h1 class="page-header-title">Dashboard</h1>
                 </div>
                 <div class="col-auto">
-                    <span class="text-muted">Welcome back, <?= htmlspecialchars($currentUser->firstname) ?>!</span>
+                    <span class="text-muted">Welcome back, <?= htmlspecialchars($currentUser->firstname ?? 'User') ?>!</span>
                 </div>
             </div>
         </div>
@@ -135,6 +150,9 @@ $(document).ready(function() {
                     $('#pendingMembers').text(response.data.pending_members || 0);
                     $('#todayVisitors').text(response.data.today_visitors || 0);
                 }
+            },
+            error: function() {
+                $('#totalUsers, #totalMembers, #pendingMembers, #todayVisitors').text('Error');
             }
         });
     }
@@ -144,9 +162,11 @@ $(document).ready(function() {
             url: '<?= BASE_URL ?>/api/dashboard?action=getRecentUsers',
             type: 'GET',
             success: function(response) {
-                if (response.success && response.data.length > 0) {
+                if (response.success && response.data && response.data.length > 0) {
                     let html = '';
                     response.data.forEach(function(user) {
+                        const initials = (user.firstname ? user.firstname.charAt(0) : '') + 
+                                       (user.lastname ? user.lastname.charAt(0) : '');
                         html += `
                             <tr>
                                 <td>
@@ -157,23 +177,23 @@ $(document).ready(function() {
                                                     <img class="avatar-img" src="<?= BASE_URL ?>/uploads/${user.photo}" alt="${user.firstname}">
                                                 </div>` :
                                                 `<div class="avatar avatar-sm avatar-soft-primary avatar-circle">
-                                                    <span class="avatar-initials">${user.firstname.charAt(0)}${user.lastname.charAt(0)}</span>
+                                                    <span class="avatar-initials">${initials || 'U'}</span>
                                                 </div>`
                                             }
                                         </div>
                                         <div class="flex-grow-1 ms-3">
-                                            <h5 class="text-inherit mb-0">${user.firstname} ${user.lastname}</h5>
+                                            <h5 class="text-inherit mb-0">${user.firstname || ''} ${user.lastname || ''}</h5>
                                         </div>
                                     </a>
                                 </td>
-                                <td>${user.email}</td>
-                                <td>${user.role_name}</td>
+                                <td>${user.email || 'N/A'}</td>
+                                <td>${user.role_name || 'N/A'}</td>
                                 <td>
-                                    <span class="badge bg-${user.status === 'active' ? 'success' : 'warning'}">
-                                        ${user.status}
+                                    <span class="badge ${user.status === 'active' ? 'bg-success' : user.status === 'pending' ? 'bg-warning' : 'bg-secondary'}">
+                                        ${user.status || 'unknown'}
                                     </span>
                                 </td>
-                                <td>${new Date(user.created_at).toLocaleDateString()}</td>
+                                <td>${user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</td>
                             </tr>
                         `;
                     });
@@ -181,8 +201,13 @@ $(document).ready(function() {
                 } else {
                     $('#recentUsersTable').html('<tr><td colspan="5" class="text-center">No users found</td></tr>');
                 }
+            },
+            error: function() {
+                $('#recentUsersTable').html('<tr><td colspan="5" class="text-center">Error loading users</td></tr>');
             }
         });
     }
 });
 </script>
+</body>
+</html>

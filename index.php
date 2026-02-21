@@ -89,6 +89,7 @@ $routes = [
     // Admin management routes
     '/admin/users-management' => 'modules/Dashboard/views/users-management.php',
     '/admin/users-add-user' => 'modules/Dashboard/views/users-add-user.php',
+    '/admin/users-view' => 'modules/Dashboard/views/users-view.php',
     '/admin/roles-permissions-management' => 'modules/Dashboard/views/roles-permissions-management.php',
     '/admin/membership-management' => 'modules/Dashboard/views/membership-management.php',
     '/admin/membership-applications' => 'modules/Dashboard/views/membership-applications.php',
@@ -108,6 +109,7 @@ $routes = [
     
     // API routes
     '/api/auth' => 'modules/Authentication/api/authApi.php',
+    '/api/users' => 'modules/Authentication/api/userApi.php',
     '/api/dashboard' => 'modules/Dashboard/api/dashboardApi.php',
 ];
 

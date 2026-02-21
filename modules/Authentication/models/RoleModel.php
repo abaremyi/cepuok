@@ -2,202 +2,192 @@
 /**
  * Role Model
  * File: modules/Authentication/models/RoleModel.php
- * Handles all database operations for roles and permissions
  */
 
-class RoleModel
-{
-    private $db;
+require_once ROOT_PATH . '/config/database.php';
 
-    public function __construct($db)
-    {
-        $this->db = $db;
+class RoleModel {
+    private $db;
+    private $rolesTable = 'roles';
+    private $permissionsTable = 'permissions';
+    private $rolePermissionsTable = 'role_permissions';
+
+    public function __construct($db = null) {
+        if ($db) {
+            $this->db = $db;
+        } else {
+            $this->db = Database::getInstance();
+        }
     }
 
     /**
-     * Get all roles
-     * @return array Array of roles
+     * Get all roles with user and permission counts
      */
-    public function getAllRoles()
-    {
+    public function getAllRoles() {
         try {
-            $query = "SELECT * FROM roles ORDER BY id";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
+            $sql = "SELECT r.*, 
+                           COUNT(DISTINCT rp.permission_id) as permission_count,
+                           COUNT(DISTINCT u.id) as user_count
+                    FROM {$this->rolesTable} r
+                    LEFT JOIN {$this->rolePermissionsTable} rp ON r.id = rp.role_id
+                    LEFT JOIN users u ON r.id = u.role_id
+                    GROUP BY r.id
+                    ORDER BY 
+                        CASE 
+                            WHEN r.is_super_admin = 1 THEN 0 
+                            ELSE 1 
+                        END,
+                        r.name ASC";
+            
+            $stmt = $this->db->query($sql);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Role Model Error: " . $e->getMessage());
+        } catch (Exception $e) {
+            error_log("RoleModel::getAllRoles - Error: " . $e->getMessage());
             return [];
         }
     }
 
     /**
      * Get role by ID
-     * @param int $id Role ID
-     * @return array|null Role data or null
      */
-    public function getRoleById($id)
-    {
+    public function getRoleById($id) {
         try {
-            $query = "SELECT * FROM roles WHERE id = ?";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([$id]);
+            $sql = "SELECT * FROM {$this->rolesTable} WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $id]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Role Model Error: " . $e->getMessage());
+        } catch (Exception $e) {
+            error_log("RoleModel::getRoleById - Error: " . $e->getMessage());
             return null;
         }
     }
 
     /**
      * Create new role
-     * @param array $data Role data
-     * @return int|bool Role ID or false
      */
-    public function createRole($data)
-    {
+    public function createRole($data) {
         try {
-            $query = "INSERT INTO roles (name, description, is_super_admin) VALUES (?, ?, ?)";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([
-                $data['name'],
-                $data['description'],
-                $data['is_super_admin'] ?? 0
-            ]);
-            return $this->db->lastInsertId();
-        } catch (PDOException $e) {
-            error_log("Role Model Error: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Update role
-     * @param int $id Role ID
-     * @param array $data Updated data
-     * @return bool Success status
-     */
-    public function updateRole($id, $data)
-    {
-        try {
-            $query = "UPDATE roles SET name = ?, description = ?, is_super_admin = ?, updated_at = NOW() WHERE id = ?";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([
-                $data['name'],
-                $data['description'],
-                $data['is_super_admin'] ?? 0,
-                $id
-            ]);
-            return true;
-        } catch (PDOException $e) {
-            error_log("Role Model Error: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Delete role
-     * @param int $id Role ID
-     * @return bool Success status
-     */
-    public function deleteRole($id)
-    {
-        try {
-            // Check if role has users
-            $checkQuery = "SELECT COUNT(*) FROM users WHERE role_id = ?";
-            $checkStmt = $this->db->prepare($checkQuery);
-            $checkStmt->execute([$id]);
-            
-            if ($checkStmt->fetchColumn() > 0) {
-                throw new Exception("Cannot delete role that has users assigned");
+            // Check if role name exists
+            if ($this->roleNameExists($data['name'])) {
+                throw new Exception("Role name already exists");
             }
+
+            $sql = "INSERT INTO {$this->rolesTable} (name, description, is_super_admin) 
+                    VALUES (:name, :description, :is_super_admin)";
             
-            // Start transaction
-            $this->db->beginTransaction();
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':name' => $data['name'],
+                ':description' => $data['description'] ?? null,
+                ':is_super_admin' => $data['is_super_admin'] ?? 0
+            ]);
             
-            // Delete role permissions first
-            $deletePermissionsQuery = "DELETE FROM role_permissions WHERE role_id = ?";
-            $deletePermissionsStmt = $this->db->prepare($deletePermissionsQuery);
-            $deletePermissionsStmt->execute([$id]);
-            
-            // Delete role (cannot delete super admin role)
-            $deleteQuery = "DELETE FROM roles WHERE id = ? AND is_super_admin = 0";
-            $deleteStmt = $this->db->prepare($deleteQuery);
-            $result = $deleteStmt->execute([$id]);
-            
-            $this->db->commit();
-            return $result;
+            return $this->db->lastInsertId();
         } catch (Exception $e) {
-            $this->db->rollBack();
-            error_log("Role Model Error: " . $e->getMessage());
+            error_log("RoleModel::createRole - Error: " . $e->getMessage());
             throw $e;
         }
     }
 
     /**
-     * Get role permissions
-     * @param int $roleId Role ID
-     * @return array Array of permission IDs
+     * Update role
      */
-    public function getRolePermissions($roleId)
-    {
+    public function updateRole($id, $data) {
         try {
-            $query = "SELECT permission_id FROM role_permissions WHERE role_id = ?";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([$roleId]);
-            return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
-        } catch (PDOException $e) {
-            error_log("Role Model Error: " . $e->getMessage());
-            return [];
+            // Check if role is super admin
+            $role = $this->getRoleById($id);
+            if ($role && $role['is_super_admin']) {
+                throw new Exception("Cannot modify super admin role");
+            }
+
+            // Check if role name exists (excluding current)
+            if ($this->roleNameExists($data['name'], $id)) {
+                throw new Exception("Role name already exists");
+            }
+
+            $sql = "UPDATE {$this->rolesTable} 
+                    SET name = :name, description = :description 
+                    WHERE id = :id";
+            
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':id' => $id,
+                ':name' => $data['name'],
+                ':description' => $data['description'] ?? null
+            ]);
+        } catch (Exception $e) {
+            error_log("RoleModel::updateRole - Error: " . $e->getMessage());
+            throw $e;
         }
     }
 
     /**
-     * Update role permissions
-     * @param int $roleId Role ID
-     * @param array $permissionIds Permission IDs
-     * @return bool Success status
+     * Delete role
      */
-    public function updateRolePermissions($roleId, $permissionIds)
-    {
+    public function deleteRole($id) {
         try {
-            // Start transaction
-            $this->db->beginTransaction();
+            // Check if role is super admin
+            $role = $this->getRoleById($id);
+            if ($role && $role['is_super_admin']) {
+                throw new Exception("Cannot delete super admin role");
+            }
+
+            // Check if role has users
+            $sql = "SELECT COUNT(*) as count FROM users WHERE role_id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            // Delete existing permissions
-            $deleteQuery = "DELETE FROM role_permissions WHERE role_id = ?";
-            $deleteStmt = $this->db->prepare($deleteQuery);
-            $deleteStmt->execute([$roleId]);
+            if ($result['count'] > 0) {
+                throw new Exception("Cannot delete role with assigned users");
+            }
+
+            // Delete role permissions first
+            $sql = "DELETE FROM {$this->rolePermissionsTable} WHERE role_id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $id]);
+
+            // Delete role
+            $sql = "DELETE FROM {$this->rolesTable} WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([':id' => $id]);
+        } catch (Exception $e) {
+            error_log("RoleModel::deleteRole - Error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Check if role name exists
+     */
+    public function roleNameExists($name, $excludeId = null) {
+        try {
+            $sql = "SELECT COUNT(*) as count FROM {$this->rolesTable} WHERE name = :name";
+            $params = [':name' => $name];
             
-            // Insert new permissions
-            if (!empty($permissionIds)) {
-                $insertQuery = "INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)";
-                $insertStmt = $this->db->prepare($insertQuery);
-                
-                foreach ($permissionIds as $permissionId) {
-                    $insertStmt->execute([$roleId, $permissionId]);
-                }
+            if ($excludeId) {
+                $sql .= " AND id != :id";
+                $params[':id'] = $excludeId;
             }
             
-            $this->db->commit();
-            return true;
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return $result['count'] > 0;
         } catch (Exception $e) {
-            $this->db->rollBack();
-            error_log("Role Model Error: " . $e->getMessage());
+            error_log("RoleModel::roleNameExists - Error: " . $e->getMessage());
             return false;
         }
     }
 
     /**
      * Get all permissions grouped by module
-     * @return array Array of permissions grouped by module
      */
-    public function getAllPermissionsGrouped()
-    {
+    public function getAllPermissions() {
         try {
-            $query = "SELECT * FROM permissions ORDER BY module, id";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
+            $sql = "SELECT * FROM {$this->permissionsTable} ORDER BY module ASC, action ASC";
+            $stmt = $this->db->query($sql);
             $permissions = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Group by module
@@ -211,70 +201,84 @@ class RoleModel
             }
             
             return $grouped;
-        } catch (PDOException $e) {
-            error_log("Role Model Error: " . $e->getMessage());
+        } catch (Exception $e) {
+            error_log("RoleModel::getAllPermissions - Error: " . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Get all permissions
-     * @return array Array of all permissions
+     * Get role permissions
      */
-    public function getAllPermissions()
-    {
+    public function getRolePermissions($roleId) {
         try {
-            $query = "SELECT * FROM permissions ORDER BY module, action";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Role Model Error: " . $e->getMessage());
+            $sql = "SELECT permission_id FROM {$this->rolePermissionsTable} WHERE role_id = :role_id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':role_id' => $roleId]);
+            
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return array_column($result, 'permission_id');
+        } catch (Exception $e) {
+            error_log("RoleModel::getRolePermissions - Error: " . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * Get user count by role
-     * @param int $roleId Role ID
-     * @return int User count
+     * Update role permissions
      */
-    public function getUserCountByRole($roleId)
-    {
+    public function updateRolePermissions($roleId, $permissionIds) {
         try {
-            $query = "SELECT COUNT(*) FROM users WHERE role_id = ?";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([$roleId]);
-            return $stmt->fetchColumn();
-        } catch (PDOException $e) {
-            error_log("Role Model Error: " . $e->getMessage());
-            return 0;
-        }
-    }
+            $this->db->beginTransaction();
 
-    /**
-     * Check if role name exists
-     * @param string $name Role name
-     * @param int $excludeId Role ID to exclude (for updates)
-     * @return bool True if exists
-     */
-    public function roleNameExists($name, $excludeId = 0)
-    {
-        try {
-            if ($excludeId > 0) {
-                $query = "SELECT COUNT(*) FROM roles WHERE name = ? AND id != ?";
-                $stmt = $this->db->prepare($query);
-                $stmt->execute([$name, $excludeId]);
-            } else {
-                $query = "SELECT COUNT(*) FROM roles WHERE name = ?";
-                $stmt = $this->db->prepare($query);
-                $stmt->execute([$name]);
+            // Delete existing permissions
+            $sql = "DELETE FROM {$this->rolePermissionsTable} WHERE role_id = :role_id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':role_id' => $roleId]);
+
+            // Insert new permissions
+            if (!empty($permissionIds)) {
+                $sql = "INSERT INTO {$this->rolePermissionsTable} (role_id, permission_id) 
+                        VALUES (:role_id, :permission_id)";
+                $stmt = $this->db->prepare($sql);
+                
+                foreach ($permissionIds as $permissionId) {
+                    $stmt->execute([
+                        ':role_id' => $roleId,
+                        ':permission_id' => $permissionId
+                    ]);
+                }
             }
-            return $stmt->fetchColumn() > 0;
-        } catch (PDOException $e) {
-            error_log("Role Model Error: " . $e->getMessage());
-            return false;
+
+            $this->db->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("RoleModel::updateRolePermissions - Error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Get role statistics
+     */
+    public function getRoleStats() {
+        try {
+            $sql = "SELECT 
+                        COUNT(*) as total_roles,
+                        SUM(CASE WHEN is_super_admin = 1 THEN 1 ELSE 0 END) as super_admin_roles,
+                        SUM(CASE WHEN is_super_admin = 0 THEN 1 ELSE 0 END) as regular_roles,
+                        (SELECT COUNT(*) FROM role_permissions) as total_assignments,
+                        (SELECT COUNT(*) FROM permissions) as total_permissions
+                    FROM {$this->rolesTable}";
+            
+            $stmt = $this->db->query($sql);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("RoleModel::getRoleStats - Error: " . $e->getMessage());
+            return [];
         }
     }
 }
+
 ?>

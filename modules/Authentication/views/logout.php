@@ -39,7 +39,7 @@ setcookie('refresh_token', '', time() - 3600, '/');
         
         // Redirect to login page after 1 second
         setTimeout(function() {
-            window.location.href = "<?= url('login')?>";
+            window.location.href = "<?= url('membership')?>";
         }, 1000);
     </script>
 </head>

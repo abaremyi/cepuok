@@ -1,924 +1,1120 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html class="no-js" lang="en">
 
-<?php 
-// Include paths configuration
-$root_path = dirname(dirname(dirname(dirname(__FILE__))));
-require_once $root_path . "/config/paths.php";
+<?php
+/**
+ * Membership Page
+ * File: modules/General/views/membership.php
+ * Provides membership registration form and leader login
+ */
 
-// Include header
-include_once get_layout('header');
+// Use ROOT_PATH which is already defined by index.php router
+if (!defined('ROOT_PATH')) {
+    die('Direct access not allowed. Please access through the main router.');
+}
+
+require_once ROOT_PATH . '/config/database.php';
+
+// Get database instance
+try {
+    $db = Database::getConnection();
+} catch (Exception $e) {
+    error_log("Membership Page DB Error: " . $e->getMessage());
+    die("Database connection failed. Please try again later.");
+}
 ?>
 
-<body>
-        
-    <!-- Control Active Nav Link -->
-     <?php 
-        $home = 'active'; 
-        $services = 'off'; 
-        $work = 'off'; 
-        $about = 'off'; 
-        $news = 'off'; 
-        $contacts = 'off'; 
-     ?>
-    <!-- Navbar -->
-    <?php include_once get_layout('navbar'); ?>
+<?php include get_layout('header-2'); ?>
+
+<body data-res-from="1025">
     
-
-    <!-- Hero Section - Carousel -->
-    <section class="hero" id="home">
-        <?php
-        // Fetch hero sliders from database
-        require_once $root_path . "/config/database.php";
-        $pdo = Database::getConnection();
-        
-        $stmt = $pdo->query("SELECT * FROM hero_sliders WHERE status = 'active' ORDER BY display_order");
-        $sliders = $stmt->fetchAll();
-        
-        $isFirst = true;
-        foreach ($sliders as $index => $slider):
-        ?>
-        <div class="hero-slide hero-slide-<?= $index + 1 ?> <?= $isFirst ? 'active' : '' ?>" 
-             style="background: linear-gradient(135deg, rgba(0, 121, 107, 0.85), rgba(26, 58, 82, 0.85)), url('<?= img_url($slider['image_url']) ?>') center/cover;">
-            <div class="hero-content">
-                <h1><?= htmlspecialchars($slider['title']) ?></h1>
-                <p><?= htmlspecialchars($slider['description']) ?></p>
-                <div class="hero-buttons">
-                    <?php if (!empty($slider['button1_text'])): ?>
-                    <a href="<?= htmlspecialchars($slider['button1_link']) ?>" class="btn btn-primary"><?= htmlspecialchars($slider['button1_text']) ?></a>
-                    <?php endif; ?>
-                    <?php if (!empty($slider['button2_text'])): ?>
-                    <a href="<?= htmlspecialchars($slider['button2_link']) ?>" class="btn btn-secondary"><?= htmlspecialchars($slider['button2_text']) ?></a>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-        <?php 
-        $isFirst = false;
-        endforeach; 
-        ?>
-        
-        <!-- Navigation Arrows -->
-        <?php if (count($sliders) > 1): ?>
-        <div class="carousel-arrow carousel-arrow-left" onclick="changeSlide(-1)">
-            <i class="fas fa-chevron-left"></i>
-        </div>
-        <div class="carousel-arrow carousel-arrow-right" onclick="changeSlide(1)">
-            <i class="fas fa-chevron-right"></i>
-        </div>
+    <?php include get_layout('loader'); ?>
     
-        <!-- Indicators -->
-        <div class="carousel-indicators">
-            <?php for ($i = 0; $i < count($sliders); $i++): ?>
-            <div class="carousel-indicator <?= $i === 0 ? 'active' : '' ?>" onclick="goToSlide(<?= $i ?>)"></div>
-            <?php endfor; ?>
-        </div>
-        <?php endif; ?>
-    </section>
-    
-    <!-- Welcome Section with Video -->
-    <!-- Welcome Section with Video -->
-<section class="welcome-section" id="welcome">
-    <div class="container">
-        <?php
-        // Fetch welcome section content from database
-        $stmt = $pdo->prepare("SELECT * FROM page_content WHERE page_name = 'home' AND section_name IN (?, ?, ?, ?, ?, ?)");
-        $stmt->execute(['welcome_section_title', 'welcome_section_video', 'welcome_intro_head', 'welcome_intro_paragraph', 'welcome_quote_title', 'welcome_quote_content']);
-        $welcome_content = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Convert to associative array
-        $welcome = [];
-        foreach ($welcome_content as $content) {
-            $welcome[$content['section_name']] = $content;
-        }
-        ?>
-        
-        <div class="w3l-heading">
-            <h2 class="w3ls_head"><?= $welcome['welcome_section_title']['content'] ?? 'Welcome to Mount Carmel School' ?></h2>
-        </div>
-        
-        <div class="row">
-            <!-- Video Section -->
-            <div class="col-md-6 welcome-left">
-                <div class="video-container">
-                    <div class="video-wrapper">
-                        <?php if (!empty($welcome['welcome_section_video']['content'])): ?>
-                            <iframe 
-                                src="<?= htmlspecialchars($welcome['welcome_section_video']['content']) ?>" 
-                                title="Welcome to Mount Carmel School"
-                                frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                                referrerpolicy="strict-origin-when-cross-origin" allowfullscreen>
-                            </iframe>
-                        <?php else: ?>
-                            <!-- Fallback to default video -->
-                            <iframe 
-                                src="https://www.youtube.com/embed/NZI3j_XpgWM?si=dbEgYZNAuGMkrNBl" 
-                                title="Welcome to Mount Carmel School"
-                                frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                                referrerpolicy="strict-origin-when-cross-origin" allowfullscreen>
-                            </iframe>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Welcome Content -->
-            <div class="col-md-6 welcome-right">
-                <div class="welcome-intro">
-                    <h3><?= $welcome['welcome_intro_head']['content'] ?? 'Excellence in Education Since 2013' ?></h3>
-                    <p><?= $welcome['welcome_intro_paragraph']['content'] ?? 'Mount Carmel School is a nurturing bilingual institution...' ?></p>
-                    
-                    <div class="welcome-quote">
-                        <i class="fas fa-quote-left"></i>
-                        <p><strong><?= $welcome['welcome_quote_title']['content'] ?? 'Vision:' ?></strong> <?= $welcome['welcome_quote_content']['content'] ?? 'To bless Rwanda with GOD fearing citizens...' ?></p>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="page-wrapper">
+        <div class="page-wrapper-inner">
+            <header>
+                <?php include get_layout('mobile-header'); ?>
 
-        <!-- Quick Stats -->
-        <?php
-        // Fetch quick stats
-        $stmt = $pdo->query("SELECT * FROM quick_stats WHERE status = 'active' ORDER BY display_order");
-        $quick_stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        ?>
-        <div class="quick-stats">
-            <div class="row">
-                <?php if (empty($quick_stats)): ?>
-                    <!-- Default stats -->
-                    <div class="col-md-3 col-sm-6 stat-box">
-                        <div class="stat-circle">
-                            <div class="stat-number" data-count="10">0</div>
-                            <div class="stat-plus">+</div>
-                        </div>
-                        <div class="stat-label">Years of Excellence</div>
-                    </div>
-                    <!-- ... other default stats ... -->
-                <?php else: ?>
-                    <?php foreach ($quick_stats as $stat): ?>
-                        <div class="col-md-3 col-sm-6 stat-box">
-                            <div class="stat-circle">
-                                <div class="stat-number" data-count="<?= $stat['stat_value'] ?>">0</div>
-                                <?php if (strpos($stat['stat_value'], '%') !== false): ?>
-                                    <div class="stat-percent">%</div>
-                                <?php endif; ?>
-                            </div>
-                            <div class="stat-label"><?= htmlspecialchars($stat['stat_label']) ?></div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-</section>
+                <!-- Header (Navbar for other Devices-->
+                <div class="header-inner header-1">
+                    <!--Sticky part-->
+                    <?php include get_layout('navbar-other'); ?>
+                    <!--sticky-outer-->
+                </div>
+                <!-- .Header (Navbar for other Devices  -->
+            </header>
 
-    <!-- Director's Letter Section -->
-<section class="directors-letter" id="directors-letter">
-    <div class="container">
-        <?php
-        // Fetch director letter content
-        $stmt = $pdo->prepare("SELECT * FROM page_content WHERE page_name = 'home' AND section_name LIKE 'dir_%' OR section_name LIKE 'letter_%' OR section_name IN ('director_photo', 'director_name', 'director_role')");
-        $stmt->execute();
-        $director_content = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        $director = [];
-        foreach ($director_content as $content) {
-            $director[$content['section_name']] = $content;
-        }
-        ?>
-        
-        <div class="w3l-heading">
-            <h2 class="w3ls_head"><?= $director['dir_letter_section_title']['content'] ?? 'A Message from Our Director' ?></h2>
-        </div>
-        <div class="letter-content">
-            <div class="director-photo">
-                <div class="director-card">
-                    <img src="<?= !empty($director['director_photo']['image_url']) ? img_url($director['director_photo']['image_url']) : img_url('director-photo.jpg') ?>" alt="School Director">
-                    <div class="director-name-badge">
-                        <h3><?= $director['director_name']['content'] ?? 'SIBOMANA Gérard' ?></h3>
-                        <p><?= $director['director_role']['content'] ?? 'Acting Legal Representative' ?></p>
-                    </div>
-                </div>
-            </div>
-            <div class="letter-text">
-                <h2><?= $director['letter_text_title']['content'] ?? 'A Letter from the Acting Legal Representative' ?></h2>
-                <p class="letter-greeting"><?= $director['letter_greeting']['content'] ?? 'Dear Parents and Guardians,' ?></p>
-                <?php for ($i = 1; $i <= 3; $i++): ?>
-                    <?php if (!empty($director["letter_paragraph_{$i}"]['content'])): ?>
-                        <p><?= $director["letter_paragraph_{$i}"]['content'] ?></p>
-                    <?php endif; ?>
-                <?php endfor; ?>
-                <div class="letter-signature">
-                    <p>With warm regards,</p>
-                    <p class="signature-name"><?= $director['letter_signature_name']['content'] ?? 'SIBOMANA Gérard' ?></p>
-                    <p><?= $director['letter_signature_role']['content'] ?? 'Acting Legal Representative' ?></p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-    <!-- Photo Gallery Section -->
-    <section class="photo-gallery-section" id="gallery">
-        <div class="container">
-            <div class="w3l-heading">
-                <h2 class="w3ls_head">Campus Life Gallery</h2>
-            </div>
-            <div class="gallery-wrapper">
-                <div class="gallery-grid" id="galleryGrid">
-                    <!-- Gallery items will be loaded via AJAX -->
-                    <div class="loading-spinner" style="grid-column: 1/-1; text-align: center; padding: 50px;">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 48px; color: var(--primary-teal);"></i>
-                    </div>
-                </div>
-                <div class="gallery-sidebar">
-                    <div class="gallery-info-card">
-                        <h3>Our Campus Life</h3>
-                        <p>Experience the vibrant environment at Mount Carmel School through our photo gallery. From classroom activities to sports events, see how our students learn, grow, and thrive.</p>
-                        <a href="<?= url('gallery') ?>" class="btn-view-gallery">
-                            View Full Gallery
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Gallery Modal -->
-    <div class="gallery-modal" id="galleryModal">
-        <div class="gallery-modal-backdrop"></div>
-        <div class="gallery-modal-content">
-            <div class="gallery-modal-header">
-                <h3 class="gallery-modal-title">Gallery</h3>
-                <button class="gallery-modal-close" aria-label="Close gallery">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="gallery-modal-body">
-                <div class="gallery-loading"></div>
-                <div class="gallery-modal-counter"></div>
-                <button class="gallery-modal-nav prev" aria-label="Previous image">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="gallery-modal-image-container">
-                    <img class="gallery-modal-image" src="" alt="">
-                </div>
-                <button class="gallery-modal-nav next" aria-label="Next image">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-            <div class="gallery-modal-footer">
-                <p class="gallery-modal-description"></p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Educational Programs Section -->
-<div class="advantages" style="background: url('<?= img_url('partner-bg2.jpg') ?>') no-repeat; background-size: cover; background-attachment: fixed;">
-    <div class="agile-dot">
-        <div class="container">
-            <div class="advantages-main">
-                <div class="w3l-heading">
-                    <h3 class="w3ls_head"><?= $pages_content['edu_program_head']['content'] ?? 'Our Educational Programs' ?></h3>
-                </div>
-                <div class="advantage-bottom">
-                    <?php
-                    // Fetch educational programs
-                    $stmt = $pdo->query("SELECT * FROM educational_programs WHERE status = 'active' ORDER BY display_order LIMIT 3");
-                    $programs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    ?>
-                    
-                    <?php if (empty($programs)): ?>
-                        <!-- Default programs -->
-                        <div class="col-md-4 advantage-grid">
-                            <div class="program-card">
-                                <div class="program-icon">
-                                    <i class="fas fa-baby"></i>
-                                </div>
-                                <h3>Nursery School</h3>
-                                <p class="program-subtitle">Francophone Program</p>
-                                <p>Safe and stimulating environment for early childhood development...</p>
-                                <a href="#nursery" class="btn-program">Learn More</a>
-                            </div>
-                        </div>
-                        <!-- ... other default programs ... -->
-                    <?php else: ?>
-                        <?php foreach ($programs as $program): ?>
-                            <div class="col-md-4 advantage-grid">
-                                <div class="program-card">
-                                    <div class="program-icon">
-                                        <i class="<?= $program['icon_class'] ?>"></i>
-                                    </div>
-                                    <h3><?= htmlspecialchars($program['title']) ?></h3>
-                                    <?php if (!empty($program['subtitle'])): ?>
-                                        <p class="program-subtitle"><?= htmlspecialchars($program['subtitle']) ?></p>
-                                    <?php endif; ?>
-                                    <p><?= substr(strip_tags($program['description']), 0, 120) ?>...</p>
-                                    <a href="#<?= strtolower(str_replace(' ', '-', $program['title'])) ?>" class="btn-program">Learn More</a>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                    <div class="clearfix"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-    <!-- Why Choose MCS Section -->
-<section class="why-choose" id="why-choose">
-    <div class="container">
-        <div class="w3l-heading">
-            <h2 class="w3ls_head">Why Choose Mount Carmel School?</h2>
-        </div>
-        <div class="row">
-            <?php
-            // Fetch why choose items
-            $stmt = $pdo->query("SELECT * FROM why_choose_items WHERE status = 'active' ORDER BY display_order");
-            $why_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            if (empty($why_items)) {
-                // Default content
-                $why_items = [
-                    ['icon_class' => 'fas fa-user-graduate', 'title' => 'Experienced Faculty', 'description' => 'Our dedicated teachers are highly qualified...'],
-                    // ... other default items
-                ];
-            }
-            ?>
-            
-            <div class="col-md-6 why-left">
-                <?php for ($i = 0; $i < min(3, count($why_items)); $i++): ?>
-                    <div class="why-item">
-                        <div class="why-icon">
-                            <i class="<?= $why_items[$i]['icon_class'] ?>"></i>
-                        </div>
-                        <div class="why-content">
-                            <h3><?= htmlspecialchars($why_items[$i]['title']) ?></h3>
-                            <p><?= htmlspecialchars($why_items[$i]['description']) ?></p>
-                        </div>
-                    </div>
-                <?php endfor; ?>
-            </div>
-            <div class="col-md-6 why-right">
-                <?php for ($i = 3; $i < min(10, count($why_items)); $i++): ?>
-                    <div class="why-item">
-                        <div class="why-icon">
-                            <i class="<?= $why_items[$i]['icon_class'] ?>"></i>
-                        </div>
-                        <div class="why-content">
-                            <h3><?= htmlspecialchars($why_items[$i]['title']) ?></h3>
-                            <p><?= htmlspecialchars($why_items[$i]['description']) ?></p>
-                        </div>
-                    </div>
-                <?php endfor; ?>
-            </div>
-        </div>
-    </div>
-</section>
-
-    <!-- News and Events Section -->
-    <section class="news-events" id="news">
-        <div class="container">
-            <div class="w3l-heading">
-                <h2 class="w3ls_head">Latest News & Events</h2>
-            </div>
-            <div class="row" id="newsContainer">
-                <!-- News items will be loaded via AJAX -->
-                <div class="col-md-12" style="text-align: center; padding: 50px;">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 48px; color: var(--primary-teal);"></i>
-                </div>
-            </div>
-            <div class="text-center" style="margin-top: 40px;">
-                <a href="<?= url('news') ?>" class="btn btn-secondary">View All News & Events</a>
-            </div>
-        </div>
-    </section>
-
-        <!-- Testimonials Section -->
-        <section class="testimonials" id="testimonials">
-            <div class="container">
-                <div class="w3l-heading">
-                    <h2 class="w3ls_head">What Parents Say About Our School</h2>
-                </div>
+            <style>
+                /* ========== MEMBERSHIP PAGE STYLES ========== */
                 
-                <div class="carousel-wrapper">
-                    <button class="carousel-nav prev" id="testimonialPrev">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <button class="carousel-nav next" id="testimonialNext">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-
-                    <div class="carousel-container">
-                        <div class="carousel-track" id="testimonialTrack">
-                            <!-- Testimonials will be loaded via AJAX -->
-                            <div class="testimonial-slide" style="text-align: center; padding: 50px;">
-                                <i class="fas fa-spinner fa-spin" style="font-size: 48px; color: var(--primary-teal);"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="carousel-dots" id="testimonialDots">
-                        <!-- Dots will be generated dynamically -->
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    <!-- Footer -->
-    <?php include_once get_layout('footer'); ?>
-
-    <!-- jQuery -->
-    <?php include_once get_layout('scripts'); ?>
-    
-    <!-- Custom Scripts for Homepage -->
-    <script>
-    // Base URL for API calls
-    const BASE_URL = '<?= url() ?>';
-    
-    // Global variables for gallery and testimonials
-    let galleryImages = [];
-    let currentGalleryIndex = 0;
-    let testimonials = [];
-    let currentTestimonialIndex = 0;
-    let testimonialInterval;
-    
-    $(document).ready(function() {
-        loadGalleryImages();
-        loadNewsItems();
-        loadTestimonials();
-        animateStats();
-        setupGalleryModal();
-        setupTestimonialCarousel();
-    });
-
-    function loadGalleryImages() {
-        $.ajax({
-            url: '<?= url('api/gallery') ?>',
-            method: 'GET',
-            data: { 
-                action: 'get_images',
-                limit: 6 
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success && response.data.length > 0) {
-                    galleryImages = response.data;
-                    displayGalleryImages(galleryImages);
-                } else {
-                    $('#galleryGrid').html('<p style="grid-column: 1/-1; text-align: center; color: #6c757d;">No gallery images available.</p>');
+                /* Hero Section */
+                .membership-hero {
+                    position: relative;
+                    min-height: 30vh;
+                    max-height: 30vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: linear-gradient(135deg, rgba(12, 23, 45, 0.85), rgba(12, 23, 45, 0.85) ),
+                                url("<?= img_url('title-membership.jpg') ?>");
+                    background-size: cover;
+                    background-position: center;
+                    background-attachment: fixed;
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('Gallery API Error:', error);
-                $('#galleryGrid').html('<p style="grid-column: 1/-1; text-align: center; color: #dc3545;">Failed to load gallery images.</p>');
-            }
-        });
-    }
-
-    function displayGalleryImages(images) {
-        let html = '';
-        images.forEach(function(image, index) {
-            html += `
-                <figure class="gallery-item" onclick="openGalleryModal(${index})">
-                    <img src="<?= img_url('${image.image_url}') ?>" alt="${image.title || 'Gallery Image'}">
-                    <figcaption>
-                        <h3>${image.title || 'Campus Life'}</h3>
-                        <p>${image.description || ''}</p>
-                    </figcaption>
-                </figure>
-            `;
-        });
-        $('#galleryGrid').html(html);
-    }
-
-    function setupGalleryModal() {
-        const modal = $('#galleryModal');
-        const closeBtn = modal.find('.gallery-modal-close');
-        const backdrop = modal.find('.gallery-modal-backdrop');
-        const prevBtn = modal.find('.gallery-modal-nav.prev');
-        const nextBtn = modal.find('.gallery-modal-nav.next');
-        const modalImage = modal.find('.gallery-modal-image');
-        const modalTitle = modal.find('.gallery-modal-title');
-        const modalDescription = modal.find('.gallery-modal-description');
-        const modalCounter = modal.find('.gallery-modal-counter');
-        const loadingSpinner = modal.find('.gallery-loading');
-
-        // Close modal when clicking close button or backdrop
-        closeBtn.click(closeGalleryModal);
-        backdrop.click(closeGalleryModal);
-        
-        // Navigation
-        prevBtn.click(function() {
-            navigateGallery(-1);
-        });
-        
-        nextBtn.click(function() {
-            navigateGallery(1);
-        });
-        
-        // Keyboard navigation
-        $(document).keydown(function(e) {
-            if (modal.hasClass('active')) {
-                if (e.key === 'Escape') {
-                    closeGalleryModal();
-                } else if (e.key === 'ArrowLeft') {
-                    navigateGallery(-1);
-                } else if (e.key === 'ArrowRight') {
-                    navigateGallery(1);
+                
+                .hero-content {
+                    position: relative;
+                    z-index: 2;
+                    text-align: center;
+                    color: white;
+                    padding: 80px 20px 60px;
+                    max-width: 800px;
+                    margin: 0 auto;
                 }
-            }
-        });
-        
-        // Swipe support for mobile
-        let touchStartX = 0;
-        let touchEndX = 0;
-        
-        modal.on('touchstart', function(e) {
-            touchStartX = e.originalEvent.changedTouches[0].screenX;
-        });
-        
-        modal.on('touchend', function(e) {
-            touchEndX = e.originalEvent.changedTouches[0].screenX;
-            handleSwipe();
-        });
-        
-        function handleSwipe() {
-            const swipeThreshold = 50;
-            const diff = touchStartX - touchEndX;
-            
-            if (Math.abs(diff) > swipeThreshold) {
-                if (diff > 0) {
-                    // Swipe left - next image
-                    navigateGallery(1);
-                } else {
-                    // Swipe right - previous image
-                    navigateGallery(-1);
+                
+                .hero-icon {
+                    width: 80px;
+                    height: 80px;
+                    margin: 0 auto 25px;
+                    background: rgba(212, 175, 55, 0.2);
+                    border: 3px solid #D4AF37;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 40px;
+                    color: #D4AF37;
                 }
-            }
-        }
-    }
-
-    function openGalleryModal(index) {
-        if (galleryImages.length === 0) return;
-        
-        currentGalleryIndex = index;
-        updateGalleryModal();
-        $('#galleryModal').addClass('active');
-        $('body').css('overflow', 'hidden');
-    }
-
-    function closeGalleryModal() {
-        $('#galleryModal').removeClass('active');
-        $('body').css('overflow', '');
-    }
-
-    function navigateGallery(direction) {
-        currentGalleryIndex += direction;
-        
-        // Loop around if at the beginning or end
-        if (currentGalleryIndex < 0) {
-            currentGalleryIndex = galleryImages.length - 1;
-        } else if (currentGalleryIndex >= galleryImages.length) {
-            currentGalleryIndex = 0;
-        }
-        
-        updateGalleryModal();
-    }
-
-    function updateGalleryModal() {
-        if (galleryImages.length === 0) return;
-        
-        const image = galleryImages[currentGalleryIndex];
-        const modal = $('#galleryModal');
-        const modalImage = modal.find('.gallery-modal-image');
-        const loadingSpinner = modal.find('.gallery-loading');
-        
-        // Show loading
-        loadingSpinner.addClass('active');
-        modalImage.css('opacity', '0');
-        
-        // Load image
-        modalImage.on('load', function() {
-            loadingSpinner.removeClass('active');
-            modalImage.css('opacity', '1');
-        });
-        
-        modalImage.on('error', function() {
-            loadingSpinner.removeClass('active');
-            console.error('Failed to load image:', image.image_url);
-        });
-        
-        modalImage.attr('src', '<?= img_url("' + image.image_url + '") ?>');
-        modalImage.attr('alt', image.title || 'Gallery Image');
-        modal.find('.gallery-modal-title').text(image.title || 'Gallery Image');
-        modal.find('.gallery-modal-description').text(image.description || '');
-        modal.find('.gallery-modal-counter').text(`${currentGalleryIndex + 1} / ${galleryImages.length}`);
-        
-        // Update navigation buttons
-        const prevBtn = modal.find('.gallery-modal-nav.prev');
-        const nextBtn = modal.find('.gallery-modal-nav.next');
-        prevBtn.prop('disabled', currentGalleryIndex === 0);
-        nextBtn.prop('disabled', currentGalleryIndex === galleryImages.length - 1);
-    }
-
-    function loadNewsItems() {
-        $.ajax({
-            url: '<?= url('api/news') ?>',
-            method: 'GET',
-            data: { 
-                action: 'get_news',
-                limit: 4 
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success && response.data.length > 0) {
-                    displayNewsItems(response.data);
-                } else {
-                    $('#newsContainer').html('<div class="col-md-12"><p style="text-align: center; color: #6c757d;">No news available at the moment.</p></div>');
+                
+                .hero-title {
+                    font-family: 'Crimson Text', serif;
+                    font-size: 48px;
+                    font-weight: 700;
+                    margin: 0 0 15px 0;
+                    color: white;
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('News API Error:', error);
-                $('#newsContainer').html('<div class="col-md-12"><p style="text-align: center; color: #dc3545;">Failed to load news items.</p></div>');
-            }
-        });
-    }
-
-    function displayNewsItems(newsItems) {
-        let html = '';
-        newsItems.forEach(function(news) {
-            // Format date
-            const date = new Date(news.created_at || news.date);
-            const day = date.getDate();
-            const month = date.toLocaleString('en', { month: 'short' });
-            
-            html += `
-                <div class="col-md-3 col-sm-6 news-item">
-                    <div class="news-card">
-                        <div class="news-image">
-                            <img src="<?= img_url('${news.image_url}') ?>" alt="${news.title}" class="img-responsive">
-                            <div class="news-date">
-                                <span class="day">${day}</span>
-                                <span class="month">${month.toUpperCase()}</span>
-                            </div>
-                        </div>
-                        <div class="news-content">
-                            <h3>${news.title}</h3>
-                            <p>${news.excerpt || (news.description ? news.description.substring(0, 100) + '...' : '')}</p>
-                            <a href="${BASE_URL}/news-detail?id=${news.id}" class="read-more">
-                                Read More <i class="fas fa-arrow-right"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        $('#newsContainer').html(html);
-    }
-
-    function loadTestimonials() {
-    $.ajax({
-        url: '<?= url('api/testimonials') ?>',
-        method: 'GET',
-        data: { 
-            action: 'get_testimonials',
-            limit: 10 
-        },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success && response.data.length > 0) {
-                testimonials = response.data;
-                displayTestimonials(testimonials);
-                setupTestimonialCarousel();
-                startTestimonialCarousel();
-            } else {
-                $('#testimonialTrack').html('<div class="testimonial-slide"><p style="text-align: center; color: #6c757d; padding: 40px;">No testimonials available at the moment.</p></div>');
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('Testimonials API Error:', error);
-            $('#testimonialTrack').html('<div class="testimonial-slide"><p style="text-align: center; color: #dc3545; padding: 40px;">Failed to load testimonials.</p></div>');
-        }
-    });
-}
-
-function displayTestimonials(testimonials) {
-    let html = '';
-    let dotsHtml = '';
-    
-    testimonials.forEach(function(testimonial, index) {
-        // Get initials for avatar placeholder
-        const names = testimonial.name.split(' ');
-        const initials = names.length >= 2 
-            ? (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase()
-            : names[0].substring(0, 2).toUpperCase();
-        
-        // Generate star rating
-        const rating = testimonial.rating || 5;
-        let starsHtml = '';
-        for (let i = 1; i <= 5; i++) {
-            if (i <= rating) {
-                starsHtml += '<i class="fas fa-star"></i>';
-            } else {
-                starsHtml += '<i class="far fa-star"></i>';
-            }
-        }
-        
-        html += `
-            <div class="testimonial-slide">
-                <div class="testimonial-avatar">
-                    ${testimonial.image_url ? 
-                        `<img src="<?= img_url('${testimonial.image_url}') ?>" alt="${testimonial.name}">` : 
-                        `<div class="avatar-placeholder">${initials}</div>`
+                
+                .hero-subtitle {
+                    font-size: 20px;
+                    color: rgba(255,255,255,0.95);
+                    line-height: 1.6;
+                    margin: 0;
+                }
+                
+                /* Tab Navigation */
+                .tab-navigation {
+                    background: #f8f9fa;
+                    padding: 0;
+                    border-bottom: 3px solid #e0e0e0;
+                    position: sticky;
+                    top: 0;
+                    z-index: 100;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
+                
+                .tab-nav-container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    display: flex;
+                    justify-content: center;
+                }
+                
+                .tab-btn {
+                    flex: 1;
+                    max-width: 400px;
+                    padding: 20px 30px;
+                    background: white;
+                    border: none;
+                    border-bottom: 4px solid transparent;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    font-family: 'Crimson Text', serif;
+                    font-size: 20px;
+                    font-weight: 600;
+                    color: #666;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                }
+                
+                .tab-btn:hover {
+                    background: #f8f9fa;
+                    color: #b45816;
+                }
+                
+                .tab-btn.active {
+                    background: white;
+                    border-bottom-color: #b45816;
+                    color: #d96d20;
+                }
+                
+                .tab-btn i {
+                    font-size: 24px;
+                }
+                
+                /* Main Content Section */
+                .membership-content {
+                    background: white;
+                    padding: 60px 0;
+                    min-height: 70vh;
+                }
+                
+                .content-container {
+                    max-width: 1000px;
+                    margin: 0 auto;
+                    padding: 0 20px;
+                }
+                
+                .tab-content {
+                    display: none;
+                    animation: fadeIn 0.3s ease;
+                }
+                
+                .tab-content.active {
+                    display: block;
+                }
+                
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
                     }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                /* Form Styles */
+                .form-section {
+                    background: white;
+                    padding: 40px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                }
+                
+                .section-title {
+                    font-family: 'Crimson Text', serif;
+                    font-size: 28px;
+                    font-weight: 700;
+                    color: #d96d20;
+                    margin: 0 0 10px 0;
+                    text-align: center;
+                }
+                
+                .section-subtitle {
+                    text-align: center;
+                    color: #666;
+                    margin: 0 0 30px 0;
+                    font-size: 16px;
+                }
+                
+                .form-group {
+                    margin-bottom: 25px;
+                }
+                
+                .form-group label {
+                    display: block;
+                    font-weight: 600;
+                    color: #333;
+                    margin-bottom: 8px;
+                    font-size: 15px;
+                }
+                
+                .form-group label .required {
+                    color: #dc3545;
+                    margin-left: 3px;
+                }
+                
+                .form-control {
+                    width: 100%;
+                    padding: 12px 15px;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 6px;
+                    font-size: 15px;
+                    transition: all 0.3s ease;
+                    font-family: inherit;
+                }
+                
+                .form-control:focus {
+                    outline: none;
+                    border-color: #d96d20;
+                    box-shadow: 0 0 0 3px rgba(128,0,32,0.1);
+                }
+                
+                .form-control.error {
+                    border-color: #dc3545;
+                }
+                
+                .form-row {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 20px;
+                }
+                
+                .error-message {
+                    color: #dc3545;
+                    font-size: 13px;
+                    margin-top: 5px;
+                    display: none;
+                }
+                
+                .error-message.show {
+                    display: block;
+                }
+                
+                /* Checkbox and Radio Groups */
+                .checkbox-group, .radio-group {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 15px;
+                }
+                
+                .checkbox-item, .radio-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                
+                .checkbox-item input[type="checkbox"],
+                .radio-item input[type="radio"] {
+                    width: 18px;
+                    height: 18px;
+                    cursor: pointer;
+                }
+                
+                .checkbox-item label,
+                .radio-item label {
+                    margin: 0;
+                    cursor: pointer;
+                    font-weight: normal;
+                }
+                
+                /* Talent Selection */
+                .talents-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                    gap: 15px;
+                    max-height: 400px;
+                    overflow-y: auto;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    border-radius: 6px;
+                    border: 2px solid #e0e0e0;
+                }
+                
+                .talent-category {
+                    margin-bottom: 20px;
+                }
+                
+                .talent-category-title {
+                    font-weight: 700;
+                    color: #d96d20;
+                    margin-bottom: 10px;
+                    padding: 10px;
+                    background: white;
+                    border-left: 4px solid #D4AF37;
+                }
+                
+                /* File Upload */
+                .file-upload {
+                    position: relative;
+                    display: inline-block;
+                    width: 100%;
+                }
+                
+                .file-upload input[type="file"] {
+                    display: none;
+                }
+                
+                .file-upload-label {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                    padding: 15px;
+                    border: 2px dashed #e0e0e0;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    background: #f8f9fa;
+                }
+                
+                .file-upload-label:hover {
+                    border-color: #d96d20;
+                    background: white;
+                }
+                
+                .file-upload-label i {
+                    font-size: 24px;
+                    color: #c7621a;
+                }
+                
+                .file-preview {
+                    margin-top: 15px;
+                    text-align: center;
+                }
+                
+                .file-preview img {
+                    max-width: 200px;
+                    max-height: 200px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
+                
+                /* Buttons */
+                .btn-primary {
+                    background: linear-gradient(135deg, #d96d20, #b35c1f);
+                    color: white;
+                    padding: 15px 40px;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    width: 100%;
+                    margin-top: 10px;
+                }
+                
+                .btn-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(128, 62, 0, 0.3);
+                }
+                
+                .btn-primary:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+                
+                .btn-secondary {
+                    background: white;
+                    color: #800020;
+                    border: 2px solid #800020;
+                    padding: 12px 30px;
+                    border-radius: 6px;
+                    font-size: 15px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                
+                .btn-secondary:hover {
+                    background: #800020;
+                    color: white;
+                }
+                
+                /* Login Form Specific */
+                .login-form {
+                    max-width: 500px;
+                    margin: 0 auto;
+                }
+                
+                .forgot-password {
+                    text-align: right;
+                    margin-top: 10px;
+                }
+                
+                .forgot-password a {
+                    color: #800020;
+                    text-decoration: none;
+                    font-size: 14px;
+                }
+                
+                .forgot-password a:hover {
+                    text-decoration: underline;
+                }
+                
+                /* Alert Messages */
+                .alert {
+                    padding: 15px 20px;
+                    border-radius: 6px;
+                    margin-bottom: 25px;
+                    display: none;
+                }
+                
+                .alert.show {
+                    display: block;
+                }
+                
+                .alert-success {
+                    background: #d4edda;
+                    border: 1px solid #c3e6cb;
+                    color: #155724;
+                }
+                
+                .alert-error {
+                    background: #f8d7da;
+                    border: 1px solid #f5c6cb;
+                    color: #721c24;
+                }
+                
+                .alert-info {
+                    background: #d1ecf1;
+                    border: 1px solid #bee5eb;
+                    color: #0c5460;
+                }
+                
+                /* Loading Spinner */
+                .loading-spinner {
+                    display: none;
+                    text-align: center;
+                    padding: 20px;
+                }
+                
+                .loading-spinner.show {
+                    display: block;
+                }
+                
+                .spinner {
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #d96d20;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto;
+                }
+                
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                /* Info Box */
+                .info-box {
+                    background: #f8f9fa;
+                    border-left: 4px solid #D4AF37;
+                    padding: 20px;
+                    margin-bottom: 30px;
+                    border-radius: 4px;
+                }
+                
+                .info-box h4 {
+                    font-family: 'Crimson Text', serif;
+                    font-size: 20px;
+                    font-weight: 700;
+                    color: #d96d20;
+                    margin: 0 0 10px 0;
+                }
+                
+                .info-box ul {
+                    margin: 10px 0 0 20px;
+                    color: #666;
+                }
+                
+                .info-box ul li {
+                    margin-bottom: 5px;
+                }
+                
+                /* Responsive */
+                @media (max-width: 768px) {
+                    .hero-title {
+                        font-size: 36px;
+                    }
+                    
+                    .hero-subtitle {
+                        font-size: 16px;
+                    }
+                    
+                    .form-row {
+                        grid-template-columns: 1fr;
+                    }
+                    
+                    .tab-nav-container {
+                        flex-direction: column;
+                    }
+                    
+                    .tab-btn {
+                        max-width: 100%;
+                    }
+                    
+                    .form-section {
+                        padding: 25px 20px;
+                    }
+                    
+                    .talents-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+            </style>
+            
+            <!-- page-header -->
+            <!-- <div class="page-title-wrap typo-white">
+                <div class="page-title-wrap-inner section-bg-img" data-bg="img/title-membership.jpg">
+					<span class="theme-overlay"></span>
+                    <div class="container">
+                        <div class="row text-center">
+                            <div class="col-md-12">
+                                <div class="page-title-inner">
+									<div id="breadcrumb" class="breadcrumb margin-bottom-10">
+                                        <a href="index-2.html" class="theme-color">Home</a>
+                                        <span class="current">Member Registration | Portal Login</span>
+                                    </div>
+                                    <h1 class="page-title mb-0">Membership</h1>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="testimonial-name">${testimonial.name}</div>
-                <div class="testimonial-role">${testimonial.role || 'Parent'}</div>
-                <div class="testimonial-text">
-                    "${testimonial.content}"
+            </div> -->
+            <!-- page-header -->
+
+            <!-- Hero Section -->
+            <section class="membership-hero">
+                <div class="hero-content">
+                    <h1 class="hero-title">CEP Membership</h1>
+                    <p class="hero-subtitle">Join our community or access the leadership portal to manage CEP activities</p>
                 </div>
-                <div class="testimonial-rating">
-                    ${starsHtml}
+            </section>
+
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <div class="tab-nav-container">
+                    <button class="tab-btn active" data-tab="register">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Member Registration</span>
+                    </button>
+                    <button class="tab-btn" data-tab="login">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Leader Portal Login</span>
+                    </button>
                 </div>
             </div>
-        `;
-    });
-    
-    $('#testimonialTrack').html(html);
-    
-    // Create dots based on number of slides
-    const totalSlides = testimonials.length;
-    const slidesPerView = getSlidesPerView();
-    const totalDots = Math.ceil(totalSlides / slidesPerView);
-    
-    for (let i = 0; i < totalDots; i++) {
-        dotsHtml += `<button class="carousel-dot ${i === 0 ? 'active' : ''}" data-index="${i}"></button>`;
-    }
-    
-    $('#testimonialDots').html(dotsHtml);
-}
 
-function getSlidesPerView() {
-    if (window.innerWidth <= 768) {
-        return 1;
-    } else if (window.innerWidth <= 992) {
-        return 2;
-    } else {
-        return 3;
-    }
-}
+            <!-- Main Content -->
+            <section class="membership-content">
+                <div class="content-container">
+                    
+                    <!-- Registration Tab -->
+                    <div id="registerTab" class="tab-content active">
+                        <div class="form-section">
+                            <h2 class="section-title">Become a CEP Member</h2>
+                            <p class="section-subtitle">Fill in your details to join our community</p>
+                            
+                            <div class="info-box">
+                                <h4><i class="fas fa-info-circle"></i> Membership Types</h4>
+                                <ul>
+                                    <li><strong>Current Student & CEP Member:</strong> Currently enrolled students who are active members</li>
+                                    <li><strong>POST CEPiens (Alumni):</strong> Former CEP members who have graduated</li>
+                                    <li><strong>Frequent Visitor:</strong> Regular visitors who attend CEP events</li>
+                                    <li><strong>Donor/Partner:</strong> Financial supporters and ministry partners</li>
+                                </ul>
+                            </div>
 
-function setupTestimonialCarousel() {
-    const $track = $('#testimonialTrack');
-    const $slides = $('.testimonial-slide');
-    
-    if ($slides.length === 0) return;
-    
-    let currentIndex = 0;
-    let cardsPerView = getSlidesPerView();
-    let autoPlayInterval;
-    
-    function updateCardsPerView() {
-        cardsPerView = getSlidesPerView();
-    }
-    
-    function moveCarousel() {
-        const slideWidth = $slides.first().outerWidth(true);
-        const offset = -currentIndex * slideWidth;
-        $track.css('transform', `translateX(${offset}px)`);
-        updateDots();
-    }
-    
-    function updateDots() {
-        $('.carousel-dot').removeClass('active');
-        const activeDot = Math.floor(currentIndex / cardsPerView);
-        $('.carousel-dot').eq(activeDot).addClass('active');
-    }
-    
-    function nextSlide() {
-        const maxIndex = $slides.length - cardsPerView;
-        if (currentIndex < maxIndex) {
-            currentIndex++;
-        } else {
-            currentIndex = 0;
-        }
-        moveCarousel();
-    }
-    
-    function prevSlide() {
-        const maxIndex = $slides.length - cardsPerView;
-        if (currentIndex > 0) {
-            currentIndex--;
-        } else {
-            currentIndex = maxIndex;
-        }
-        moveCarousel();
-    }
-    
-    function goToSlide(index) {
-        currentIndex = index * cardsPerView;
-        moveCarousel();
-    }
-    
-    function startAutoPlay() {
-        autoPlayInterval = setInterval(nextSlide, 5000);
-    }
-    
-    function stopAutoPlay() {
-        clearInterval(autoPlayInterval);
-    }
-    
-    // Event listeners
-    $('#testimonialNext').on('click', function() {
-        stopAutoPlay();
-        nextSlide();
-        startAutoPlay();
-    });
-    
-    $('#testimonialPrev').on('click', function() {
-        stopAutoPlay();
-        prevSlide();
-        startAutoPlay();
-    });
-    
-    $(document).on('click', '.carousel-dot', function() {
-        stopAutoPlay();
-        const dotIndex = $(this).data('index');
-        goToSlide(dotIndex);
-        startAutoPlay();
-    });
-    
-    // Handle resize
-    $(window).on('resize', function() {
-        updateCardsPerView();
-        currentIndex = 0;
-        moveCarousel();
-        // Recreate dots if needed
-        const totalSlides = $slides.length;
-        const totalDots = Math.ceil(totalSlides / cardsPerView);
-        const currentDots = $('.carousel-dot').length;
-        
-        if (totalDots !== currentDots) {
-            let dotsHtml = '';
-            for (let i = 0; i < totalDots; i++) {
-                dotsHtml += `<button class="carousel-dot ${i === 0 ? 'active' : ''}" data-index="${i}"></button>`;
-            }
-            $('#testimonialDots').html(dotsHtml);
-        } else {
-            updateDots();
-        }
-    });
-    
-    // Pause on hover
-    $('.carousel-container').hover(
-        function() { stopAutoPlay(); },
-        function() { startAutoPlay(); }
-    );
-    
-    // Initialize
-    moveCarousel();
-    startAutoPlay();
-    
-    // Make functions available globally for the carousel
-    window.testimonialCarousel = {
-        next: nextSlide,
-        prev: prevSlide,
-        goTo: goToSlide
-    };
-}
+                            <div id="registrationAlert" class="alert"></div>
+                            <div id="registrationLoading" class="loading-spinner">
+                                <div class="spinner"></div>
+                                <p>Processing your registration...</p>
+                            </div>
 
-    // Animate Statistics Numbers
-    function animateStats() {
-        $('.stat-number').each(function() {
-            const $this = $(this);
-            const countTo = parseInt($this.attr('data-count'));
+                            <form id="registrationForm" enctype="multipart/form-data">
+                                <!-- Membership Type -->
+                                <div class="form-group">
+                                    <label for="membershipType">Membership Type <span class="required">*</span></label>
+                                    <select id="membershipType" name="membership_type_id" class="form-control" required>
+                                        <option value="">-- Select Membership Type --</option>
+                                    </select>
+                                    <div class="error-message" id="membershipTypeError"></div>
+                                </div>
+
+                                <!-- Personal Information -->
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="firstname">First Name <span class="required">*</span></label>
+                                        <input type="text" id="firstname" name="firstname" class="form-control" required>
+                                        <div class="error-message" id="firstnameError"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="lastname">Last Name <span class="required">*</span></label>
+                                        <input type="text" id="lastname" name="lastname" class="form-control" required>
+                                        <div class="error-message" id="lastnameError"></div>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="email">Email Address <span class="required">*</span></label>
+                                        <input type="email" id="email" name="email" class="form-control" required>
+                                        <div class="error-message" id="emailError"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="phone">Phone Number <span class="required">*</span></label>
+                                        <input type="tel" id="phone" name="phone" class="form-control" placeholder="+250..." required>
+                                        <div class="error-message" id="phoneError"></div>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="gender">Gender <span class="required">*</span></label>
+                                        <select id="gender" name="gender" class="form-control" required>
+                                            <option value="">-- Select Gender --</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                        <div class="error-message" id="genderError"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="dateOfBirth">Date of Birth</label>
+                                        <input type="date" id="dateOfBirth" name="date_of_birth" class="form-control">
+                                    </div>
+                                </div>
+
+                                <!-- Address -->
+                                <div class="form-group">
+                                    <label for="address">Address</label>
+                                    <textarea id="address" name="address" class="form-control" rows="2" placeholder="Street address, city, province..."></textarea>
+                                </div>
+
+                                <!-- CEP Information -->
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="yearJoined">Year Started to Join CEP <span class="required">*</span></label>
+                                        <input type="number" id="yearJoined" name="year_joined_cep" class="form-control" 
+                                               min="2000" max="<?= date('Y') ?>" required>
+                                        <div class="error-message" id="yearJoinedError"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="church">Your Church <span class="required">*</span></label>
+                                        <select id="church" name="church_id" class="form-control" required>
+                                            <option value="">-- Select Church --</option>
+                                        </select>
+                                        <div class="error-message" id="churchError"></div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group" id="otherChurchGroup" style="display: none;">
+                                    <label for="otherChurch">Please specify church name</label>
+                                    <input type="text" id="otherChurch" name="other_church_name" class="form-control">
+                                </div>
+
+                                <!-- Spiritual Information -->
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="bornAgain">Are you born again? <span class="required">*</span></label>
+                                        <select id="bornAgain" name="is_born_again" class="form-control" required>
+                                            <option value="Prefer not to say">Prefer not to say</option>
+                                            <option value="Yes">Yes</option>
+                                            <option value="No">No</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="baptized">Are you baptized? <span class="required">*</span></label>
+                                        <select id="baptized" name="is_baptized" class="form-control" required>
+                                            <option value="Prefer not to say">Prefer not to say</option>
+                                            <option value="Yes">Yes</option>
+                                            <option value="No">No</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Talents/Gifts -->
+                                <div class="form-group">
+                                    <label>Talents/Gifts/Activities (Select all that apply)</label>
+                                    <div id="talentsContainer" class="talents-grid">
+                                        <!-- Will be populated by JavaScript -->
+                                    </div>
+                                </div>
+
+                                <!-- Bio -->
+                                <div class="form-group">
+                                    <label for="bio">Tell us about yourself</label>
+                                    <textarea id="bio" name="bio" class="form-control" rows="4" 
+                                              placeholder="Share your testimony, interests, or how you'd like to contribute to CEP..."></textarea>
+                                </div>
+
+                                <!-- Profile Photo -->
+                                <div class="form-group">
+                                    <label for="profilePhoto">Profile Photo (Optional)</label>
+                                    <div class="file-upload">
+                                        <input type="file" id="profilePhoto" name="profile_photo" accept="image/*">
+                                        <label for="profilePhoto" class="file-upload-label">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                            <span>Click to upload photo (Max 5MB)</span>
+                                        </label>
+                                    </div>
+                                    <div id="photoPreview" class="file-preview"></div>
+                                </div>
+
+                                <button type="submit" class="btn-primary" id="submitBtn">
+                                    <i class="fas fa-check-circle"></i> Submit Registration
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Login Tab -->
+                    <div id="loginTab" class="tab-content">
+                        <div class="form-section login-form">
+                            <h2 class="section-title">Leader Portal Login</h2>
+                            <p class="section-subtitle">Access the dashboard to manage CEP activities</p>
+
+                            <div id="loginAlert" class="alert"></div>
+
+                            <form id="loginForm">
+                                <div class="form-group">
+                                    <label for="loginIdentifier">Email, Phone, or Username <span class="required">*</span></label>
+                                    <input type="text" id="loginIdentifier" name="identifier" class="form-control" required>
+                                    <div class="error-message" id="loginIdentifierError"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="loginPassword">Password <span class="required">*</span></label>
+                                    <input type="password" id="loginPassword" name="password" class="form-control" required>
+                                    <div class="error-message" id="loginPasswordError"></div>
+                                </div>
+
+                                <div class="forgot-password">
+                                    <a href="<?= url('forgot-password') ?>">Forgot Password?</a>
+                                </div>
+
+                                <button type="submit" class="btn-primary" id="loginBtn">
+                                    <i class="fas fa-sign-in-alt"></i> Login to Portal
+                                </button>
+                            </form>
+
+                            <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid #e0e0e0; text-align: center;">
+                                <p style="color: #666; margin-bottom: 15px;">Don't have a leader account yet?</p>
+                                <p style="color: #666; font-size: 14px;">
+                                    Only CEP members from ADEPR can be granted leader access. 
+                                    Please register as a member first, then contact the administrator for leader privileges.
+                                </p>
+                                <p style="color: #666; font-size: 14px;">Email: admin@cepuok.com | Password: 12345</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <?php include get_layout('footer'); ?>
+        </div>
+    </div>
+
+    <?php include get_layout('scripts'); ?>
+
+    <script>
+        jQuery(document).ready(function($) {
+            const BASE_URL = '<?= BASE_URL ?>';
+            const IMG_URL = '<?= IMG_URL ?>';
             
-            $({ countNum: 0 }).animate({
-                countNum: countTo
-            }, {
-                duration: 2000,
-                easing: 'swing',
-                step: function() {
-                    $this.text(Math.floor(this.countNum));
-                },
-                complete: function() {
-                    $this.text(this.countNum);
+            // Tab switching
+            $('.tab-btn').on('click', function() {
+                const targetTab = $(this).data('tab');
+                
+                $('.tab-btn').removeClass('active');
+                $(this).addClass('active');
+                
+                $('.tab-content').removeClass('active');
+                $(`#${targetTab}Tab`).addClass('active');
+                
+                // Clear any alerts
+                $('.alert').removeClass('show').html('');
+            });
+
+            // Load form data
+            loadMembershipTypes();
+            loadChurches();
+            loadTalents();
+
+            // Church selection handler
+            $('#church').on('change', function() {
+                const selectedOption = $(this).find('option:selected').text();
+                if (selectedOption.toLowerCase().includes('other')) {
+                    $('#otherChurchGroup').show();
+                    $('#otherChurch').attr('required', true);
+                } else {
+                    $('#otherChurchGroup').hide();
+                    $('#otherChurch').attr('required', false);
                 }
             });
-        });
-    }
 
-    // Debug function
-    function debugGallery() {
-        console.log('Gallery Items Found:', $('.gallery-item').length);
-        console.log('Gallery Images Array:', galleryImages.length);
-        console.log('Gallery Modal Element:', $('#galleryModal').length);
-    }
-    
+            // Email validation on blur
+            $('#email').on('blur', function() {
+                const email = $(this).val();
+                if (email) {
+                    checkEmailAvailability(email);
+                }
+            });
+
+            // Profile photo preview
+            $('#profilePhoto').on('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 5 * 1024 * 1024) {
+                        showAlert('registrationAlert', 'error', 'File size exceeds 5MB limit');
+                        $(this).val('');
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#photoPreview').html(`<img src="${e.target.result}" alt="Preview">`);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Registration form submission
+            $('#registrationForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                if (!validateRegistrationForm()) {
+                    return;
+                }
+                
+                const formData = new FormData(this);
+                
+                // Get selected talents
+                const selectedTalents = [];
+                $('input[name="talents[]"]:checked').each(function() {
+                    selectedTalents.push($(this).val());
+                });
+                formData.append('talents', JSON.stringify(selectedTalents));
+                
+                $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+                $('#registrationLoading').addClass('show');
+                
+                $.ajax({
+                    url: `${BASE_URL}/api/membership?action=register`,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $('#registrationLoading').removeClass('show');
+                        $('#submitBtn').prop('disabled', false).html('<i class="fas fa-check-circle"></i> Submit Registration');
+                        
+                        if (response.success) {
+                            showAlert('registrationAlert', 'success', response.message);
+                            $('#registrationForm')[0].reset();
+                            $('#photoPreview').html('');
+                            $('input[name="talents[]"]').prop('checked', false);
+                            
+                            // Scroll to top
+                            $('html, body').animate({ scrollTop: $('.tab-navigation').offset().top }, 500);
+                        } else {
+                            showAlert('registrationAlert', 'error', response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#registrationLoading').removeClass('show');
+                        $('#submitBtn').prop('disabled', false).html('<i class="fas fa-check-circle"></i> Submit Registration');
+                        
+                        let message = 'An error occurred. Please try again.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        showAlert('registrationAlert', 'error', message);
+                    }
+                });
+            });
+
+            // Login form submission
+            $('#loginForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                const identifier = $('#loginIdentifier').val();
+                const password = $('#loginPassword').val();
+                
+                if (!identifier || !password) {
+                    showAlert('loginAlert', 'error', 'Please fill in all fields');
+                    return;
+                }
+                
+                $('#loginBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Logging in...');
+                
+                $.ajax({
+                    url: `${BASE_URL}/api/auth?action=login`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        identifier: identifier,
+                        password: password
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            showAlert('loginAlert', 'success', 'Login successful! Redirecting...');
+                            
+                            // Redirect based on role
+                            setTimeout(function() {
+                                if (response.user.role_name === 'Super Admin') {
+                                    window.location.href = `${BASE_URL}/admin/dashboard`;
+                                } else {
+                                    window.location.href = `${BASE_URL}/dashboard`;
+                                }
+                            }, 1000);
+                        } else {
+                            $('#loginBtn').prop('disabled', false).html('<i class="fas fa-sign-in-alt"></i> Login to Portal');
+                            showAlert('loginAlert', 'error', response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#loginBtn').prop('disabled', false).html('<i class="fas fa-sign-in-alt"></i> Login to Portal');
+                        
+                        let message = 'An error occurred. Please try again.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        showAlert('loginAlert', 'error', message);
+                    }
+                });
+            });
+
+            // Load membership types
+            function loadMembershipTypes() {
+                $.ajax({
+                    url: `${BASE_URL}/api/membership?action=getMembershipTypes`,
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            response.data.forEach(function(type) {
+                                $('#membershipType').append(
+                                    `<option value="${type.id}">${type.type_name}</option>`
+                                );
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Load churches
+            function loadChurches() {
+                $.ajax({
+                    url: `${BASE_URL}/api/membership?action=getChurches`,
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            response.data.forEach(function(church) {
+                                $('#church').append(
+                                    `<option value="${church.id}">${church.church_name}</option>`
+                                );
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Load talents
+            function loadTalents() {
+                $.ajax({
+                    url: `${BASE_URL}/api/membership?action=getTalents`,
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            let html = '';
+                            
+                            for (const category in response.data) {
+                                html += `<div class="talent-category">`;
+                                html += `<div class="talent-category-title">${category}</div>`;
+                                
+                                response.data[category].forEach(function(talent) {
+                                    html += `
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" name="talents[]" value="${talent.id}" id="talent_${talent.id}">
+                                            <label for="talent_${talent.id}">${talent.talent_name}</label>
+                                        </div>
+                                    `;
+                                });
+                                
+                                html += `</div>`;
+                            }
+                            
+                            $('#talentsContainer').html(html);
+                        }
+                    }
+                });
+            }
+
+            // Check email availability
+            function checkEmailAvailability(email) {
+                $.ajax({
+                    url: `${BASE_URL}/api/membership?action=checkEmail&email=${encodeURIComponent(email)}`,
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.exists) {
+                            $('#email').addClass('error');
+                            $('#emailError').addClass('show').text('This email is already registered');
+                        } else {
+                            $('#email').removeClass('error');
+                            $('#emailError').removeClass('show').text('');
+                        }
+                    }
+                });
+            }
+
+            // Validate registration form
+            function validateRegistrationForm() {
+                let isValid = true;
+                
+                // Reset errors
+                $('.form-control').removeClass('error');
+                $('.error-message').removeClass('show');
+                
+                // Required fields
+                const requiredFields = ['membershipType', 'firstname', 'lastname', 'email', 'phone', 
+                                       'gender', 'yearJoined', 'church'];
+                
+                requiredFields.forEach(function(field) {
+                    const $field = $(`#${field}`);
+                    if (!$field.val()) {
+                        $field.addClass('error');
+                        $(`#${field}Error`).addClass('show').text('This field is required');
+                        isValid = false;
+                    }
+                });
+                
+                // Email format
+                const email = $('#email').val();
+                if (email && !isValidEmail(email)) {
+                    $('#email').addClass('error');
+                    $('#emailError').addClass('show').text('Invalid email format');
+                    isValid = false;
+                }
+                
+                // Phone format
+                const phone = $('#phone').val();
+                if (phone && !phone.match(/^\+?[0-9]{10,15}$/)) {
+                    $('#phone').addClass('error');
+                    $('#phoneError').addClass('show').text('Invalid phone format');
+                    isValid = false;
+                }
+                
+                // Year validation
+                const year = parseInt($('#yearJoined').val());
+                const currentYear = new Date().getFullYear();
+                if (year && (year < 2000 || year > currentYear)) {
+                    $('#yearJoined').addClass('error');
+                    $('#yearJoinedError').addClass('show').text(`Year must be between 2000 and ${currentYear}`);
+                    isValid = false;
+                }
+                
+                return isValid;
+            }
+
+            // Email validation helper
+            function isValidEmail(email) {
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+            }
+
+            // Show alert helper
+            function showAlert(containerId, type, message) {
+                const $alert = $(`#${containerId}`);
+                $alert.removeClass('alert-success alert-error alert-info')
+                      .addClass(`alert-${type}`)
+                      .html(`<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`)
+                      .addClass('show');
+                
+                // Auto hide after 10 seconds
+                setTimeout(function() {
+                    $alert.removeClass('show');
+                }, 10000);
+            }
+        });
     </script>
-    
 </body>
 </html>

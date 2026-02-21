@@ -12,6 +12,12 @@ if (!function_exists('hasPermission')) {
      * @return bool
      */
     function hasPermission($permissions, $permission) {
+        // Super admin always has all permissions
+        global $currentUser;
+        if (isset($currentUser) && !empty($currentUser->is_super_admin)) {
+            return true;
+        }
+        
         if (empty($permissions) || !is_array($permissions)) {
             return false;
         }
@@ -27,6 +33,12 @@ if (!function_exists('hasAnyPermission')) {
      * @return bool
      */
     function hasAnyPermission($permissions, $permissionsToCheck) {
+        // Super admin always has all permissions
+        global $currentUser;
+        if (isset($currentUser) && !empty($currentUser->is_super_admin)) {
+            return true;
+        }
+        
         if (empty($permissions) || !is_array($permissions) || empty($permissionsToCheck)) {
             return false;
         }
@@ -48,6 +60,12 @@ if (!function_exists('hasAllPermissions')) {
      * @return bool
      */
     function hasAllPermissions($permissions, $permissionsToCheck) {
+        // Super admin always has all permissions
+        global $currentUser;
+        if (isset($currentUser) && !empty($currentUser->is_super_admin)) {
+            return true;
+        }
+        
         if (empty($permissions) || !is_array($permissions) || empty($permissionsToCheck)) {
             return false;
         }
@@ -60,3 +78,26 @@ if (!function_exists('hasAllPermissions')) {
         return true;
     }
 }
+
+if (!function_exists('formatPermissions')) {
+    /**
+     * Format permissions array for display
+     * @param array $permissions Permissions array
+     * @return array Formatted permissions grouped by module
+     */
+    function formatPermissions($permissions) {
+        $formatted = [];
+        foreach ($permissions as $perm) {
+            $parts = explode('.', $perm);
+            $module = $parts[0] ?? 'general';
+            $action = $parts[1] ?? $perm;
+            
+            if (!isset($formatted[$module])) {
+                $formatted[$module] = [];
+            }
+            $formatted[$module][] = $action;
+        }
+        return $formatted;
+    }
+}
+

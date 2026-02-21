@@ -350,6 +350,105 @@ try {
                     position: relative;
                     animation: modalFadeIn 0.3s ease;
                 }
+
+                /* Checkbox and Radio Groups */
+                .checkbox-group, .radio-group {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 15px;
+                }
+                
+                .checkbox-item, .radio-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                
+                .checkbox-item input[type="checkbox"],
+                .radio-item input[type="radio"] {
+                    width: 18px;
+                    height: 18px;
+                    cursor: pointer;
+                }
+                
+                .checkbox-item label,
+                .radio-item label {
+                    margin: 0;
+                    cursor: pointer;
+                    font-weight: normal;
+                }
+
+                 /* Talent Selection */
+                .talents-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                    gap: 15px;
+                    max-height: 400px;
+                    overflow-y: auto;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    border-radius: 6px;
+                    border: 2px solid #e0e0e0;
+                }
+                
+                .talent-category {
+                    margin-bottom: 20px;
+                }
+                
+                .talent-category-title {
+                    font-weight: 700;
+                    color: #d96d20;
+                    margin-bottom: 10px;
+                    padding: 10px;
+                    background: white;
+                    border-left: 4px solid #D4AF37;
+                }
+
+                /* File Upload */
+                .file-upload {
+                    position: relative;
+                    display: inline-block;
+                    width: 100%;
+                }
+                
+                .file-upload input[type="file"] {
+                    display: none;
+                }
+                
+                .file-upload-label {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                    padding: 15px;
+                    border: 2px dashed #e0e0e0;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    background: #f8f9fa;
+                }
+                
+                .file-upload-label:hover {
+                    border-color: #d96d20;
+                    background: white;
+                }
+                
+                .file-upload-label i {
+                    font-size: 24px;
+                    color: #c7621a;
+                }
+                
+                .file-preview {
+                    margin-top: 15px;
+                    text-align: center;
+                }
+                
+                .file-preview img {
+                    max-width: 200px;
+                    max-height: 200px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
                 
                 @keyframes modalFadeIn {
                     from {
@@ -432,6 +531,12 @@ try {
                     cursor: not-allowed;
                     transform: none;
                 }
+
+                /* Login Form Specific */
+                .login-form {
+                    max-width: 500px;
+                    margin: 0 auto;
+                }
                 
                 .forgot-password {
                     text-align: right;
@@ -473,6 +578,10 @@ try {
                     
                     .form-section {
                         padding: 25px 20px;
+                    }
+                    
+                    .talents-grid {
+                        grid-template-columns: 1fr;
                     }
                 }
             </style>

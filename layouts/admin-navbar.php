@@ -9,8 +9,11 @@
 <header id="header" class="navbar navbar-expand-lg navbar-fixed navbar-height navbar-container navbar-bordered bg-white">
     <div class="navbar-nav-wrap">
         <!-- Logo -->
-        <a class="navbar-brand" href="<?= BASE_URL ?>/admin/dashboard" aria-label="CEP UoK">
-            <img class="navbar-brand-logo" src="<?= BASE_URL ?>/dashboard-assets/svg/logos/logo.svg" alt="CEP UoK" style="height: 40px;">
+        <a class="navbar-brand" href="<?= url('admin/dashboard') ?>" aria-label="CEP UoK">
+            <img class="navbar-brand-logo" src="<?= img_url('logo-only.png') ?>" alt="CEP UoK" style="height: 40px;" data-hs-theme-appearance="default">
+            <img class="navbar-brand-logo" src="<?= img_url('logo-only.png') ?>" data-hs-theme-appearance="dark">
+            <img class="navbar-brand-logo-mini" src="<?= img_url('logo-only.png') ?>" alt="Logo" data-hs-theme-appearance="default">
+            <img class="navbar-brand-logo-mini" src="<?= img_url('logo-only.png') ?>" alt="Logo" data-hs-theme-appearance="dark">
         </a>
         
         <div class="navbar-nav-wrap-content-start">

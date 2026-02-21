@@ -1,24 +1,27 @@
 <?php
 /**
- * User Model
+ * User Model - Updated with all user management functions
  * File: modules/Authentication/models/UserModel.php
- * Handles all database operations for users
  */
 
 class UserModel
 {
     private $db;
+    private $table = 'users';
+    private $rolesTable = 'roles';
+    private $membersTable = 'members';
 
-    public function __construct($db)
+    public function __construct($db = null)
     {
-        $this->db = $db;
+        if ($db) {
+            $this->db = $db;
+        } else {
+            $this->db = Database::getInstance();
+        }
     }
 
     /**
      * Check if email/phone exists
-     * @param string $email User email
-     * @param string $phone User phone
-     * @return bool True if exists
      */
     public function userExists($email, $phone)
     {
@@ -37,29 +40,78 @@ class UserModel
     }
 
     /**
+     * Check if email exists (for validation)
+     */
+    public function emailExists($email, $excludeId = null)
+    {
+        try {
+            $sql = "SELECT COUNT(*) as count FROM {$this->table} WHERE email = :email";
+            $params = [':email' => $email];
+            
+            if ($excludeId) {
+                $sql .= " AND id != :id";
+                $params[':id'] = $excludeId;
+            }
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return $result['count'] > 0;
+
+        } catch (Exception $e) {
+            error_log("UserModel::emailExists - Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if username exists
+     */
+    public function usernameExists($username, $excludeId = null)
+    {
+        try {
+            $sql = "SELECT COUNT(*) as count FROM {$this->table} WHERE username = :username";
+            $params = [':username' => $username];
+            
+            if ($excludeId) {
+                $sql .= " AND id != :id";
+                $params[':id'] = $excludeId;
+            }
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return $result['count'] > 0;
+
+        } catch (Exception $e) {
+            error_log("UserModel::usernameExists - Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Get user by email or phone for login
-     * @param string $identifier Email, phone, or username
-     * @return array|null User data or null
      */
     public function getUserByEmailOrPhone($identifier)
     {
         try {
-            $query = "SELECT u.*, r.name as role_name, r.is_super_admin
-                    FROM users u
-                    JOIN roles r ON u.role_id = r.id
-                    WHERE u.email = :email_id OR u.phone = :phone_id OR u.username = :username_id 
-                    LIMIT 1";
+            $query = "SELECT u.*, r.name as role_name, r.is_super_admin,
+                             CONCAT(u.firstname, ' ', u.lastname) as full_name
+                      FROM users u
+                      JOIN roles r ON u.role_id = r.id
+                      WHERE u.email = :email_id OR u.phone = :phone_id OR u.username = :username_id 
+                      LIMIT 1";
 
             $stmt = $this->db->prepare($query);
-
-            // Bind the identifier value to all three unique placeholders
             $stmt->execute([
                 ':email_id' => $identifier,
                 ':phone_id' => $identifier,
                 ':username_id' => $identifier,
             ]);
             
-            $user = $stmt->fetch();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
             // Fetch permissions
             if ($user) {
@@ -74,6 +126,9 @@ class UserModel
         }
     }
 
+    /**
+     * Get user permissions as comma-separated string
+     */
     private function getUserPermissions($roleId)
     {
         try {
@@ -83,10 +138,8 @@ class UserModel
                       WHERE rp.role_id = :role_id";
 
             $stmt = $this->db->prepare($query);
-            $stmt->execute(array(':role_id' => $roleId)); 
-
-            // Use fetchAll to get ALL permission strings for this role
-            $permissions = $stmt->fetchAll(PDO::FETCH_COLUMN, 0); 
+            $stmt->execute([':role_id' => $roleId]);
+            $permissions = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
             
             return implode(',', $permissions);
 
@@ -97,140 +150,305 @@ class UserModel
     }
 
     /**
-     * Create new user
-     * @param array $data User data
-     * @return int|bool User ID or false
-     */
-    public function createUser($data)
-    {
-        try {
-            $query = "INSERT INTO users (firstname, lastname, email, phone, username, password, role_id, status, created_by) 
-                      VALUES (:firstname, :lastname, :email, :phone, :username, :password, :role_id, :status, :created_by)";
-
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':firstname', $data['firstname'], PDO::PARAM_STR);
-            $stmt->bindParam(':lastname', $data['lastname'], PDO::PARAM_STR);
-            $stmt->bindParam(':email', $data['email'], PDO::PARAM_STR);
-            $stmt->bindParam(':phone', $data['phone'], PDO::PARAM_STR);
-            $stmt->bindParam(':username', $data['username'], PDO::PARAM_STR);
-            $stmt->bindParam(':password', $data['password'], PDO::PARAM_STR);
-            $stmt->bindParam(':role_id', $data['role_id'], PDO::PARAM_INT);
-            $stmt->bindParam(':status', $data['status'], PDO::PARAM_STR);
-            $stmt->bindParam(':created_by', $data['created_by'], PDO::PARAM_INT);
-
-            return $stmt->execute() ? $this->db->lastInsertId() : false;
-
-        } catch (PDOException $e) {
-            error_log("User Model Error: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Update user last login
-     * @param int $userId User ID
-     * @return bool Success status
-     */
-    public function updateLastLogin($userId)
-    {
-        try {
-            $query = "UPDATE users SET last_login = NOW() WHERE id = :id";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':id', $userId, PDO::PARAM_INT);
-            return $stmt->execute();
-
-        } catch (PDOException $e) {
-            error_log("User Model Error: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Get user by ID
-     * @param int $id User ID
-     * @return array|null User data or null
+     * Get user by ID with role info
      */
     public function getUserById($id)
     {
         try {
-            $query = "SELECT u.*, r.name as role_name, r.is_super_admin
-                    FROM users u
+            $sql = "SELECT u.*, r.name as role_name, r.is_super_admin,
+                           CONCAT(u.firstname, ' ', u.lastname) as full_name,
+                           m.membership_number,
+                           (SELECT COUNT(*) FROM user_sessions WHERE user_id = u.id AND expires_at > NOW()) as active_sessions
+                    FROM {$this->table} u
                     LEFT JOIN roles r ON u.role_id = r.id
+                    LEFT JOIN members m ON u.member_id = m.id
                     WHERE u.id = :id";
-
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
-
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $id]);
+            
             return $stmt->fetch(PDO::FETCH_ASSOC);
 
-        } catch (PDOException $e) {
-            error_log("User Model Error: " . $e->getMessage());
+        } catch (Exception $e) {
+            error_log("UserModel::getUserById - Error: " . $e->getMessage());
             return null;
         }
     }
 
     /**
+     * Get all users with filters (for admin)
+     */
+    public function getAllUsers($filters = [])
+    {
+        try {
+            $sql = "SELECT u.*, r.name as role_name, r.is_super_admin,
+                           CONCAT(u.firstname, ' ', u.lastname) as full_name,
+                           m.membership_number,
+                           CONCAT(creator.firstname, ' ', creator.lastname) as created_by_name,
+                           (SELECT COUNT(*) FROM user_sessions WHERE user_id = u.id AND expires_at > NOW()) as active_sessions
+                    FROM {$this->table} u
+                    LEFT JOIN roles r ON u.role_id = r.id
+                    LEFT JOIN members m ON u.member_id = m.id
+                    LEFT JOIN users creator ON u.created_by = creator.id
+                    WHERE 1=1";
+            
+            $params = [];
+
+            // Apply filters
+            if (!empty($filters['status'])) {
+                $sql .= " AND u.status = :status";
+                $params[':status'] = $filters['status'];
+            }
+
+            if (!empty($filters['role_id'])) {
+                $sql .= " AND u.role_id = :role_id";
+                $params[':role_id'] = $filters['role_id'];
+            }
+
+            if (!empty($filters['search'])) {
+                $sql .= " AND (u.firstname LIKE :search OR u.lastname LIKE :search OR u.email LIKE :search)";
+                $params[':search'] = '%' . $filters['search'] . '%';
+            }
+
+            $sql .= " ORDER BY u.created_at DESC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (Exception $e) {
+            error_log("UserModel::getAllUsers - Error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Create new user
+     */
+    public function createUser($data)
+    {
+        try {
+            $this->db->beginTransaction();
+
+            $sql = "INSERT INTO {$this->table} (
+                        role_id, member_id, firstname, lastname, username, email,
+                        phone, password, photo, bio, email_verified, status,
+                        is_adepr_member, can_manage_website, created_by
+                    ) VALUES (
+                        :role_id, :member_id, :firstname, :lastname, :username, :email,
+                        :phone, :password, :photo, :bio, :email_verified, :status,
+                        :is_adepr_member, :can_manage_website, :created_by
+                    )";
+
+            $stmt = $this->db->prepare($sql);
+            
+            $params = [
+                ':role_id' => $data['role_id'] ?? 5,
+                ':member_id' => $data['member_id'] ?? null,
+                ':firstname' => $data['firstname'],
+                ':lastname' => $data['lastname'],
+                ':username' => $data['username'] ?? null,
+                ':email' => $data['email'],
+                ':phone' => $data['phone'] ?? null,
+                ':password' => $data['password'] ?? null,
+                ':photo' => $data['photo'] ?? null,
+                ':bio' => $data['bio'] ?? null,
+                ':email_verified' => $data['email_verified'] ?? 0,
+                ':status' => $data['status'] ?? 'pending',
+                ':is_adepr_member' => $data['is_adepr_member'] ?? 0,
+                ':can_manage_website' => $data['can_manage_website'] ?? 0,
+                ':created_by' => $data['created_by'] ?? null
+            ];
+
+            $stmt->execute($params);
+            $userId = $this->db->lastInsertId();
+
+            $this->db->commit();
+            return $userId;
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("UserModel::createUser - Error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * Update user
-     * @param int $id User ID
-     * @param array $data Updated data
-     * @return bool Success status
      */
     public function updateUser($id, $data)
     {
         try {
-            $fields = [];
-            foreach ($data as $key => $value) {
-                $fields[] = "$key = :$key";
+            $this->db->beginTransaction();
+
+            $updateFields = [];
+            $params = [':id' => $id];
+
+            $allowedFields = [
+                'role_id', 'member_id', 'firstname', 'lastname', 'username',
+                'email', 'phone', 'photo', 'bio', 'email_verified',
+                'status', 'is_adepr_member', 'can_manage_website'
+            ];
+
+            foreach ($allowedFields as $field) {
+                if (array_key_exists($field, $data)) {
+                    $updateFields[] = "{$field} = :{$field}";
+                    $params[":{$field}"] = $data[$field];
+                }
             }
 
-            $query = "UPDATE users SET " . implode(', ', $fields) . ", updated_at = NOW() WHERE id = :id";
-            $stmt = $this->db->prepare($query);
-
-            foreach ($data as $key => $value) {
-                $stmt->bindValue(":$key", $value);
+            // Handle password separately
+            if (!empty($data['password'])) {
+                $updateFields[] = "password = :password";
+                $params[':password'] = password_hash($data['password'], PASSWORD_DEFAULT);
             }
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
 
-            return $stmt->execute();
+            if (empty($updateFields)) {
+                return false;
+            }
 
-        } catch (PDOException $e) {
-            error_log("User Model Error: " . $e->getMessage());
-            return false;
+            $sql = "UPDATE {$this->table} SET " . implode(', ', $updateFields) . ", updated_at = NOW() WHERE id = :id";
+            
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute($params);
+
+            $this->db->commit();
+            return $result;
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("UserModel::updateUser - Error: " . $e->getMessage());
+            throw $e;
         }
     }
 
     /**
-     * Change password
-     * @param int $id User ID
-     * @param string $hashedPassword Hashed password
-     * @return bool Success status
+     * Delete user
      */
-    public function changePassword($id, $hashedPassword)
+    public function deleteUser($id)
     {
         try {
-            $query = "UPDATE users SET password = :password WHERE id = :id";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':password', $hashedPassword, PDO::PARAM_STR);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            return $stmt->execute();
+            // Check if user is super admin
+            $user = $this->getUserById($id);
+            if ($user && $user['is_super_admin']) {
+                throw new Exception("Cannot delete super admin user");
+            }
 
-        } catch (PDOException $e) {
-            error_log("User Model Error: " . $e->getMessage());
-            return false;
+            $sql = "DELETE FROM {$this->table} WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([':id' => $id]);
+
+        } catch (Exception $e) {
+            error_log("UserModel::deleteUser - Error: " . $e->getMessage());
+            throw $e;
         }
     }
 
     /**
-     * Store reset token (OTP)
-     * @param int $userId User ID
-     * @param string $otp OTP code
-     * @return bool Success status
+     * Update user status
+     */
+    public function updateStatus($id, $status)
+    {
+        try {
+            // Check if user is super admin
+            if ($status !== 'active') {
+                $user = $this->getUserById($id);
+                if ($user && $user['is_super_admin']) {
+                    throw new Exception("Cannot deactivate super admin user");
+                }
+            }
+
+            $sql = "UPDATE {$this->table} SET status = :status WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':id' => $id,
+                ':status' => $status
+            ]);
+
+        } catch (Exception $e) {
+            error_log("UserModel::updateStatus - Error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Get user statistics
+     */
+    public function getUserStats()
+    {
+        try {
+            $sql = "SELECT 
+                        COUNT(*) as total_users,
+                        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_users,
+                        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_users,
+                        SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive_users,
+                        SUM(CASE WHEN status = 'suspended' THEN 1 ELSE 0 END) as suspended_users,
+                        SUM(CASE WHEN last_login >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as active_last_7_days,
+                        SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as new_users_30_days
+                    FROM {$this->table}";
+            
+            $stmt = $this->db->query($sql);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+
+        } catch (Exception $e) {
+            error_log("UserModel::getUserStats - Error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get all roles for dropdown
+     */
+    public function getAllRoles()
+    {
+        try {
+            $sql = "SELECT id, name, description, is_super_admin 
+                    FROM {$this->rolesTable} 
+                    ORDER BY 
+                        CASE 
+                            WHEN is_super_admin = 1 THEN 0 
+                            ELSE 1 
+                        END,
+                        name ASC";
+            
+            $stmt = $this->db->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (Exception $e) {
+            error_log("UserModel::getAllRoles - Error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get members for dropdown (to link user accounts)
+     */
+    public function getAvailableMembers()
+    {
+        try {
+            $sql = "SELECT m.id, CONCAT(m.firstname, ' ', m.lastname) as full_name, 
+                           m.membership_number, m.email
+                    FROM members m
+                    LEFT JOIN users u ON m.id = u.member_id
+                    WHERE u.id IS NULL
+                    ORDER BY m.firstname, m.lastname";
+            
+            $stmt = $this->db->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (Exception $e) {
+            error_log("UserModel::getAvailableMembers - Error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Store reset token (OTP) - from your existing code
      */
     public function storeResetToken($userId, $otp)
     {
         try {
-            // Use MySQL DATE_ADD to ensure correct timezone handling
             $query = "UPDATE users 
                      SET reset_token = :otp, 
                          reset_expiry = DATE_ADD(NOW(), INTERVAL 5 MINUTE) 
@@ -239,24 +457,7 @@ class UserModel
             $stmt->bindParam(':otp', $otp, PDO::PARAM_STR);
             $stmt->bindParam(':id', $userId, PDO::PARAM_INT);
             
-            $result = $stmt->execute();
-            
-            // Debug: Check if the update was successful
-            if ($result) {
-                error_log("OTP stored successfully for user ID: {$userId}, OTP: {$otp}");
-                
-                // Verify the stored data - Fixed: use backticks for reserved word and alias
-                $verifyQuery = "SELECT reset_token, reset_expiry, NOW() as `server_time` FROM users WHERE id = :id";
-                $verifyStmt = $this->db->prepare($verifyQuery);
-                $verifyStmt->bindParam(':id', $userId, PDO::PARAM_INT);
-                $verifyStmt->execute();
-                $stored = $verifyStmt->fetch(PDO::FETCH_ASSOC);
-                error_log("Verified stored OTP: " . print_r($stored, true));
-            } else {
-                error_log("Failed to store OTP for user ID: {$userId}");
-            }
-            
-            return $result;
+            return $stmt->execute();
 
         } catch (PDOException $e) {
             error_log("User Model Error in storeResetToken: " . $e->getMessage());
@@ -265,28 +466,12 @@ class UserModel
     }
 
     /**
-     * Verify reset token (OTP)
-     * @param string $email User email
-     * @param string $otp OTP code
-     * @return int|bool User ID or false
+     * Verify reset token (OTP) - from your existing code
      */
     public function verifyResetToken($email, $otp)
     {
         try {
-            // First, let's check what's in the database
-            $debugQuery = "SELECT id, email, reset_token, reset_expiry, NOW() as current_time 
-                          FROM users WHERE email = :email";
-            $debugStmt = $this->db->prepare($debugQuery);
-            $debugStmt->bindParam(':email', $email, PDO::PARAM_STR);
-            $debugStmt->execute();
-            $debugData = $debugStmt->fetch(PDO::FETCH_ASSOC);
-            error_log("Debug - User data for email {$email}: " . print_r($debugData, true));
-            error_log("Debug - Comparing OTP: Input='{$otp}' vs Stored='{$debugData['reset_token']}'");
-            
-            // Trim both values to remove any whitespace
-            $otp = trim($otp);
-            
-            $query = "SELECT id, reset_token, reset_expiry FROM users 
+            $query = "SELECT id FROM users 
                      WHERE email = :email AND reset_token = :otp 
                      AND reset_expiry > NOW()";
             $stmt = $this->db->prepare($query);
@@ -295,25 +480,7 @@ class UserModel
             $stmt->execute();
             
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($result) {
-                error_log("OTP verification successful for email: {$email}");
-                return $result['id'];
-            } else {
-                error_log("OTP verification failed for email: {$email}, OTP: {$otp}");
-                
-                // Additional checks
-                $checkQuery = "SELECT id, reset_token, reset_expiry, 
-                              CASE WHEN reset_expiry > NOW() THEN 'valid' ELSE 'expired' END as status
-                              FROM users WHERE email = :email";
-                $checkStmt = $this->db->prepare($checkQuery);
-                $checkStmt->bindParam(':email', $email, PDO::PARAM_STR);
-                $checkStmt->execute();
-                $checkResult = $checkStmt->fetch(PDO::FETCH_ASSOC);
-                error_log("Additional check: " . print_r($checkResult, true));
-                
-                return false;
-            }
+            return $result ? $result['id'] : false;
 
         } catch (PDOException $e) {
             error_log("User Model Error in verifyResetToken: " . $e->getMessage());
@@ -322,9 +489,7 @@ class UserModel
     }
 
     /**
-     * Clear reset token after use
-     * @param int $userId User ID
-     * @return bool Success status
+     * Clear reset token - from your existing code
      */
     public function clearResetToken($userId)
     {
@@ -341,50 +506,14 @@ class UserModel
     }
 
     /**
-     * Get all users with pagination (admin only)
-     * @param int $limit Number of users
-     * @param int $offset Starting position
-     * @param string $search Search term
-     * @return array Array of users
+     * Update last login - from your existing code
      */
-    public function getAllUsers($limit = 20, $offset = 0, $search = '')
+    public function updateLastLogin($userId)
     {
         try {
-            $query = "SELECT u.*, r.name as role_name, 
-                             CONCAT(creator.firstname, ' ', creator.lastname) as created_by_name
-                      FROM users u
-                      LEFT JOIN roles r ON u.role_id = r.id
-                      LEFT JOIN users creator ON u.created_by = creator.id
-                      WHERE u.firstname LIKE :search OR u.lastname LIKE :search OR u.email LIKE :search
-                      ORDER BY u.created_at DESC
-                      LIMIT :limit OFFSET :offset";
-
+            $query = "UPDATE users SET last_login = NOW() WHERE id = :id";
             $stmt = $this->db->prepare($query);
-            $searchTerm = "%$search%";
-            $stmt->bindParam(':search', $searchTerm, PDO::PARAM_STR);
-            $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-            $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
-            $stmt->execute();
-
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        } catch (PDOException $e) {
-            error_log("User Model Error: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Delete user (admin only)
-     * @param int $id User ID
-     * @return bool Success status
-     */
-    public function deleteUser($id)
-    {
-        try {
-            $query = "DELETE FROM users WHERE id = :id AND role_id != 1"; // Prevent deleting super admin
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->bindParam(':id', $userId, PDO::PARAM_INT);
             return $stmt->execute();
 
         } catch (PDOException $e) {
@@ -394,27 +523,22 @@ class UserModel
     }
 
     /**
-     * Count total users
-     * @param string $search Search term
-     * @return int Total count
+     * Change password - from your existing code
      */
-    public function countUsers($search = '')
+    public function changePassword($id, $hashedPassword)
     {
         try {
-            $query = "SELECT COUNT(*) FROM users 
-                      WHERE firstname LIKE :search OR lastname LIKE :search OR email LIKE :search";
-
+            $query = "UPDATE users SET password = :password WHERE id = :id";
             $stmt = $this->db->prepare($query);
-            $searchTerm = "%$search%";
-            $stmt->bindParam(':search', $searchTerm, PDO::PARAM_STR);
-            $stmt->execute();
-
-            return $stmt->fetchColumn();
+            $stmt->bindParam(':password', $hashedPassword, PDO::PARAM_STR);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            return $stmt->execute();
 
         } catch (PDOException $e) {
             error_log("User Model Error: " . $e->getMessage());
-            return 0;
+            return false;
         }
     }
 }
+
 ?>
