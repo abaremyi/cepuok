@@ -2,4 +2,33 @@ Here we had this description as Mushya group while we were developing the websit
 
 After that the super admin manage users and roles where roles to start with are (super-admin, President, Vice Pres1 Evangelism, Vice Pres2 Social Affair,  Accountant, Secretary, Advisor 1, Advisor 2, Advisor 3, Advisor 4 Choir President). after this also session management module is added in settings where super admin has rights to update also member session. and control accessibility levels where he may stop specific session from using the portal until super admin grants the authorization.
 
- Secondly we will continue with member management on the portal side by this member can be given a family or not (in Day Session we have three families[Bethesda Family, Naioth Family, Siloam Family], third we continue with supporters Management (CEP Supporters) after we are done with family module, fourth we continue with FINANCIAL MANAGEMENT module which is crucial and very big and the one we want more than anything, the fifth is DEPARTMENT OPERATIONS module management and after that comes sixth module choir management Module then seventh is project management then lastly we deal with reports  
+ Secondly we will continue with member management on the portal side by this member can be given a family or not (in Day Session we have three families[Bethesda Family, Naioth Family, Siloam Family], third we continue with supporters Management (CEP Supporters) after we are done with family module, fourth we continue with FINANCIAL MANAGEMENT module which is crucial and very big and the one we want more than anything, the fifth is DEPARTMENT OPERATIONS module management and after that comes sixth module choir management Module then seventh is project management then lastly we deal with reports . Here shared I added some thoughts on the select option should allow me even live search from the a lot of options may exist. another thing in the development I want to avoid is always fetching data from the database where might require refreshing page every time which might annoy please use professional implementation of this site. here also I shared basic files showing my directory structure and other codes structure especially on the portal page like those management pages while on the membership.php is one of front website page. 
+
+ Based on the summary, the next pages to build are the Finance module. Let me start with the members management page since that seems most fundamental, then finance. Let me build the members management page first.
+Actually, looking at the pending list:
+
+1) Finance Module (7 pages)
+2) Families Module (2 pages)
+3) Supporters Module (2 pages)
+4) Choir Module (4 pages)
+5) Projects Module (2 pages)
+6) Reports Module (3 pages)
+
+Members Management — full CRUD with session/status/family/faculty filters, bulk approve, 
+    bulk assign family, avatar initials, member detail view, CSV export, and paginated AJAX table.
+Families Management — visual card grid per session (Day/Weekend tabs), 
+    create families with icon + color pickers, assign members in bulk with search,
+    view all family members, gender stats per family.
+Finance Dashboard — KPI cards (revenue, expenses, balance, reserve pool, pending requests), 
+    Chart.js trend line + revenue doughnut chart, budget utilization progress bars, 
+    session split view (Day vs Weekend), quick action buttons, recent transactions.
+Finance Revenue — side-by-side layout: recording form with 6 revenue types (Offering, Tithe, 
+    Donation, Project, Fundraising, Other), session selector, amount field, running daily total display; 
+    plus paginated history table with month/type/session filters and CSV export.
+Fund Requests — pipeline view showing counts per stage (Pending → Reviewing → Approved → Rejected → Disbursed),
+     request cards with visual approval flow tracker, 
+     multi-stage approval workflow (mark for review → approve/reject → disburse), role-gated actions, 
+     disbursement with payment method + reference fields.
+Supporters Management — card grid for Alumni, External, Choir, Organization supporters; 
+    contribution history modal with totals, add contribution with type (financial, material, service, 
+    prayer, mentorship); stats bar.
