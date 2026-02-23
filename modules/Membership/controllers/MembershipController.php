@@ -2,539 +2,193 @@
 /**
  * Membership Controller
  * File: modules/Membership/controllers/MembershipController.php
- * Handles membership business logic
  */
 
 require_once ROOT_PATH . '/modules/Membership/models/MembershipModel.php';
-require_once ROOT_PATH . '/helpers/JWTHandler.php';
+require_once ROOT_PATH . '/helpers/UploadHelper.php';
 
-class MembershipController
-{
-    private $membershipModel;
-    private $jwtHandler;
+class MembershipController {
+    private $model;
+    private $uploadHelper;
 
-    public function __construct()
-    {
-        $this->membershipModel = new MembershipModel(Database::getInstance());
-        $this->jwtHandler = new JWTHandler();
+    public function __construct() {
+        $this->model = new MembershipModel();
+        $this->uploadHelper = new UploadHelper();
     }
 
-    /**
-     * Register new member
-     * @param array $data Member data
-     * @return array Response with success status and message
-     */
-    public function register($data)
-    {
+    // ============================================================
+    // PUBLIC ENDPOINTS
+    // ============================================================
+
+    public function register($data) {
         try {
-            // Validate required fields
-            $requiredFields = ['firstname', 'lastname', 'email', 'phone', 'gender', 
-                              'year_joined_cep', 'church_id', 'membership_type_id'];
-            
-            foreach ($requiredFields as $field) {
-                if (empty($data[$field])) {
-                    return [
-                        'success' => false,
-                        'message' => "Missing required field: $field"
-                    ];
-                }
+            // --- Validate required fields ---
+            $required = ['membership_type_id','firstname','lastname','email','phone','gender','year_joined_cep','cep_session'];
+            $missing = [];
+            foreach ($required as $f) {
+                if (empty($data[$f])) $missing[] = $f;
+            }
+            if ($missing) {
+                return ['success' => false, 'message' => 'Missing required fields: ' . implode(', ', $missing)];
             }
 
-            // Validate email format
+            // --- Email format ---
             if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-                return [
-                    'success' => false,
-                    'message' => 'Invalid email format'
-                ];
+                return ['success' => false, 'message' => 'Invalid email address format'];
             }
 
-            // Check if email already exists
-            if ($this->membershipModel->emailExists($data['email'])) {
-                return [
-                    'success' => false,
-                    'message' => 'Email address is already registered'
-                ];
+            // --- Email uniqueness ---
+            if ($this->model->emailExists($data['email'])) {
+                return ['success' => false, 'message' => 'This email is already registered'];
             }
 
-            // Check if phone already exists
-            if ($this->membershipModel->phoneExists($data['phone'])) {
-                return [
-                    'success' => false,
-                    'message' => 'Phone number is already registered'
-                ];
+            // --- Phone format ---
+            if (!preg_match('/^\+?[0-9]{10,15}$/', $data['phone'])) {
+                return ['success' => false, 'message' => 'Invalid phone number format'];
             }
 
-            // Validate year_joined_cep
-            $currentYear = (int)date('Y');
-            if ($data['year_joined_cep'] < 2000 || $data['year_joined_cep'] > $currentYear) {
-                return [
-                    'success' => false,
-                    'message' => 'Invalid year joined CEP'
-                ];
+            // --- Phone uniqueness ---
+            if ($this->model->phoneExists($data['phone'])) {
+                return ['success' => false, 'message' => 'This phone number is already registered'];
             }
 
-            // Handle profile photo upload if provided
-            if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === 0) {
-                $uploadResult = $this->uploadProfilePhoto($_FILES['profile_photo']);
-                if ($uploadResult['success']) {
-                    $data['profile_photo'] = $uploadResult['filename'];
-                } else {
-                    return $uploadResult;
+            // --- Session validation ---
+            if (!in_array($data['cep_session'], ['day', 'weekend'])) {
+                return ['success' => false, 'message' => 'Invalid CEP session selected'];
+            }
+
+            // --- Year validation ---
+            $year = (int)$data['year_joined_cep'];
+            if ($year < 2016 || $year > (int)date('Y')) {
+                return ['success' => false, 'message' => 'Year joined must be between 2016 and ' . date('Y')];
+            }
+
+            // --- Membership type validation ---
+            $types = $this->model->getMembershipTypes();
+            $typeIds = array_column($types, 'id');
+            if (!in_array($data['membership_type_id'], $typeIds)) {
+                return ['success' => false, 'message' => 'Invalid membership type'];
+            }
+
+            // --- Sanitize talents ---
+            if (!empty($data['talents'])) {
+                $data['talents'] = array_filter(array_map('intval', (array)$data['talents']));
+            }
+
+            // --- Create member ---
+            $result = $this->model->register($data);
+
+            // --- Handle photo upload ---
+            if ($result['success'] && !empty($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+                $upload = $this->uploadHelper->uploadFile($_FILES['profile_photo'], 'members');
+                if ($upload['success']) {
+                    $this->model->updateProfilePhoto($result['member_id'], $upload['filepath']);
                 }
             }
 
-            // Set default status as pending
-            $data['status'] = 'pending';
-
-            // Create member
-            $memberId = $this->membershipModel->createMember($data);
-
-            if ($memberId) {
-                // Add member talents if provided
-                if (!empty($data['talents']) && is_array($data['talents'])) {
-                    $this->membershipModel->addMemberTalents($memberId, $data['talents']);
-                }
-
-                // Log activity
-                $this->membershipModel->logActivity($memberId, 'registration', 'Member registered');
-
-                // Send confirmation email (implement this later)
-                // $this->sendConfirmationEmail($data['email'], $data['firstname']);
-
-                return [
-                    'success' => true,
-                    'message' => 'Registration successful! Your membership application is pending approval.',
-                    'member_id' => $memberId,
-                    'data' => [
-                        'email' => $data['email'],
-                        'firstname' => $data['firstname'],
-                        'lastname' => $data['lastname']
-                    ]
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to create membership record'
-                ];
-            }
+            return [
+                'success'   => true,
+                'message'   => 'Registration successful! Your application is under review.',
+                'member_id' => $result['member_id'],
+            ];
 
         } catch (Exception $e) {
-            error_log("Membership Controller Error (register): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'An error occurred during registration. Please try again.'
-            ];
+            error_log("MembershipController::register - " . $e->getMessage());
+            return ['success' => false, 'message' => 'Registration failed. Please try again.'];
         }
     }
 
-    /**
-     * Upload profile photo
-     * @param array $file File data from $_FILES
-     * @return array Result with filename or error
-     */
-    private function uploadProfilePhoto($file)
-    {
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-        $maxSize = 5 * 1024 * 1024; // 5MB
-
-        if (!in_array($file['type'], $allowedTypes)) {
-            return [
-                'success' => false,
-                'message' => 'Invalid file type. Only JPG, JPEG, and PNG are allowed.'
-            ];
-        }
-
-        if ($file['size'] > $maxSize) {
-            return [
-                'success' => false,
-                'message' => 'File size exceeds 5MB limit.'
-            ];
-        }
-
-        $uploadDir = ROOT_PATH . '/uploads/members/';
-        if (!file_exists($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
-        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = 'member_' . uniqid() . '_' . time() . '.' . $extension;
-        $targetPath = $uploadDir . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-            return [
-                'success' => true,
-                'filename' => 'uploads/members/' . $filename
-            ];
-        } else {
-            return [
-                'success' => false,
-                'message' => 'Failed to upload file.'
-            ];
-        }
+    public function checkEmail($email) {
+        return ['exists' => $this->model->emailExists($email)];
     }
 
-    /**
-     * Get member by ID
-     * @param int $id Member ID
-     * @return array Response with member data
-     */
-    public function getMember($id)
-    {
+    public function getMembershipTypes() {
+        return ['success' => true, 'data' => $this->model->getMembershipTypes()];
+    }
+
+    public function getTalents() {
+        return ['success' => true, 'data' => $this->model->getTalents()];
+    }
+
+    public function getFaculties() {
+        $faculties = [];
+        foreach (MembershipModel::$FACULTIES as $name => $code) {
+            $faculties[] = ['name' => $name, 'code' => $code];
+        }
+        return ['success' => true, 'data' => $faculties];
+    }
+
+    // ============================================================
+    // PROTECTED ADMIN ENDPOINTS
+    // ============================================================
+
+    public function getMember($id) {
+        $member = $this->model->getMemberById($id);
+        if (!$member) return ['success' => false, 'message' => 'Member not found'];
+        return ['success' => true, 'data' => $member];
+    }
+
+    public function getAllMembers($filters = [], $page = 1, $perPage = 20) {
+        $result = $this->model->getAllMembers($filters, $page, $perPage);
+        return ['success' => true, 'data' => $result['data'],
+                'meta' => ['total' => $result['total'], 'page' => $result['page'],
+                           'per_page' => $result['per_page'], 'total_pages' => $result['total_pages']]];
+    }
+
+    public function getPendingMembers($sessionFilter = null) {
+        return ['success' => true, 'data' => $this->model->getPendingMembers($sessionFilter)];
+    }
+
+    public function updateMember($id, $data) {
         try {
-            $member = $this->membershipModel->getMemberById($id);
-
-            if ($member) {
-                return [
-                    'success' => true,
-                    'data' => $member
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Member not found'
-                ];
-            }
+            $result = $this->model->updateMember($id, $data);
+            return ['success' => $result, 'message' => $result ? 'Member updated' : 'No changes'];
         } catch (Exception $e) {
-            error_log("Membership Controller Error (getMember): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'An error occurred while fetching member data'
-            ];
+            return ['success' => false, 'message' => $e->getMessage()];
         }
     }
 
-    /**
-     * Get all members with filters and pagination
-     * @param array $filters Filter criteria
-     * @param int $page Page number
-     * @param int $perPage Records per page
-     * @return array Response with members data
-     */
-    public function getAllMembers($filters = [], $page = 1, $perPage = 20)
-    {
+    public function approveMember($id, $approvedBy) {
         try {
-            $offset = ($page - 1) * $perPage;
-            
-            $members = $this->membershipModel->getAllMembers($filters, $perPage, $offset);
-            $total = $this->membershipModel->countMembers($filters);
-
-            return [
-                'success' => true,
-                'data' => $members,
-                'pagination' => [
-                    'current_page' => $page,
-                    'per_page' => $perPage,
-                    'total' => $total,
-                    'total_pages' => ceil($total / $perPage)
-                ]
-            ];
+            $this->model->approveMember($id, $approvedBy);
+            return ['success' => true, 'message' => 'Member approved successfully'];
         } catch (Exception $e) {
-            error_log("Membership Controller Error (getAllMembers): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'An error occurred while fetching members'
-            ];
+            return ['success' => false, 'message' => $e->getMessage()];
         }
     }
 
-    /**
-     * Update member
-     * @param int $id Member ID
-     * @param array $data Updated data
-     * @return array Response with success status
-     */
-    public function updateMember($id, $data)
-    {
+    public function rejectMember($id, $reviewedBy, $reason = '') {
         try {
-            // Check if member exists
-            $member = $this->membershipModel->getMemberById($id);
-            if (!$member) {
-                return [
-                    'success' => false,
-                    'message' => 'Member not found'
-                ];
-            }
-
-            // Validate email if changed
-            if (isset($data['email']) && $data['email'] !== $member['email']) {
-                if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-                    return [
-                        'success' => false,
-                        'message' => 'Invalid email format'
-                    ];
-                }
-
-                if ($this->membershipModel->emailExists($data['email'], $id)) {
-                    return [
-                        'success' => false,
-                        'message' => 'Email address is already registered'
-                    ];
-                }
-            }
-
-            // Validate phone if changed
-            if (isset($data['phone']) && $data['phone'] !== $member['phone']) {
-                if ($this->membershipModel->phoneExists($data['phone'], $id)) {
-                    return [
-                        'success' => false,
-                        'message' => 'Phone number is already registered'
-                    ];
-                }
-            }
-
-            // Handle profile photo upload if provided
-            if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === 0) {
-                $uploadResult = $this->uploadProfilePhoto($_FILES['profile_photo']);
-                if ($uploadResult['success']) {
-                    $data['profile_photo'] = $uploadResult['filename'];
-                    
-                    // Delete old photo if exists
-                    if (!empty($member['profile_photo']) && file_exists(ROOT_PATH . '/' . $member['profile_photo'])) {
-                        unlink(ROOT_PATH . '/' . $member['profile_photo']);
-                    }
-                }
-            }
-
-            // Update member
-            $result = $this->membershipModel->updateMember($id, $data);
-
-            if ($result) {
-                // Update talents if provided
-                if (isset($data['talents'])) {
-                    // Delete existing talents
-                    $this->membershipModel->deleteMemberTalents($id);
-                    
-                    // Add new talents
-                    if (!empty($data['talents'])) {
-                        $this->membershipModel->addMemberTalents($id, $data['talents']);
-                    }
-                }
-
-                // Log activity
-                $this->membershipModel->logActivity($id, 'profile_update', 'Member profile updated');
-
-                return [
-                    'success' => true,
-                    'message' => 'Member updated successfully'
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to update member'
-                ];
-            }
-
+            $this->model->rejectMember($id, $reviewedBy, $reason);
+            return ['success' => true, 'message' => 'Member application rejected'];
         } catch (Exception $e) {
-            error_log("Membership Controller Error (updateMember): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'An error occurred while updating member'
-            ];
+            return ['success' => false, 'message' => $e->getMessage()];
         }
     }
 
-    /**
-     * Approve member
-     * @param int $id Member ID
-     * @param int $approvedBy User ID who approved
-     * @return array Response with success status
-     */
-    public function approveMember($id, $approvedBy)
-    {
+    public function deleteMember($id) {
         try {
-            $member = $this->membershipModel->getMemberById($id);
-            
-            if (!$member) {
-                return [
-                    'success' => false,
-                    'message' => 'Member not found'
-                ];
-            }
-
-            if ($member['status'] !== 'pending') {
-                return [
-                    'success' => false,
-                    'message' => 'Only pending members can be approved'
-                ];
-            }
-
-            $result = $this->membershipModel->approveMember($id, $approvedBy);
-
-            if ($result) {
-                // Log activity
-                $this->membershipModel->logActivity($id, 'status_change', 'Member approved');
-
-                // Send approval email
-                // $this->sendApprovalEmail($member['email'], $member['firstname']);
-
-                return [
-                    'success' => true,
-                    'message' => 'Member approved successfully'
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to approve member'
-                ];
-            }
-
+            $this->model->deleteMember($id);
+            return ['success' => true, 'message' => 'Member deleted'];
         } catch (Exception $e) {
-            error_log("Membership Controller Error (approveMember): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'An error occurred while approving member'
-            ];
+            return ['success' => false, 'message' => $e->getMessage()];
         }
     }
 
-    /**
-     * Delete member
-     * @param int $id Member ID
-     * @return array Response with success status
-     */
-    public function deleteMember($id)
-    {
+    public function assignFamily($memberId, $familyId) {
         try {
-            $member = $this->membershipModel->getMemberById($id);
-            
-            if (!$member) {
-                return [
-                    'success' => false,
-                    'message' => 'Member not found'
-                ];
-            }
-
-            // Delete profile photo if exists
-            if (!empty($member['profile_photo']) && file_exists(ROOT_PATH . '/' . $member['profile_photo'])) {
-                unlink(ROOT_PATH . '/' . $member['profile_photo']);
-            }
-
-            $result = $this->membershipModel->deleteMember($id);
-
-            if ($result) {
-                return [
-                    'success' => true,
-                    'message' => 'Member deleted successfully'
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to delete member'
-                ];
-            }
-
+            $this->model->assignFamily($memberId, $familyId);
+            return ['success' => true, 'message' => 'Family assigned successfully'];
         } catch (Exception $e) {
-            error_log("Membership Controller Error (deleteMember): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'An error occurred while deleting member'
-            ];
+            return ['success' => false, 'message' => $e->getMessage()];
         }
     }
 
-    /**
-     * Get membership types
-     * @return array Response with membership types
-     */
-    public function getMembershipTypes()
-    {
-        try {
-            $types = $this->membershipModel->getMembershipTypes();
-            return [
-                'success' => true,
-                'data' => $types
-            ];
-        } catch (Exception $e) {
-            error_log("Membership Controller Error (getMembershipTypes): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Failed to fetch membership types'
-            ];
-        }
+    public function getStatistics($sessionFilter = null) {
+        return ['success' => true, 'data' => $this->model->getStatistics($sessionFilter)];
     }
 
-    /**
-     * Get churches
-     * @return array Response with churches
-     */
-    public function getChurches()
-    {
-        try {
-            $churches = $this->membershipModel->getChurches();
-            return [
-                'success' => true,
-                'data' => $churches
-            ];
-        } catch (Exception $e) {
-            error_log("Membership Controller Error (getChurches): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Failed to fetch churches'
-            ];
-        }
-    }
-
-    /**
-     * Get talents
-     * @return array Response with talents
-     */
-    public function getTalents()
-    {
-        try {
-            $talents = $this->membershipModel->getTalents();
-            return [
-                'success' => true,
-                'data' => $talents
-            ];
-        } catch (Exception $e) {
-            error_log("Membership Controller Error (getTalents): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Failed to fetch talents'
-            ];
-        }
-    }
-
-    /**
-     * Get membership statistics
-     * @return array Response with statistics
-     */
-    public function getStatistics()
-    {
-        try {
-            $stats = $this->membershipModel->getStatistics();
-            return [
-                'success' => true,
-                'data' => $stats
-            ];
-        } catch (Exception $e) {
-            error_log("Membership Controller Error (getStatistics): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Failed to fetch statistics'
-            ];
-        }
-    }
-
-    /**
-     * Check if email exists
-     * @param string $email Email to check
-     * @return array Response with exists status
-     */
-    public function checkEmail($email)
-    {
-        try {
-            $exists = $this->membershipModel->emailExists($email);
-            return [
-                'success' => true,
-                'exists' => $exists
-            ];
-        } catch (Exception $e) {
-            error_log("Membership Controller Error (checkEmail): " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Failed to check email'
-            ];
-        }
+    public function getFamilies($sessionFilter = null) {
+        return ['success' => true, 'data' => $this->model->getFamilies($sessionFilter)];
     }
 }

@@ -12,6 +12,7 @@ define('JS_PATH', ROOT_PATH . '/js');
 define('RS_PLUGIN_PATH', ROOT_PATH . '/rs-plugin');
 define('ADMIN_JS_PATH', ROOT_PATH . '/dashboard-assets/js');
 define('ADMIN_CSS_PATH', ROOT_PATH . '/dashboard-assets/css');
+define('ADMIN_VENDOR_PATH', ROOT_PATH . '/dashboard-assets/vendor');
 
 // Determine environment - more robust detection
 $isProduction = (getenv('RAILWAY_ENVIRONMENT') === 'production') || 
@@ -47,6 +48,7 @@ define('RS_PLUGIN_FONT_URL', BASE_URL . '/rs-plugin/fonts');
 define('RS_IMG_URL', BASE_URL . '/rs-plugin/assets');
 define('ADMIN_CSS_URL', BASE_URL . '/dashboard-assets/css');
 define('ADMIN_JS_URL', BASE_URL . '/dashboard-assets/js');
+define('ADMIN_VENDOR_URL', BASE_URL . '/dashboard-assets/vendor');
 
 // Helper functions
 function get_layout($layout_name) {
@@ -75,6 +77,10 @@ function admin_css_url($css_name) {
 
 function admin_js_url($js_name) {
     return ADMIN_JS_URL . '/' . $js_name;
+}
+
+function admin_vendor_url($vendor_path) {
+    return ADMIN_VENDOR_URL . '/' . $vendor_path;
 }
 
 function rs_css_url($css_name) {

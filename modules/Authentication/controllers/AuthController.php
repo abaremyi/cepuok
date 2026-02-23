@@ -777,5 +777,77 @@ class AuthController {
             return null;
         }
     }
+
+    /**
+     * Extend session
+     * @return array Response array
+     */
+    public function extendSession() {
+        try {
+            // Get token from cookie
+            $token = $_COOKIE['auth_token'] ?? '';
+            
+            if (!$token) {
+                return [
+                    'success' => false,
+                    'message' => 'No token provided'
+                ];
+            }
+            
+            // Validate current token
+            $decoded = $this->jwtHandler->validateToken($token);
+            
+            if (!$decoded) {
+                return [
+                    'success' => false,
+                    'message' => 'Invalid token'
+                ];
+            }
+            
+            // Generate new token with extended expiry
+            $payload = [
+                'user_id' => $decoded->user_id,
+                'username' => $decoded->username,
+                'firstname' => $decoded->firstname,
+                'lastname' => $decoded->lastname,
+                'email' => $decoded->email,
+                'phone' => $decoded->phone,
+                'role_id' => $decoded->role_id,
+                'role_name' => $decoded->role_name,
+                'is_super_admin' => $decoded->is_super_admin,
+                'permissions' => $decoded->permissions,
+                'photo' => $decoded->photo,
+                'iat' => time(),
+                'exp' => time() + (int)$_ENV['JWT_EXPIRATION_TIME']
+            ];
+            
+            // Generate new token
+            $newToken = $this->jwtHandler->generateToken($payload);
+            
+            // Set new cookie
+            setcookie('auth_token', $newToken, [
+                'expires' => time() + (int)$_ENV['JWT_EXPIRATION_TIME'],
+                'path' => '/',
+                'secure' => true,
+                'httponly' => true,
+                'samesite' => 'Strict'
+            ]);
+            
+            // Update session last activity
+            $_SESSION['last_activity'] = time();
+            
+            return [
+                'success' => true,
+                'message' => 'Session extended successfully'
+            ];
+            
+        } catch (Exception $e) {
+            error_log("Extend session error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to extend session'
+            ];
+        }
+    }
 }
 ?>

@@ -20,13 +20,13 @@ $userPermissions = isset($userPermissions) && is_array($userPermissions) ? $user
       <!-- Logo -->
 
       <a class="navbar-brand" href="<?= url('admin/dashboard') ?>" aria-label="CEP UoK">
-        <img class="navbar-brand-logo" src="<?= img_url('logo-only.png') ?>" alt="Logo"
-          data-hs-theme-appearance="default" style="height: 100%;">
-        <img class="navbar-brand-logo" src="<?= img_url('logo-only.png') ?>" data-hs-theme-appearance="dark"
+        <img class="navbar-brand-logo" src="<?= img_url('logos/logo-long.png') ?>" alt="Logo"
+          data-hs-theme-appearance="default" >
+        <img class="navbar-brand-logo" src="<?= img_url('logos/logo-long.png') ?>" data-hs-theme-appearance="dark"
           style="height: 100%;">
-        <img class="navbar-brand-logo-mini" src="<?= img_url('logo-only.png') ?>" alt="Logo"
+        <img class="navbar-brand-logo-mini" src="<?= img_url('logos/logo-short.png') ?>" alt="Logo"
           data-hs-theme-appearance="default" style="height: 100%;">
-        <img class="navbar-brand-logo-mini" src="<?= img_url('logo-only.png') ?>" alt="Logo"
+        <img class="navbar-brand-logo-mini" src="<?= img_url('logos/logo-short.png') ?>" alt="Logo"
           data-hs-theme-appearance="dark" style="height: 100%;">
       </a>
 
@@ -35,8 +35,10 @@ $userPermissions = isset($userPermissions) && is_array($userPermissions) ? $user
       <!-- Navbar Vertical Toggle -->
       <button type="button" class="js-navbar-vertical-aside-toggle-invoker navbar-aside-toggler">
         <i class="bi-arrow-bar-left navbar-toggler-short-align"
-          data-bs-template='<div class="tooltip d-none d-md-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'
-          data-bs-toggle="tooltip" data-bs-placement="right" title="Collapse"></i>
+          data-bs-template='<div class="tooltip d-none d-md-block" role="tooltip">
+            <div class="arrow"></div><div class="tooltip-inner"></div></div>'
+          data-bs-toggle="tooltip" data-bs-placement="right" title="Collapse">
+        </i>
         <i class="bi-arrow-bar-right navbar-toggler-full-align"
           data-bs-template='<div class="tooltip d-none d-md-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'
           data-bs-toggle="tooltip" data-bs-placement="right" title="Expand"></i>
@@ -280,8 +282,11 @@ $userPermissions = isset($userPermissions) && is_array($userPermissions) ? $user
     });
   }
 
-  $(document).ready(function () {
-    loadUnreadMessages();
-    setInterval(loadUnreadMessages, 60000); // Refresh every minute
-  });
+ document.addEventListener('DOMContentLoaded', () => {
+  // 1. Initial call on page load
+  loadUnreadMessages();
+
+  // 2. Set up the recurring interval (60,000ms = 1 minute)
+  setInterval(loadUnreadMessages, 60000);
+});
 </script>

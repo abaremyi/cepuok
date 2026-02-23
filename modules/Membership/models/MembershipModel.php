@@ -2,575 +2,570 @@
 /**
  * Membership Model
  * File: modules/Membership/models/MembershipModel.php
- * Handles all database operations for membership management
+ * Handles all member data operations with session awareness
  */
 
-class MembershipModel
-{
+require_once ROOT_PATH . '/config/database.php';
+
+class MembershipModel {
     private $db;
 
-    public function __construct($db)
-    {
-        $this->db = $db;
+    // Faculty options as defined in system documentation
+    public static $FACULTIES = [
+        'Information Technology' => 'IT',
+        'Law' => 'Law',
+        'Finance' => 'Finance',
+        'Accounting' => 'Accounting',
+        'Procurement' => 'Procurement',
+        'Education' => 'Education',
+        'Economics' => 'Economics',
+        'Graduate School' => 'Graduate',
+    ];
+
+    // Academic years
+    public static $ACADEMIC_YEARS = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Graduate'];
+
+    public function __construct($db = null) {
+        $this->db = $db ?? Database::getInstance();
     }
 
+    // ============================================================
+    // REGISTRATION & PUBLIC METHODS
+    // ============================================================
+
     /**
-     * Create new member
-     * @param array $data Member data
-     * @return int|bool Member ID or false
+     * Register a new member
      */
-    public function createMember($data)
-    {
+    public function register($data) {
         try {
-            $query = "INSERT INTO members (
-                membership_type_id, firstname, lastname, email, phone, gender, 
-                date_of_birth, address, year_joined_cep, church_id, other_church_name,
-                is_born_again, is_baptized, profile_photo, bio, status
+            $this->db->beginTransaction();
+
+            // Generate unique membership number stub (full number assigned on approval)
+            $membershipNumber = null;
+
+            $sql = "INSERT INTO members (
+                membership_type_id, firstname, lastname, email, phone, gender,
+                date_of_birth, address, year_joined_cep, cep_session, faculty,
+                program, academic_year, church_name,
+                is_born_again, is_baptized, bio, status, created_at
             ) VALUES (
                 :membership_type_id, :firstname, :lastname, :email, :phone, :gender,
-                :date_of_birth, :address, :year_joined_cep, :church_id, :other_church_name,
-                :is_born_again, :is_baptized, :profile_photo, :bio, :status
+                :date_of_birth, :address, :year_joined_cep, :cep_session, :faculty,
+                :program, :academic_year, :church_name,
+                :is_born_again, :is_baptized, :bio, 'pending', NOW()
             )";
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->db->prepare($sql);
             $stmt->execute([
-                ':membership_type_id' => $data['membership_type_id'],
-                ':firstname' => $data['firstname'],
-                ':lastname' => $data['lastname'],
-                ':email' => $data['email'],
-                ':phone' => $data['phone'],
-                ':gender' => $data['gender'],
-                ':date_of_birth' => $data['date_of_birth'] ?? null,
-                ':address' => $data['address'] ?? null,
-                ':year_joined_cep' => $data['year_joined_cep'],
-                ':church_id' => $data['church_id'],
-                ':other_church_name' => $data['other_church_name'] ?? null,
-                ':is_born_again' => $data['is_born_again'] ?? 'Prefer not to say',
-                ':is_baptized' => $data['is_baptized'] ?? 'Prefer not to say',
-                ':profile_photo' => $data['profile_photo'] ?? null,
-                ':bio' => $data['bio'] ?? null,
-                ':status' => $data['status'] ?? 'pending'
+                ':membership_type_id' => $data['membership_type_id'] ?? 1,
+                ':firstname'          => trim($data['firstname']),
+                ':lastname'           => trim($data['lastname']),
+                ':email'              => strtolower(trim($data['email'])),
+                ':phone'              => trim($data['phone']),
+                ':gender'             => $data['gender'],
+                ':date_of_birth'      => !empty($data['date_of_birth']) ? $data['date_of_birth'] : null,
+                ':address'            => $data['address'] ?? null,
+                ':year_joined_cep'    => $data['year_joined_cep'],
+                ':cep_session'        => $data['cep_session'] ?? 'day',
+                ':faculty'            => $data['faculty'] ?? null,
+                ':program'            => !empty($data['program']) ? trim($data['program']) : null,
+                ':academic_year'      => $data['academic_year'] ?? null,
+                ':church_name'        => !empty($data['church_name']) ? trim($data['church_name']) : null,
+                ':is_born_again'      => $data['is_born_again'] ?? 'Prefer not to say',
+                ':is_baptized'        => $data['is_baptized'] ?? 'Prefer not to say',
+                ':bio'                => !empty($data['bio']) ? trim($data['bio']) : null,
             ]);
 
-            return $this->db->lastInsertId();
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (createMember): " . $e->getMessage());
-            return false;
-        }
-    }
+            $memberId = $this->db->lastInsertId();
 
-    /**
-     * Add member talents
-     * @param int $memberId Member ID
-     * @param array $talentIds Array of talent IDs
-     * @return bool Success status
-     */
-    public function addMemberTalents($memberId, $talentIds)
-    {
-        try {
-            if (empty($talentIds)) {
-                return true;
-            }
+            // Insert membership application record
+            $appSql = "INSERT INTO membership_applications (member_id, application_type, status, submission_date)
+                       VALUES (:member_id, 'new', 'submitted', NOW())";
+            $appStmt = $this->db->prepare($appSql);
+            $appStmt->execute([':member_id' => $memberId]);
 
-            $query = "INSERT INTO member_talents (member_id, talent_id) VALUES (?, ?)";
-            $stmt = $this->db->prepare($query);
-
-            foreach ($talentIds as $talentId) {
-                $stmt->execute([$memberId, $talentId]);
-            }
-
-            return true;
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (addMemberTalents): " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Check if email exists
-     * @param string $email Email to check
-     * @param int $excludeId Member ID to exclude (for updates)
-     * @return bool True if exists
-     */
-    public function emailExists($email, $excludeId = 0)
-    {
-        try {
-            $query = "SELECT COUNT(*) FROM members WHERE email = :email";
-            
-            if ($excludeId > 0) {
-                $query .= " AND id != :exclude_id";
-            }
-
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':email', $email, PDO::PARAM_STR);
-            
-            if ($excludeId > 0) {
-                $stmt->bindParam(':exclude_id', $excludeId, PDO::PARAM_INT);
-            }
-
-            $stmt->execute();
-            return $stmt->fetchColumn() > 0;
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (emailExists): " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Check if phone exists
-     * @param string $phone Phone to check
-     * @param int $excludeId Member ID to exclude (for updates)
-     * @return bool True if exists
-     */
-    public function phoneExists($phone, $excludeId = 0)
-    {
-        try {
-            $query = "SELECT COUNT(*) FROM members WHERE phone = :phone";
-            
-            if ($excludeId > 0) {
-                $query .= " AND id != :exclude_id";
-            }
-
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':phone', $phone, PDO::PARAM_STR);
-            
-            if ($excludeId > 0) {
-                $stmt->bindParam(':exclude_id', $excludeId, PDO::PARAM_INT);
-            }
-
-            $stmt->execute();
-            return $stmt->fetchColumn() > 0;
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (phoneExists): " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Get member by ID
-     * @param int $id Member ID
-     * @return array|null Member data
-     */
-    public function getMemberById($id)
-    {
-        try {
-            $query = "SELECT m.*, 
-                             mt.type_name as membership_type_name,
-                             c.church_name,
-                             CONCAT(u.firstname, ' ', u.lastname) as approved_by_name
-                      FROM members m
-                      LEFT JOIN membership_types mt ON m.membership_type_id = mt.id
-                      LEFT JOIN churches c ON m.church_id = c.id
-                      LEFT JOIN users u ON m.approved_by = u.id
-                      WHERE m.id = :id";
-
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([':id' => $id]);
-            
-            $member = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($member) {
-                // Get member talents
-                $member['talents'] = $this->getMemberTalents($id);
-            }
-
-            return $member;
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (getMemberById): " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Get member by email
-     * @param string $email Email address
-     * @return array|null Member data
-     */
-    public function getMemberByEmail($email)
-    {
-        try {
-            $query = "SELECT m.*, 
-                             mt.type_name as membership_type_name,
-                             c.church_name
-                      FROM members m
-                      LEFT JOIN membership_types mt ON m.membership_type_id = mt.id
-                      LEFT JOIN churches c ON m.church_id = c.id
-                      WHERE m.email = :email";
-
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([':email' => $email]);
-            
-            $member = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($member) {
-                $member['talents'] = $this->getMemberTalents($member['id']);
-            }
-
-            return $member;
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (getMemberByEmail): " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Get member talents
-     * @param int $memberId Member ID
-     * @return array Array of talent IDs and names
-     */
-    public function getMemberTalents($memberId)
-    {
-        try {
-            $query = "SELECT mt.talent_id, t.talent_name, t.category, mt.proficiency_level, mt.notes
-                      FROM member_talents mt
-                      JOIN talents_gifts t ON mt.talent_id = t.id
-                      WHERE mt.member_id = :member_id";
-
-            $stmt = $this->db->prepare($query);
-            $stmt->execute([':member_id' => $memberId]);
-
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (getMemberTalents): " . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Get all members with filters and pagination
-     * @param array $filters Filter criteria
-     * @param int $limit Number of records
-     * @param int $offset Starting position
-     * @return array Array of members
-     */
-    public function getAllMembers($filters = [], $limit = 20, $offset = 0)
-    {
-        try {
-            $query = "SELECT m.*, 
-                             mt.type_name as membership_type_name,
-                             c.church_name,
-                             CONCAT(u.firstname, ' ', u.lastname) as approved_by_name
-                      FROM members m
-                      LEFT JOIN membership_types mt ON m.membership_type_id = mt.id
-                      LEFT JOIN churches c ON m.church_id = c.id
-                      LEFT JOIN users u ON m.approved_by = u.id
-                      WHERE 1=1";
-
-            $params = [];
-
-            // Apply filters
-            if (!empty($filters['search'])) {
-                $query .= " AND (m.firstname LIKE :search OR m.lastname LIKE :search 
-                            OR m.email LIKE :search OR m.phone LIKE :search 
-                            OR m.membership_number LIKE :search)";
-                $params[':search'] = '%' . $filters['search'] . '%';
-            }
-
-            if (!empty($filters['membership_type_id'])) {
-                $query .= " AND m.membership_type_id = :membership_type_id";
-                $params[':membership_type_id'] = $filters['membership_type_id'];
-            }
-
-            if (!empty($filters['status'])) {
-                $query .= " AND m.status = :status";
-                $params[':status'] = $filters['status'];
-            }
-
-            if (!empty($filters['year_joined'])) {
-                $query .= " AND m.year_joined_cep = :year_joined";
-                $params[':year_joined'] = $filters['year_joined'];
-            }
-
-            if (!empty($filters['church_id'])) {
-                $query .= " AND m.church_id = :church_id";
-                $params[':church_id'] = $filters['church_id'];
-            }
-
-            if (!empty($filters['gender'])) {
-                $query .= " AND m.gender = :gender";
-                $params[':gender'] = $filters['gender'];
-            }
-
-            $query .= " ORDER BY m.created_at DESC LIMIT :limit OFFSET :offset";
-
-            $stmt = $this->db->prepare($query);
-            
-            foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value);
-            }
-            
-            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            
-            $stmt->execute();
-
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (getAllMembers): " . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Count total members with filters
-     * @param array $filters Filter criteria
-     * @return int Total count
-     */
-    public function countMembers($filters = [])
-    {
-        try {
-            $query = "SELECT COUNT(*) FROM members m WHERE 1=1";
-            $params = [];
-
-            // Apply same filters as getAllMembers
-            if (!empty($filters['search'])) {
-                $query .= " AND (m.firstname LIKE :search OR m.lastname LIKE :search 
-                            OR m.email LIKE :search OR m.phone LIKE :search 
-                            OR m.membership_number LIKE :search)";
-                $params[':search'] = '%' . $filters['search'] . '%';
-            }
-
-            if (!empty($filters['membership_type_id'])) {
-                $query .= " AND m.membership_type_id = :membership_type_id";
-                $params[':membership_type_id'] = $filters['membership_type_id'];
-            }
-
-            if (!empty($filters['status'])) {
-                $query .= " AND m.status = :status";
-                $params[':status'] = $filters['status'];
-            }
-
-            if (!empty($filters['year_joined'])) {
-                $query .= " AND m.year_joined_cep = :year_joined";
-                $params[':year_joined'] = $filters['year_joined'];
-            }
-
-            if (!empty($filters['church_id'])) {
-                $query .= " AND m.church_id = :church_id";
-                $params[':church_id'] = $filters['church_id'];
-            }
-
-            if (!empty($filters['gender'])) {
-                $query .= " AND m.gender = :gender";
-                $params[':gender'] = $filters['gender'];
-            }
-
-            $stmt = $this->db->prepare($query);
-            
-            foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value);
-            }
-            
-            $stmt->execute();
-
-            return $stmt->fetchColumn();
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (countMembers): " . $e->getMessage());
-            return 0;
-        }
-    }
-
-    /**
-     * Update member
-     * @param int $id Member ID
-     * @param array $data Updated data
-     * @return bool Success status
-     */
-    public function updateMember($id, $data)
-    {
-        try {
-            $fields = [];
-            $params = [':id' => $id];
-
-            foreach ($data as $key => $value) {
-                if ($key !== 'id') {
-                    $fields[] = "$key = :$key";
-                    $params[":$key"] = $value;
+            // Insert talents if provided
+            if (!empty($data['talents']) && is_array($data['talents'])) {
+                $talentSql = "INSERT IGNORE INTO member_talents (member_id, talent_id) VALUES (:member_id, :talent_id)";
+                $talentStmt = $this->db->prepare($talentSql);
+                foreach ($data['talents'] as $talentId) {
+                    if (is_numeric($talentId)) {
+                        $talentStmt->execute([':member_id' => $memberId, ':talent_id' => (int)$talentId]);
+                    }
                 }
             }
 
-            $query = "UPDATE members SET " . implode(', ', $fields) . " WHERE id = :id";
-            $stmt = $this->db->prepare($query);
+            // Log activity
+            $logSql = "INSERT INTO member_activities (member_id, activity_type, activity_description, ip_address, user_agent)
+                       VALUES (:member_id, 'registration', 'Member registered', :ip, :ua)";
+            $logStmt = $this->db->prepare($logSql);
+            $logStmt->execute([
+                ':member_id' => $memberId,
+                ':ip'        => $_SERVER['REMOTE_ADDR'] ?? null,
+                ':ua'        => $_SERVER['HTTP_USER_AGENT'] ?? null,
+            ]);
 
-            return $stmt->execute($params);
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (updateMember): " . $e->getMessage());
-            return false;
+            $this->db->commit();
+            return ['success' => true, 'member_id' => $memberId];
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("MembershipModel::register - " . $e->getMessage());
+            throw $e;
         }
+    }
+
+    /**
+     * Upload profile photo after registration
+     */
+    public function updateProfilePhoto($memberId, $photoPath) {
+        $sql = "UPDATE members SET profile_photo = :photo WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([':photo' => $photoPath, ':id' => $memberId]);
+    }
+
+    /**
+     * Check email availability
+     */
+    public function emailExists($email, $excludeId = null) {
+        $sql = "SELECT id FROM members WHERE email = :email";
+        $params = [':email' => strtolower(trim($email))];
+        if ($excludeId) {
+            $sql .= " AND id != :exclude_id";
+            $params[':exclude_id'] = $excludeId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Check phone availability
+     */
+    public function phoneExists($phone, $excludeId = null) {
+        $sql = "SELECT id FROM members WHERE phone = :phone";
+        $params = [':phone' => $phone];
+        if ($excludeId) {
+            $sql .= " AND id != :exclude_id";
+            $params[':exclude_id'] = $excludeId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Get membership types (active only)
+     */
+    public function getMembershipTypes() {
+        $sql = "SELECT id, type_name, description FROM membership_types WHERE is_active = 1 ORDER BY id ASC";
+        $stmt = $this->db->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get talents grouped by category
+     */
+    public function getTalents() {
+        $sql = "SELECT id, talent_name, category FROM talents_gifts WHERE is_active = 1 ORDER BY category, talent_name";
+        $stmt = $this->db->query($sql);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[$row['category']][] = $row;
+        }
+        return $grouped;
+    }
+
+    // ============================================================
+    // ADMIN / PORTAL METHODS
+    // ============================================================
+
+    /**
+     * Get single member by ID with full details
+     */
+    public function getMemberById($id) {
+        $sql = "SELECT m.*, 
+                       mt.type_name AS membership_type_name,
+                       cf.family_name, cf.family_code, cf.color_code AS family_color,
+                       u.email AS user_email, u.status AS user_status,
+                       r.name AS user_role,
+                       approver.firstname AS approved_by_firstname,
+                       approver.lastname AS approved_by_lastname
+                FROM members m
+                LEFT JOIN membership_types mt ON m.membership_type_id = mt.id
+                LEFT JOIN cep_families cf ON m.family_id = cf.id
+                LEFT JOIN users u ON m.user_id = u.id
+                LEFT JOIN roles r ON u.role_id = r.id
+                LEFT JOIN users approver ON m.approved_by = approver.id
+                WHERE m.id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $member = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($member) {
+            // Attach talents
+            $talentSql = "SELECT tg.id, tg.talent_name, tg.category, mt.proficiency_level
+                          FROM member_talents mt
+                          JOIN talents_gifts tg ON mt.talent_id = tg.id
+                          WHERE mt.member_id = :mid";
+            $tStmt = $this->db->prepare($talentSql);
+            $tStmt->execute([':mid' => $id]);
+            $member['talents'] = $tStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        return $member;
+    }
+
+    /**
+     * Get all members with filters, pagination, and session awareness
+     */
+    public function getAllMembers($filters = [], $page = 1, $perPage = 20) {
+        $where = ['1=1'];
+        $params = [];
+
+        // Session filter (critical for portal separation)
+        if (!empty($filters['cep_session'])) {
+            $where[] = "m.cep_session = :cep_session";
+            $params[':cep_session'] = $filters['cep_session'];
+        }
+
+        if (!empty($filters['search'])) {
+            $where[] = "(m.firstname LIKE :search OR m.lastname LIKE :search OR m.email LIKE :search 
+                         OR m.phone LIKE :search OR m.membership_number LIKE :search)";
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
+
+        if (!empty($filters['status'])) {
+            $where[] = "m.status = :status";
+            $params[':status'] = $filters['status'];
+        }
+
+        if (!empty($filters['membership_type_id'])) {
+            $where[] = "m.membership_type_id = :mtid";
+            $params[':mtid'] = (int)$filters['membership_type_id'];
+        }
+
+        if (!empty($filters['faculty'])) {
+            $where[] = "m.faculty = :faculty";
+            $params[':faculty'] = $filters['faculty'];
+        }
+
+        if (!empty($filters['family_id'])) {
+            $where[] = "m.family_id = :family_id";
+            $params[':family_id'] = (int)$filters['family_id'];
+        }
+
+        if (!empty($filters['gender'])) {
+            $where[] = "m.gender = :gender";
+            $params[':gender'] = $filters['gender'];
+        }
+
+        if (!empty($filters['year_joined'])) {
+            $where[] = "m.year_joined_cep = :year_joined";
+            $params[':year_joined'] = (int)$filters['year_joined'];
+        }
+
+        $whereStr = implode(' AND ', $where);
+
+        // Count total
+        $countSql = "SELECT COUNT(*) FROM members m WHERE $whereStr";
+        $countStmt = $this->db->prepare($countSql);
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
+
+        // Pagination
+        $offset = ($page - 1) * $perPage;
+
+        $sql = "SELECT m.id, m.membership_number, m.firstname, m.lastname, m.email, m.phone,
+                       m.gender, m.cep_session, m.faculty, m.program, m.academic_year,
+                       m.church_name, m.status, m.year_joined_cep, m.profile_photo,
+                       m.is_born_again, m.is_baptized, m.created_at, m.approved_at,
+                       mt.type_name AS membership_type_name,
+                       cf.family_name, cf.color_code AS family_color
+                FROM members m
+                LEFT JOIN membership_types mt ON m.membership_type_id = mt.id
+                LEFT JOIN cep_families cf ON m.family_id = cf.id
+                WHERE $whereStr
+                ORDER BY m.created_at DESC
+                LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'data'        => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => ceil($total / $perPage),
+        ];
+    }
+
+    /**
+     * Get pending applications
+     */
+    public function getPendingMembers($sessionFilter = null) {
+        $where = "m.status = 'pending'";
+        $params = [];
+        if ($sessionFilter) {
+            $where .= " AND m.cep_session = :session";
+            $params[':session'] = $sessionFilter;
+        }
+
+        $sql = "SELECT m.id, m.firstname, m.lastname, m.email, m.phone, m.gender,
+                       m.cep_session, m.faculty, m.program, m.church_name,
+                       m.is_born_again, m.is_baptized, m.year_joined_cep, m.created_at,
+                       mt.type_name AS membership_type_name,
+                       ma.submission_date
+                FROM members m
+                LEFT JOIN membership_types mt ON m.membership_type_id = mt.id
+                LEFT JOIN membership_applications ma ON ma.member_id = m.id AND ma.status = 'submitted'
+                WHERE $where
+                ORDER BY m.created_at ASC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
      * Approve member
-     * @param int $id Member ID
-     * @param int $approvedBy User ID who approved
-     * @return bool Success status
      */
-    public function approveMember($id, $approvedBy)
-    {
+    public function approveMember($memberId, $approvedBy) {
         try {
-            $query = "UPDATE members 
-                      SET status = 'active', 
-                          approved_by = :approved_by, 
-                          approved_at = NOW() 
-                      WHERE id = :id";
+            $this->db->beginTransaction();
 
-            $stmt = $this->db->prepare($query);
-            return $stmt->execute([
-                ':id' => $id,
-                ':approved_by' => $approvedBy
-            ]);
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (approveMember): " . $e->getMessage());
-            return false;
-        }
-    }
+            // Update member status
+            $sql = "UPDATE members SET status = 'active', approved_by = :approved_by, 
+                    approved_at = NOW(), updated_at = NOW()
+                    WHERE id = :id AND status = 'pending'";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':approved_by' => $approvedBy, ':id' => $memberId]);
 
-    /**
-     * Delete member
-     * @param int $id Member ID
-     * @return bool Success status
-     */
-    public function deleteMember($id)
-    {
-        try {
-            $query = "DELETE FROM members WHERE id = :id";
-            $stmt = $this->db->prepare($query);
-            return $stmt->execute([':id' => $id]);
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (deleteMember): " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Get all membership types
-     * @return array Array of membership types
-     */
-    public function getMembershipTypes()
-    {
-        try {
-            $query = "SELECT * FROM membership_types WHERE is_active = 1 ORDER BY id";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (getMembershipTypes): " . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Get all churches
-     * @return array Array of churches
-     */
-    public function getChurches()
-    {
-        try {
-            $query = "SELECT * FROM churches WHERE is_active = 1 ORDER BY church_name";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (getChurches): " . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Get all talents/gifts
-     * @return array Array of talents grouped by category
-     */
-    public function getTalents()
-    {
-        try {
-            $query = "SELECT * FROM talents_gifts WHERE is_active = 1 ORDER BY category, talent_name";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
-            $talents = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Group by category
-            $grouped = [];
-            foreach ($talents as $talent) {
-                $category = $talent['category'];
-                if (!isset($grouped[$category])) {
-                    $grouped[$category] = [];
-                }
-                $grouped[$category][] = $talent;
+            if ($stmt->rowCount() === 0) {
+                throw new Exception("Member not found or already approved");
             }
 
-            return $grouped;
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (getTalents): " . $e->getMessage());
-            return [];
+            // Update application status
+            $appSql = "UPDATE membership_applications SET status = 'approved', 
+                       review_date = NOW(), reviewed_by = :reviewer
+                       WHERE member_id = :member_id AND status = 'submitted'";
+            $appStmt = $this->db->prepare($appSql);
+            $appStmt->execute([':reviewer' => $approvedBy, ':member_id' => $memberId]);
+
+            $this->db->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            throw $e;
         }
     }
 
     /**
-     * Get membership statistics
-     * @return array Statistics data
+     * Reject member
      */
-    public function getStatistics()
-    {
+    public function rejectMember($memberId, $reviewedBy, $reason = '') {
         try {
-            $stats = [];
+            $this->db->beginTransaction();
 
-            // Total members by status
-            $query = "SELECT status, COUNT(*) as count FROM members GROUP BY status";
-            $stmt = $this->db->query($query);
-            $stats['by_status'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+            $sql = "UPDATE members SET status = 'inactive', updated_at = NOW() WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $memberId]);
 
-            // Total members by type
-            $query = "SELECT mt.type_name, COUNT(m.id) as count 
-                      FROM membership_types mt 
-                      LEFT JOIN members m ON mt.id = m.membership_type_id 
-                      GROUP BY mt.id";
-            $stmt = $this->db->query($query);
-            $stats['by_type'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+            $appSql = "UPDATE membership_applications SET status = 'rejected',
+                       review_date = NOW(), reviewed_by = :reviewer, rejection_reason = :reason
+                       WHERE member_id = :member_id";
+            $appStmt = $this->db->prepare($appSql);
+            $appStmt->execute([':reviewer' => $reviewedBy, ':reason' => $reason, ':member_id' => $memberId]);
 
-            // Total members by gender
-            $query = "SELECT gender, COUNT(*) as count FROM members GROUP BY gender";
-            $stmt = $this->db->query($query);
-            $stats['by_gender'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-            // Total members by year
-            $query = "SELECT year_joined_cep, COUNT(*) as count 
-                      FROM members 
-                      GROUP BY year_joined_cep 
-                      ORDER BY year_joined_cep DESC";
-            $stmt = $this->db->query($query);
-            $stats['by_year'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-            return $stats;
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (getStatistics): " . $e->getMessage());
-            return [];
+            $this->db->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            throw $e;
         }
     }
 
     /**
-     * Log member activity
-     * @param int $memberId Member ID
-     * @param string $activityType Activity type
-     * @param string $description Activity description
-     * @return bool Success status
+     * Update member data
      */
-    public function logActivity($memberId, $activityType, $description = null)
-    {
-        try {
-            $query = "INSERT INTO member_activities (member_id, activity_type, activity_description, ip_address, user_agent) 
-                      VALUES (:member_id, :activity_type, :description, :ip_address, :user_agent)";
-
-            $stmt = $this->db->prepare($query);
-            return $stmt->execute([
-                ':member_id' => $memberId,
-                ':activity_type' => $activityType,
-                ':description' => $description,
-                ':ip_address' => $_SERVER['REMOTE_ADDR'] ?? null,
-                ':user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null
-            ]);
-        } catch (PDOException $e) {
-            error_log("Membership Model Error (logActivity): " . $e->getMessage());
-            return false;
+    public function updateMember($id, $data) {
+        $allowed = ['firstname','lastname','phone','gender','date_of_birth','address',
+                    'year_joined_cep','cep_session','faculty','program','academic_year',
+                    'church_name','is_born_again','is_baptized','bio','status',
+                    'membership_type_id','family_id','profile_photo'];
+        
+        $sets = [];
+        $params = [':id' => $id];
+        
+        foreach ($allowed as $field) {
+            if (array_key_exists($field, $data)) {
+                $sets[] = "$field = :$field";
+                $params[":$field"] = $data[$field];
+            }
         }
+
+        if (empty($sets)) return false;
+
+        $sets[] = "updated_at = NOW()";
+        $sql = "UPDATE members SET " . implode(', ', $sets) . " WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($params);
+    }
+
+    /**
+     * Assign member to family
+     */
+    public function assignFamily($memberId, $familyId) {
+        $sql = "UPDATE members SET family_id = :family_id, updated_at = NOW() WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([':family_id' => $familyId ?: null, ':id' => $memberId]);
+    }
+
+    /**
+     * Delete member (admin only)
+     */
+    public function deleteMember($id) {
+        $sql = "DELETE FROM members WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([':id' => $id]);
+    }
+
+    /**
+     * Get statistics - session-aware
+     */
+    public function getStatistics($sessionFilter = null) {
+        $sessionWhere = $sessionFilter ? "AND cep_session = '$sessionFilter'" : "";
+
+        $sql = "SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive,
+            SUM(CASE WHEN status = 'suspended' THEN 1 ELSE 0 END) as suspended,
+            SUM(CASE WHEN gender = 'Male' $sessionWhere THEN 1 ELSE 0 END) as male,
+            SUM(CASE WHEN gender = 'Female' $sessionWhere THEN 1 ELSE 0 END) as female,
+            SUM(CASE WHEN cep_session = 'day' THEN 1 ELSE 0 END) as day_session,
+            SUM(CASE WHEN cep_session = 'weekend' THEN 1 ELSE 0 END) as weekend_session,
+            SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as new_30_days
+            FROM members WHERE 1=1 $sessionWhere";
+
+        $stmt = $this->db->query($sql);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get faculty distribution
+     */
+    public function getFacultyStats($sessionFilter = null) {
+        $where = $sessionFilter ? "WHERE cep_session = :session" : "WHERE 1=1";
+        $params = $sessionFilter ? [':session' => $sessionFilter] : [];
+        $sql = "SELECT faculty, COUNT(*) as count FROM members $where AND faculty IS NOT NULL
+                GROUP BY faculty ORDER BY count DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // ============================================================
+    // FAMILIES
+    // ============================================================
+
+    /**
+     * Get all families with member counts
+     */
+    public function getFamilies($sessionFilter = null) {
+        $where = $sessionFilter ? "WHERE cf.cep_session = :session OR cf.cep_session = 'both'" : "WHERE 1=1";
+        $params = $sessionFilter ? [':session' => $sessionFilter] : [];
+
+        $sql = "SELECT cf.*,
+                       COUNT(m.id) as member_count,
+                       pu.firstname AS parent_firstname, pu.lastname AS parent_lastname,
+                       cu.firstname AS co_parent_firstname, cu.lastname AS co_parent_lastname
+                FROM cep_families cf
+                LEFT JOIN members m ON m.family_id = cf.id AND m.status = 'active'
+                LEFT JOIN users pu ON cf.parent_user_id = pu.id
+                LEFT JOIN users cu ON cf.co_parent_user_id = cu.id
+                $where
+                GROUP BY cf.id ORDER BY cf.cep_session, cf.family_name";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get family with members
+     */
+    public function getFamilyWithMembers($familyId) {
+        $family = $this->db->prepare("SELECT * FROM cep_families WHERE id = :id");
+        $family->execute([':id' => $familyId]);
+        $familyData = $family->fetch(PDO::FETCH_ASSOC);
+
+        if ($familyData) {
+            $memberSql = "SELECT id, firstname, lastname, email, phone, gender, faculty, profile_photo, status
+                          FROM members WHERE family_id = :fid ORDER BY firstname";
+            $mStmt = $this->db->prepare($memberSql);
+            $mStmt->execute([':fid' => $familyId]);
+            $familyData['members'] = $mStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        return $familyData;
+    }
+
+    // ============================================================
+    // SESSION MANAGEMENT
+    // ============================================================
+
+    /**
+     * Get current portal sessions
+     */
+    public function getPortalSessions() {
+        $sql = "SELECT cs.*, ly.year_label AS committee_year_label,
+                       lu.firstname AS locked_by_name, lu.lastname AS locked_by_lastname
+                FROM cep_sessions cs
+                LEFT JOIN leadership_years ly ON cs.committee_year_id = ly.id
+                LEFT JOIN users lu ON cs.locked_by = lu.id
+                WHERE cs.is_current = 1";
+        $stmt = $this->db->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Toggle portal access for a session
+     */
+    public function toggleSessionPortal($sessionType, $enabled, $userId, $reason = '') {
+        $sql = "UPDATE cep_sessions SET portal_enabled = :enabled, 
+                portal_locked_reason = :reason,
+                locked_by = :user_id, locked_at = :locked_at,
+                updated_at = NOW()
+                WHERE session_type = :session AND is_current = 1";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':enabled'    => $enabled ? 1 : 0,
+            ':reason'     => $enabled ? null : $reason,
+            ':user_id'    => $enabled ? null : $userId,
+            ':locked_at'  => $enabled ? null : date('Y-m-d H:i:s'),
+            ':session'    => $sessionType,
+        ]);
+    }
+
+    /**
+     * Check if portal session is accessible
+     */
+    public function isSessionAccessible($sessionType) {
+        $sql = "SELECT portal_enabled, portal_locked_reason FROM cep_sessions 
+                WHERE session_type = :session AND is_current = 1 LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':session' => $sessionType]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ?? ['portal_enabled' => 1, 'portal_locked_reason' => null];
     }
 }

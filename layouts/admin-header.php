@@ -24,7 +24,6 @@
     <!-- CSS Front Template -->
     <link rel="stylesheet" href="<?= admin_css_url('theme.minc619.css?v=1.0') ?>">
     <link rel="stylesheet" href="<?= admin_css_url('theme.min.css') ?>">
-    <!-- <link rel="stylesheet" href="<?= admin_css_url('theme-dark.min.css') ?>"> -->
     
     <!-- Custom Admin CSS -->
      
@@ -113,4 +112,5 @@
   return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16)
 }
             </script>
+            <!-- <script src="<?= admin_js_url('admin-session-timeout.js')?>"></script> -->
 </head>

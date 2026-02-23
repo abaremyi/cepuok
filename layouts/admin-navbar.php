@@ -10,10 +10,10 @@
     <div class="navbar-nav-wrap">
         <!-- Logo -->
         <a class="navbar-brand" href="<?= url('admin/dashboard') ?>" aria-label="CEP UoK">
-            <img class="navbar-brand-logo" src="<?= img_url('logo-only.png') ?>" alt="CEP UoK" style="height: 40px;" data-hs-theme-appearance="default">
-            <img class="navbar-brand-logo" src="<?= img_url('logo-only.png') ?>" data-hs-theme-appearance="dark">
-            <img class="navbar-brand-logo-mini" src="<?= img_url('logo-only.png') ?>" alt="Logo" data-hs-theme-appearance="default">
-            <img class="navbar-brand-logo-mini" src="<?= img_url('logo-only.png') ?>" alt="Logo" data-hs-theme-appearance="dark">
+            <img class="navbar-brand-logo" src="<?= img_url('logos/logo-long.png') ?>" alt="CEP UoK" data-hs-theme-appearance="default">
+            <img class="navbar-brand-logo" src="<?= img_url('logos/logo-long.png') ?>" data-hs-theme-appearance="dark">
+            <img class="navbar-brand-logo-mini" src="<?= img_url('logos/logo-long.png') ?>" alt="Logo" data-hs-theme-appearance="default">
+            <img class="navbar-brand-logo-mini" src="<?= img_url('logos/logo-long.png') ?>" alt="Logo" data-hs-theme-appearance="dark">
         </a>
         
         <div class="navbar-nav-wrap-content-start">

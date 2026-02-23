@@ -1,1376 +1,1383 @@
 <?php
 /**
- * Membership Page
+ * Membership Page - CEPUOK
  * File: modules/General/views/membership.php
- * Provides membership registration form and leader portal login
+ * Public page for: Member Registration & Leadership Login
+ * New fields: cep_session, faculty, program, academic_year, church_name (text)
  */
 
 if (!defined('ROOT_PATH')) {
-    die('Direct access not allowed. Please access through the main router.');
+    die('Direct access not allowed.');
 }
-
 require_once ROOT_PATH . '/config/database.php';
-
-try {
-    $db = Database::getConnection();
-} catch (Exception $e) {
-    error_log("Membership Page DB Error: " . $e->getMessage());
-    die("Database connection failed. Please try again later.");
-}
+try { $db = Database::getConnection(); } catch (Exception $e) { die("Database error."); }
 ?>
-
 <!doctype html>
 <html class="no-js" lang="en">
-
 <?php include get_layout('header-2'); ?>
-
 <body data-res-from="1025">
-    
-    <?php include get_layout('loader'); ?>
-    
-    <div class="page-wrapper">
-        <div class="page-wrapper-inner">
-            <header>
-                <?php include get_layout('mobile-header'); ?>
-                <div class="header-inner header-1">
-                    <?php include get_layout('navbar-other'); ?>
-                </div>
-            </header>
+<?php include get_layout('loader'); ?>
 
-            <style>
-                /* ========== MEMBERSHIP PAGE STYLES ========== */
-                .membership-hero {
-                    position: relative;
-                    min-height: 30vh;
-                    max-height: 30vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: linear-gradient(135deg, rgba(12, 23, 45, 0.85), rgba(12, 23, 45, 0.85) ),
-                                url("<?= img_url('title-membership.jpg') ?>");
-                    background-size: cover;
-                    background-position: center;
-                    background-attachment: fixed;
-                }
-                
-                .hero-content {
-                    position: relative;
-                    z-index: 2;
-                    text-align: center;
-                    color: white;
-                    padding: 80px 20px 60px;
-                    max-width: 800px;
-                    margin: 0 auto;
-                }
-                
-                .hero-title {
-                    font-family: 'Crimson Text', serif;
-                    font-size: 48px;
-                    font-weight: 700;
-                    margin: 0 0 15px 0;
-                    color: white;
-                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-                }
-                
-                .hero-subtitle {
-                    font-size: 20px;
-                    color: rgba(255,255,255,0.95);
-                    line-height: 1.6;
-                    margin: 0;
-                }
-                
-                /* Tab Navigation */
-                .tab-navigation {
-                    background: #f8f9fa;
-                    padding: 0;
-                    border-bottom: 3px solid #e0e0e0;
-                    position: sticky;
-                    top: 0;
-                    z-index: 100;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                }
-                
-                .tab-nav-container {
-                    max-width: 1200px;
-                    margin: 0 auto;
-                    display: flex;
-                    justify-content: center;
-                }
-                
-                .tab-btn {
-                    flex: 1;
-                    max-width: 400px;
-                    padding: 20px 30px;
-                    background: white;
-                    border: none;
-                    border-bottom: 4px solid transparent;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    font-family: 'Crimson Text', serif;
-                    font-size: 20px;
-                    font-weight: 600;
-                    color: #666;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 10px;
-                }
-                
-                .tab-btn:hover {
-                    background: #f8f9fa;
-                    color: #b45816;
-                }
-                
-                .tab-btn.active {
-                    background: white;
-                    border-bottom-color: #b45816;
-                    color: #d96d20;
-                }
-                
-                .tab-btn i {
-                    font-size: 24px;
-                }
-                
-                /* Main Content Section */
-                .membership-content {
-                    background: white;
-                    padding: 60px 0;
-                    min-height: 70vh;
-                }
-                
-                .content-container {
-                    max-width: 1000px;
-                    margin: 0 auto;
-                    padding: 0 20px;
-                }
-                
-                .tab-content {
-                    display: none;
-                    animation: fadeIn 0.3s ease;
-                }
-                
-                .tab-content.active {
-                    display: block;
-                }
-                
-                @keyframes fadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-                
-                /* Form Styles */
-                .form-section {
-                    background: white;
-                    padding: 40px;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-                }
-                
-                .section-title {
-                    font-family: 'Crimson Text', serif;
-                    font-size: 28px;
-                    font-weight: 700;
-                    color: #d96d20;
-                    margin: 0 0 10px 0;
-                    text-align: center;
-                }
-                
-                .section-subtitle {
-                    text-align: center;
-                    color: #666;
-                    margin: 0 0 30px 0;
-                    font-size: 16px;
-                }
-                
-                .form-group {
-                    margin-bottom: 25px;
-                }
-                
-                .form-group label {
-                    display: block;
-                    font-weight: 600;
-                    color: #333;
-                    margin-bottom: 8px;
-                    font-size: 15px;
-                }
-                
-                .form-group label .required {
-                    color: #dc3545;
-                    margin-left: 3px;
-                }
-                
-                .form-control {
-                    width: 100%;
-                    padding: 12px 15px;
-                    border: 2px solid #e0e0e0;
-                    border-radius: 6px;
-                    font-size: 15px;
-                    transition: all 0.3s ease;
-                    font-family: inherit;
-                }
-                
-                .form-control:focus {
-                    outline: none;
-                    border-color: #d96d20;
-                    box-shadow: 0 0 0 3px rgba(128,0,32,0.1);
-                }
-                
-                .form-control.error {
-                    border-color: #dc3545;
-                }
-                
-                .form-row {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 20px;
-                }
-                
-                .error-message {
-                    color: #dc3545;
-                    font-size: 13px;
-                    margin-top: 5px;
-                    display: none;
-                }
-                
-                .error-message.show {
-                    display: block;
-                }
-                
-                /* Alert Messages */
-                .alert {
-                    padding: 15px 20px;
-                    border-radius: 6px;
-                    margin-bottom: 25px;
-                    display: none;
-                }
-                
-                .alert.show {
-                    display: block;
-                }
-                
-                .alert-success {
-                    background: #d4edda;
-                    border: 1px solid #c3e6cb;
-                    color: #155724;
-                }
-                
-                .alert-error {
-                    background: #f8d7da;
-                    border: 1px solid #f5c6cb;
-                    color: #721c24;
-                }
-                
-                .alert-info {
-                    background: #d1ecf1;
-                    border: 1px solid #bee5eb;
-                    color: #0c5460;
-                }
-                
-                /* Loading Spinner */
-                .loading-spinner {
-                    display: none;
-                    text-align: center;
-                    padding: 20px;
-                }
-                
-                .loading-spinner.show {
-                    display: block;
-                }
-                
-                .spinner {
-                    border: 4px solid #f3f3f3;
-                    border-top: 4px solid #d96d20;
-                    border-radius: 50%;
-                    width: 40px;
-                    height: 40px;
-                    animation: spin 1s linear infinite;
-                    margin: 0 auto;
-                }
-                
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-                
-                /* Info Box */
-                .info-box {
-                    background: #f8f9fa;
-                    border-left: 4px solid #D4AF37;
-                    padding: 20px;
-                    margin-bottom: 30px;
-                    border-radius: 4px;
-                }
-                
-                .info-box h4 {
-                    font-family: 'Crimson Text', serif;
-                    font-size: 20px;
-                    font-weight: 700;
-                    color: #d96d20;
-                    margin: 0 0 10px 0;
-                }
-                
-                .info-box ul {
-                    margin: 10px 0 0 20px;
-                    color: #666;
-                }
-                
-                .info-box ul li {
-                    margin-bottom: 5px;
-                }
-                
-                /* Forgot Password Modal */
-                .modal {
-                    display: none;
-                    position: fixed;
-                    z-index: 1050;
-                    left: 0;
-                    top: 0;
-                    width: 100%;
-                    height: 100%;
-                    overflow: auto;
-                    background-color: rgba(0,0,0,0.5);
-                }
-                
-                .modal.show {
-                    display: block;
-                }
-                
-                .modal-content {
-                    background-color: #fff;
-                    margin: 10% auto;
-                    padding: 30px;
-                    border-radius: 8px;
-                    max-width: 500px;
-                    position: relative;
-                    animation: modalFadeIn 0.3s ease;
-                }
+<div class="page-wrapper">
+  <div class="page-wrapper-inner">
+    <header>
+      <?php include get_layout('mobile-header'); ?>
+      <div class="header-inner header-1">
+        <?php include get_layout('navbar-other'); ?>
+      </div>
+    </header>
 
-                /* Checkbox and Radio Groups */
-                .checkbox-group, .radio-group {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 15px;
-                }
-                
-                .checkbox-item, .radio-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-                
-                .checkbox-item input[type="checkbox"],
-                .radio-item input[type="radio"] {
-                    width: 18px;
-                    height: 18px;
-                    cursor: pointer;
-                }
-                
-                .checkbox-item label,
-                .radio-item label {
-                    margin: 0;
-                    cursor: pointer;
-                    font-weight: normal;
-                }
+<style>
+/* ========== MEMBERSHIP PAGE STYLES v2.1 ========== */
+:root {
+  --cep-orange: #d96d20;
+  --cep-dark: #0c172d;
+  --cep-light-orange: #f5e6d8;
+  --cep-day-color: #fd7e14;
+  --cep-weekend-color: #0d6efd;
+}
 
-                 /* Talent Selection */
-                .talents-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                    gap: 15px;
-                    max-height: 400px;
-                    overflow-y: auto;
-                    padding: 20px;
-                    background: #f8f9fa;
-                    border-radius: 6px;
-                    border: 2px solid #e0e0e0;
-                }
-                
-                .talent-category {
-                    margin-bottom: 20px;
-                }
-                
-                .talent-category-title {
-                    font-weight: 700;
-                    color: #d96d20;
-                    margin-bottom: 10px;
-                    padding: 10px;
-                    background: white;
-                    border-left: 4px solid #D4AF37;
-                }
+.membership-hero {
+  position: relative;
+  min-height: 32vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(12,23,45,0.88), rgba(180,88,22,0.75)),
+              url("<?= img_url('title-membership.JPG') ?>");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: white;
+  padding: 90px 20px 60px;
+}
+.hero-title {
+  font-family: 'Crimson Text', serif;
+  font-size: 48px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+}
+.hero-subtitle { font-size: 18px; color: rgba(255,255,255,0.9); margin: 0; }
 
-                /* File Upload */
-                .file-upload {
-                    position: relative;
-                    display: inline-block;
-                    width: 100%;
-                }
-                
-                .file-upload input[type="file"] {
-                    display: none;
-                }
-                
-                .file-upload-label {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 10px;
-                    padding: 15px;
-                    border: 2px dashed #e0e0e0;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    background: #f8f9fa;
-                }
-                
-                .file-upload-label:hover {
-                    border-color: #d96d20;
-                    background: white;
-                }
-                
-                .file-upload-label i {
-                    font-size: 24px;
-                    color: #c7621a;
-                }
-                
-                .file-preview {
-                    margin-top: 15px;
-                    text-align: center;
-                }
-                
-                .file-preview img {
-                    max-width: 200px;
-                    max-height: 200px;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                }
-                
-                @keyframes modalFadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(-50px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-                
-                .modal-close {
-                    position: absolute;
-                    right: 20px;
-                    top: 20px;
-                    font-size: 28px;
-                    font-weight: bold;
-                    color: #666;
-                    cursor: pointer;
-                }
-                
-                .modal-close:hover {
-                    color: #333;
-                }
-                
-                .modal h3 {
-                    font-family: 'Crimson Text', serif;
-                    font-size: 24px;
-                    color: #d96d20;
-                    margin-bottom: 20px;
-                }
-                
-                .modal-step {
-                    display: none;
-                }
-                
-                .modal-step.active {
-                    display: block;
-                }
-                
-                .btn-secondary {
-                    background: white;
-                    color: #d96d20;
-                    border: 2px solid #d96d20;
-                    padding: 12px 30px;
-                    border-radius: 6px;
-                    font-size: 15px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                }
-                
-                .btn-secondary:hover {
-                    background: #d96d20;
-                    color: white;
-                }
-                
-                .btn-primary {
-                    background: linear-gradient(135deg, #d96d20, #b35c1f);
-                    color: white;
-                    padding: 15px 40px;
-                    border: none;
-                    border-radius: 6px;
-                    font-size: 16px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    width: 100%;
-                    margin-top: 10px;
-                }
-                
-                .btn-primary:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(128, 62, 0, 0.3);
-                }
-                
-                .btn-primary:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                    transform: none;
-                }
+/* Tab Navigation */
+.tab-navigation {
+  background: #fff;
+  border-bottom: 3px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+.tab-nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+}
+.tab-btn {
+  flex: 1;
+  max-width: 400px;
+  padding: 18px 30px;
+  background: #f8f9fa;
+  border: none;
+  border-bottom: 4px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Crimson Text', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.tab-btn:hover { background: #f0f0f0; color: var(--cep-orange); }
+.tab-btn.active { background: white; border-bottom-color: var(--cep-orange); color: var(--cep-orange); }
 
-                /* Login Form Specific */
-                .login-form {
-                    max-width: 500px;
-                    margin: 0 auto;
-                }
-                
-                .forgot-password {
-                    text-align: right;
-                    margin-top: 10px;
-                }
-                
-                .forgot-password a {
-                    color: #d96d20;
-                    text-decoration: none;
-                    font-size: 14px;
-                    cursor: pointer;
-                }
-                
-                .forgot-password a:hover {
-                    text-decoration: underline;
-                }
-                
-                /* Responsive */
-                @media (max-width: 768px) {
-                    .hero-title {
-                        font-size: 36px;
-                    }
-                    
-                    .hero-subtitle {
-                        font-size: 16px;
-                    }
-                    
-                    .form-row {
-                        grid-template-columns: 1fr;
-                    }
-                    
-                    .tab-nav-container {
-                        flex-direction: column;
-                    }
-                    
-                    .tab-btn {
-                        max-width: 100%;
-                    }
-                    
-                    .form-section {
-                        padding: 25px 20px;
-                    }
-                    
-                    .talents-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-            </style>
+/* Main content */
+.membership-content { background: #f4f6f9; padding: 50px 0; min-height: 70vh; }
+.content-container { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+.tab-content { display: none; animation: fadeSlideIn 0.3s ease; }
+.tab-content.active { display: block; }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-            <!-- Hero Section -->
-            <section class="membership-hero">
-                <div class="hero-content">
-                    <h1 class="hero-title">CEP Membership</h1>
-                    <p class="hero-subtitle">Join our community or access the leadership portal to manage CEP activities</p>
-                </div>
-            </section>
+/* Form Section */
+.form-section {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+  margin-bottom: 24px;
+}
+.section-header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+}
+.section-title {
+  font-family: 'Crimson Text', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cep-orange);
+  margin: 0 0 8px;
+}
+.section-subtitle { color: #777; font-size: 15px; margin: 0; }
 
-            <!-- Tab Navigation -->
-            <div class="tab-navigation">
-                <div class="tab-nav-container">
-                    <button class="tab-btn active" data-tab="register">
-                        <i class="fas fa-user-plus"></i>
-                        <span>Member Registration</span>
-                    </button>
-                    <button class="tab-btn" data-tab="login">
-                        <i class="fas fa-sign-in-alt"></i>
-                        <span>Leader Portal Login</span>
-                    </button>
-                </div>
-            </div>
+/* Step indicator */
+.step-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  margin: 0 0 36px;
+  background: #f8f9fa;
+  border-radius: 50px;
+  padding: 4px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.step-item {
+  flex: 1;
+  padding: 10px 20px;
+  border-radius: 50px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #999;
+  cursor: default;
+  transition: all 0.3s;
+}
+.step-item.active {
+  background: var(--cep-orange);
+  color: white;
+  box-shadow: 0 2px 10px rgba(217,109,32,0.35);
+}
+.step-item.completed { color: var(--cep-orange); }
+.step-item.completed::before { content: '✓ '; }
 
-            <!-- Main Content -->
-            <section class="membership-content">
-                <div class="content-container">
-                    
-                    <!-- Registration Tab -->
-                    <div id="registerTab" class="tab-content active">
-                        <div class="form-section">
-                            <h2 class="section-title">Become a CEP Member</h2>
-                            <p class="section-subtitle">Fill in your details to join our community</p>
-                            
-                            <div class="info-box">
-                                <h4><i class="fas fa-info-circle"></i> Membership Types</h4>
-                                <ul>
-                                    <li><strong>Current Student & CEP Member:</strong> Currently enrolled students who are active members</li>
-                                    <li><strong>POST CEPiens (Alumni):</strong> Former CEP members who have graduated</li>
-                                    <li><strong>Frequent Visitor:</strong> Regular visitors who attend CEP events</li>
-                                    <li><strong>Donor/Partner:</strong> Financial supporters and ministry partners</li>
-                                </ul>
-                            </div>
+/* Form Groups */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 640px) { .form-row, .form-row.three { grid-template-columns: 1fr; } }
 
-                            <div id="registrationAlert" class="alert"></div>
-                            <div id="registrationLoading" class="loading-spinner">
-                                <div class="spinner"></div>
-                                <p>Processing your registration...</p>
-                            </div>
+.form-group { margin-bottom: 20px; }
+.form-group label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 7px;
+  font-size: 14px;
+}
+.form-group label .required { color: #e74c3c; margin-left: 3px; }
+.form-control {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  background: #fafafa;
+}
+.form-control:focus {
+  border-color: var(--cep-orange);
+  box-shadow: 0 0 0 3px rgba(217,109,32,0.12);
+  outline: none;
+  background: white;
+}
+.form-control.error { border-color: #e74c3c; }
+.error-message { color: #e74c3c; font-size: 12px; margin-top: 4px; display: none; }
+.error-message.show { display: block; }
 
-                            <form id="registrationForm" enctype="multipart/form-data">
-                                <!-- Membership Type -->
-                                <div class="form-group">
-                                    <label for="membershipType">Membership Type <span class="required">*</span></label>
-                                    <select id="membershipType" name="membership_type_id" class="form-control" required>
-                                        <option value="">-- Select Membership Type --</option>
-                                    </select>
-                                    <div class="error-message" id="membershipTypeError"></div>
-                                </div>
+/* Session selector - special styling */
+.session-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+.session-option { position: relative; }
+.session-option input[type="radio"] { position: absolute; opacity: 0; }
+.session-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: center;
+  background: #fafafa;
+}
+.session-label:hover { border-color: var(--cep-orange); background: var(--cep-light-orange); }
+.session-option input[type="radio"]:checked + .session-label {
+  border-color: var(--cep-orange);
+  background: var(--cep-light-orange);
+  box-shadow: 0 2px 10px rgba(217,109,32,0.2);
+}
+.session-icon { font-size: 32px; margin-bottom: 8px; }
+.session-name { font-weight: 700; font-size: 16px; color: #333; }
+.session-desc { font-size: 12px; color: #777; margin-top: 3px; }
+.session-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-top: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-day { background: #fff3e0; color: var(--cep-day-color); }
+.badge-weekend { background: #e8f0fe; color: var(--cep-weekend-color); }
 
-                                <!-- Personal Information -->
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="firstname">First Name <span class="required">*</span></label>
-                                        <input type="text" id="firstname" name="firstname" class="form-control" required>
-                                        <div class="error-message" id="firstnameError"></div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="lastname">Last Name <span class="required">*</span></label>
-                                        <input type="text" id="lastname" name="lastname" class="form-control" required>
-                                        <div class="error-message" id="lastnameError"></div>
-                                    </div>
-                                </div>
+/* Talent checkboxes */
+.talent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+.talent-category { margin-bottom: 16px; }
+.talent-category-title { font-weight: 700; font-size: 13px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.checkbox-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; transition: background 0.2s; }
+.checkbox-item:hover { background: #f5f5f5; }
+.checkbox-item input { width: 16px; height: 16px; accent-color: var(--cep-orange); }
+.checkbox-item label { font-size: 14px; color: #444; cursor: pointer; margin: 0; }
 
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="email">Email Address <span class="required">*</span></label>
-                                        <input type="email" id="email" name="email" class="form-control" required>
-                                        <div class="error-message" id="emailError"></div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="phone">Phone Number <span class="required">*</span></label>
-                                        <input type="tel" id="phone" name="phone" class="form-control" placeholder="+250..." required>
-                                        <div class="error-message" id="phoneError"></div>
-                                    </div>
-                                </div>
+/* Navigation buttons */
+.form-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 30px;
+  padding-top: 24px;
+  border-top: 1px solid #eee;
+}
+.btn-primary-cep {
+  padding: 12px 32px;
+  background: var(--cep-orange);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primary-cep:hover { background: #b85c18; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(217,109,32,0.3); }
+.btn-primary-cep:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-outline-cep {
+  padding: 12px 28px;
+  background: white;
+  color: var(--cep-orange);
+  border: 2px solid var(--cep-orange);
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-outline-cep:hover { background: var(--cep-light-orange); }
 
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="gender">Gender <span class="required">*</span></label>
-                                        <select id="gender" name="gender" class="form-control" required>
-                                            <option value="">-- Select Gender --</option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
-                                        </select>
-                                        <div class="error-message" id="genderError"></div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="dateOfBirth">Date of Birth</label>
-                                        <input type="date" id="dateOfBirth" name="date_of_birth" class="form-control">
-                                    </div>
-                                </div>
+/* Alerts */
+.alert-box {
+  padding: 14px 18px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+.alert-box.show { display: flex; }
+.alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+.alert-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+.alert-info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
 
-                                <!-- Address -->
-                                <div class="form-group">
-                                    <label for="address">Address</label>
-                                    <textarea id="address" name="address" class="form-control" rows="2" placeholder="Street address, city, province..."></textarea>
-                                </div>
+/* Login Form */
+.login-card {
+  background: white;
+  border-radius: 14px;
+  padding: 48px 48px 40px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+  max-width: 480px;
+  margin: 0 auto;
+}
+.login-logo {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.login-logo img { height: 64px; }
+.login-heading { font-family: 'Crimson Text', serif; font-size: 30px; font-weight: 700; color: #1a1a1a; margin: 0 0 6px; text-align: center; }
+.login-subheading { color: #888; font-size: 14px; text-align: center; margin: 0 0 28px; }
+.login-divider { height: 1px; background: #eee; margin: 20px 0; position: relative; }
+.login-divider span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 0 12px;
+  color: #aaa;
+  font-size: 13px;
+}
+.forgot-link { font-size: 13px; color: var(--cep-orange); text-decoration: none; }
+.forgot-link:hover { text-decoration: underline; }
 
-                                <!-- CEP Information -->
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="yearJoined">Year Started to Join CEP <span class="required">*</span></label>
-                                        <input type="number" id="yearJoined" name="year_joined_cep" class="form-control" 
-                                               min="2000" max="<?= date('Y') ?>" required>
-                                        <div class="error-message" id="yearJoinedError"></div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="church">Your Church <span class="required">*</span></label>
-                                        <select id="church" name="church_id" class="form-control" required>
-                                            <option value="">-- Select Church --</option>
-                                        </select>
-                                        <div class="error-message" id="churchError"></div>
-                                    </div>
-                                </div>
+/* Forgot Password Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+}
+.modal-overlay.show { display: flex; }
+.modal-card {
+  background: white;
+  border-radius: 14px;
+  padding: 40px;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+.modal-title { font-family: 'Crimson Text', serif; font-size: 24px; font-weight: 700; color: #222; margin: 0; }
+.modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #aaa; padding: 0 4px; }
+.modal-close:hover { color: #333; }
+.modal-step { display: none; }
+.modal-step.active { display: block; }
 
-                                <div class="form-group" id="otherChurchGroup" style="display: none;">
-                                    <label for="otherChurch">Please specify church name</label>
-                                    <input type="text" id="otherChurch" name="other_church_name" class="form-control">
-                                </div>
+/* Success state */
+.success-card {
+  text-align: center;
+  padding: 40px 20px;
+  animation: fadeSlideIn 0.4s ease;
+}
+.success-icon { font-size: 64px; color: #28a745; margin-bottom: 16px; }
+.success-title { font-family: 'Crimson Text', serif; font-size: 28px; font-weight: 700; color: #333; }
+.success-text { color: #666; margin: 8px 0 24px; }
 
-                                <!-- Spiritual Information -->
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="bornAgain">Are you born again? <span class="required">*</span></label>
-                                        <select id="bornAgain" name="is_born_again" class="form-control" required>
-                                            <option value="Prefer not to say">Prefer not to say</option>
-                                            <option value="Yes">Yes</option>
-                                            <option value="No">No</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="baptized">Are you baptized? <span class="required">*</span></label>
-                                        <select id="baptized" name="is_baptized" class="form-control" required>
-                                            <option value="Prefer not to say">Prefer not to say</option>
-                                            <option value="Yes">Yes</option>
-                                            <option value="No">No</option>
-                                        </select>
-                                    </div>
-                                </div>
+/* Info note */
+.info-note {
+  background: #f0f7ff;
+  border-left: 4px solid #0d6efd;
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 20px;
+}
+.info-note i { color: #0d6efd; margin-right: 6px; }
 
-                                <!-- Talents/Gifts -->
-                                <div class="form-group">
-                                    <label>Talents/Gifts/Activities (Select all that apply)</label>
-                                    <div id="talentsContainer" class="talents-grid">
-                                        <!-- Will be populated by JavaScript -->
-                                    </div>
-                                </div>
+/* Input with icon */
+.input-group-cep { position: relative; }
+.input-group-cep .form-control { padding-left: 42px; }
+.input-group-cep .input-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #aaa;
+  font-size: 16px;
+}
+.input-group-cep .toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 16px;
+}
+.input-group-cep .toggle-password:hover { color: #555; }
+</style>
 
-                                <!-- Bio -->
-                                <div class="form-group">
-                                    <label for="bio">Tell us about yourself</label>
-                                    <textarea id="bio" name="bio" class="form-control" rows="4" 
-                                              placeholder="Share your testimony, interests, or how you'd like to contribute to CEP..."></textarea>
-                                </div>
+<!-- HERO -->
+<section class="membership-hero">
+  <div class="hero-content">
+    <h1 class="hero-title"><i class="fas fa-users" style="color: var(--cep-orange);"></i> Membership</h1>
+    <p class="hero-subtitle">Join the Pentecostal Students Community at University of Kigali</p>
+  </div>
+</section>
 
-                                <!-- Profile Photo -->
-                                <div class="form-group">
-                                    <label for="profilePhoto">Profile Photo (Optional)</label>
-                                    <div class="file-upload">
-                                        <input type="file" id="profilePhoto" name="profile_photo" accept="image/*">
-                                        <label for="profilePhoto" class="file-upload-label">
-                                            <i class="fas fa-cloud-upload-alt"></i>
-                                            <span>Click to upload photo (Max 5MB)</span>
-                                        </label>
-                                    </div>
-                                    <div id="photoPreview" class="file-preview"></div>
-                                </div>
+<!-- TAB NAVIGATION -->
+<div class="tab-navigation">
+  <div class="tab-nav-container">
+    <button class="tab-btn active" data-tab="register">
+      <i class="fas fa-user-plus"></i> Register as Member
+    </button>
+    <button class="tab-btn" data-tab="login">
+      <i class="fas fa-sign-in-alt"></i> Leadership Login
+    </button>
+  </div>
+</div>
 
-                                <button type="submit" class="btn-primary" id="submitBtn">
-                                    <i class="fas fa-check-circle"></i> Submit Registration
-                                </button>
-                            </form>
-                        </div>
-                    </div>
+<!-- MAIN CONTENT -->
+<section class="membership-content">
+  <div class="content-container">
 
-                    <!-- Login Tab -->
-                    <div id="loginTab" class="tab-content">
-                        <div class="form-section login-form">
-                            <h2 class="section-title">Leader Portal Login</h2>
-                            <p class="section-subtitle">Access the dashboard to manage CEP activities</p>
-
-                            <div id="loginAlert" class="alert"></div>
-                            <div id="loginLoading" class="loading-spinner">
-                                <div class="spinner"></div>
-                                <p>Logging in...</p>
-                            </div>
-
-                            <form id="loginForm">
-                                <div class="form-group">
-                                    <label for="loginIdentifier">Email or Phone <span class="required">*</span></label>
-                                    <input type="text" id="loginIdentifier" name="identifier" class="form-control" placeholder="Enter your email or phone number" required>
-                                    <div class="error-message" id="loginIdentifierError"></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="loginPassword">Password <span class="required">*</span></label>
-                                    <input type="password" id="loginPassword" name="password" class="form-control" placeholder="Enter your password" required>
-                                    <div class="error-message" id="loginPasswordError"></div>
-                                </div>
-
-                                <div class="forgot-password">
-                                    <a id="forgotPasswordLink">Forgot Password?</a>
-                                </div>
-
-                                <button type="submit" class="btn-primary" id="loginBtn">
-                                    <i class="fas fa-sign-in-alt"></i> Login to Portal
-                                </button>
-                            </form>
-
-                            <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid #e0e0e0; text-align: center;">
-                                <p style="color: #666; margin-bottom: 15px;">Don't have a leader account yet?</p>
-                                <p style="color: #666; font-size: 14px;">
-                                    Only CEP members from ADEPR can be granted leader access. 
-                                    Please register as a member first, then contact the administrator for leader privileges.
-                                </p>
-                                <p style="color: #666; font-size: 14px;"><strong>Demo Credentials:</strong> admin@cepuok.com / 12345</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Forgot Password Modal -->
-            <div id="forgotPasswordModal" class="modal">
-                <div class="modal-content">
-                    <span class="modal-close">&times;</span>
-                    
-                    <!-- Step 1: Email Input -->
-                    <div id="forgotStep1" class="modal-step active">
-                        <h3>Reset Password</h3>
-                        <p class="section-subtitle">Enter your email address to receive OTP</p>
-                        
-                        <div id="forgotAlert" class="alert"></div>
-                        
-                        <div class="form-group">
-                            <label for="resetEmail">Email Address <span class="required">*</span></label>
-                            <input type="email" id="resetEmail" class="form-control" placeholder="Enter your email">
-                        </div>
-                        
-                        <button type="button" id="sendOtpBtn" class="btn-primary" style="width: auto; padding: 12px 30px;">
-                            Send OTP
-                        </button>
-                    </div>
-                    
-                    <!-- Step 2: OTP Verification -->
-                    <div id="forgotStep2" class="modal-step">
-                        <h3>Verify OTP</h3>
-                        <p class="section-subtitle">Enter the 6-digit code sent to your email</p>
-                        
-                        <div id="otpAlert" class="alert"></div>
-                        
-                        <div class="form-group">
-                            <label for="otpCode">OTP Code <span class="required">*</span></label>
-                            <input type="text" id="otpCode" class="form-control" placeholder="Enter 6-digit OTP" maxlength="6">
-                        </div>
-                        
-                        <div class="form-row" style="grid-template-columns: 1fr 1fr;">
-                            <button type="button" id="backToEmailBtn" class="btn-secondary">
-                                Back
-                            </button>
-                            <button type="button" id="verifyOtpBtn" class="btn-primary">
-                                Verify OTP
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Step 3: New Password -->
-                    <div id="forgotStep3" class="modal-step">
-                        <h3>Set New Password</h3>
-                        <p class="section-subtitle">Create a new password for your account</p>
-                        
-                        <div id="passwordAlert" class="alert"></div>
-                        
-                        <div class="form-group">
-                            <label for="newPassword">New Password <span class="required">*</span></label>
-                            <input type="password" id="newPassword" class="form-control" placeholder="Enter new password">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
-                            <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm new password">
-                        </div>
-                        
-                        <button type="button" id="resetPasswordBtn" class="btn-primary">
-                            Reset Password
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <?php include get_layout('footer'); ?>
+    <!-- ========== REGISTRATION TAB ========== -->
+    <div class="tab-content active" id="tab-register">
+      <div id="registrationForm">
+        <!-- Step indicator -->
+        <div class="step-indicator">
+          <div class="step-item active" id="step-indicator-1">1. Personal Info</div>
+          <div class="step-item" id="step-indicator-2">2. CEP Details</div>
+          <div class="step-item" id="step-indicator-3">3. Gifts & Bio</div>
         </div>
+
+        <div id="regAlert" class="alert-box"></div>
+
+        <!-- STEP 1: Personal Information -->
+        <div class="form-section" id="regStep1">
+          <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-user me-2"></i>Personal Information</h2>
+            <p class="section-subtitle">Please fill in your personal details accurately</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>First Name <span class="required">*</span></label>
+              <input type="text" id="firstname" class="form-control" placeholder="Your first name">
+              <span class="error-message" id="firstnameError"></span>
+            </div>
+            <div class="form-group">
+              <label>Last Name <span class="required">*</span></label>
+              <input type="text" id="lastname" class="form-control" placeholder="Your last name">
+              <span class="error-message" id="lastnameError"></span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email Address <span class="required">*</span></label>
+              <div class="input-group-cep">
+                <i class="fas fa-envelope input-icon"></i>
+                <input type="email" id="email" class="form-control" placeholder="your.email@example.com">
+              </div>
+              <span class="error-message" id="emailError"></span>
+            </div>
+            <div class="form-group">
+              <label>Phone Number <span class="required">*</span></label>
+              <div class="input-group-cep">
+                <i class="fas fa-phone input-icon"></i>
+                <input type="tel" id="phone" class="form-control" placeholder="+250 7XX XXX XXX">
+              </div>
+              <span class="error-message" id="phoneError"></span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Gender <span class="required">*</span></label>
+              <select id="gender" class="form-control">
+                <option value="">Select gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+              <span class="error-message" id="genderError"></span>
+            </div>
+            <div class="form-group">
+              <label>Date of Birth</label>
+              <input type="date" id="dateOfBirth" class="form-control" max="<?= date('Y-m-d') ?>">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Address (District / Sector)</label>
+            <input type="text" id="address" class="form-control" placeholder="e.g. Kicukiro, Kigali">
+          </div>
+
+          <div class="form-nav">
+            <div></div>
+            <button class="btn-primary-cep" onclick="goToStep(2)">
+              Next: CEP Details <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 2: CEP Details -->
+        <div class="form-section" id="regStep2" style="display:none;">
+          <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-church me-2"></i>CEP & Academic Details</h2>
+            <p class="section-subtitle">Tell us about your involvement with CEP and your studies</p>
+          </div>
+
+          <!-- Membership Type -->
+          <div class="form-group">
+            <label>Membership Type <span class="required">*</span></label>
+            <select id="membershipType" class="form-control">
+              <option value="">Select membership type...</option>
+            </select>
+            <span class="error-message" id="membershipTypeError"></span>
+          </div>
+
+          <!-- CEP Session - PROMINENT CHOICE -->
+          <div class="form-group">
+            <label>CEP Session <span class="required">*</span><br>
+              <small style="font-weight:400; color:#888;">Which CEP session do you primarily attend?</small>
+            </label>
+            <div class="session-selector">
+              <div class="session-option">
+                <input type="radio" name="cep_session" id="sessionDay" value="day" checked>
+                <label class="session-label" for="sessionDay">
+                  <span class="session-icon">☀️</span>
+                  <span class="session-name">Day CEP</span>
+                  <span class="session-desc">Mon, Wed, Thu services</span>
+                  <span class="session-badge badge-day">Daytime</span>
+                </label>
+              </div>
+              <div class="session-option">
+                <input type="radio" name="cep_session" id="sessionWeekend" value="weekend">
+                <label class="session-label" for="sessionWeekend">
+                  <span class="session-icon">🌙</span>
+                  <span class="session-name">Weekend CEP</span>
+                  <span class="session-desc">Sunday services</span>
+                  <span class="session-badge badge-weekend">Weekend</span>
+                </label>
+              </div>
+            </div>
+            <span class="error-message" id="cep_sessionError"></span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Year Joined CEP <span class="required">*</span></label>
+              <select id="yearJoined" class="form-control">
+                <option value="">Select year...</option>
+                <?php for ($y = date('Y'); $y >= 2016; $y--): ?>
+                  <option value="<?= $y ?>"><?= $y ?></option>
+                <?php endfor; ?>
+              </select>
+              <span class="error-message" id="yearJoinedError"></span>
+            </div>
+            <div class="form-group">
+              <label>Academic Year</label>
+              <select id="academicYear" class="form-control">
+                <option value="">Select year of study...</option>
+                <option>Year 1</option>
+                <option>Year 2</option>
+                <option>Year 3</option>
+                <option>Year 4</option>
+                <option>Year 5</option>
+                <option>Graduate</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Faculty / School <span class="required">*</span></label>
+              <select id="faculty" class="form-control">
+                <option value="">Select faculty...</option>
+                <option value="Information Technology">Information Technology (IT)</option>
+                <option value="Law">Law</option>
+                <option value="Finance">Finance</option>
+                <option value="Accounting">Accounting</option>
+                <option value="Procurement">Procurement</option>
+                <option value="Education">Education</option>
+                <option value="Economics">Economics</option>
+                <option value="Graduate School">Graduate School</option>
+                <option value="Other">Other</option>
+              </select>
+              <span class="error-message" id="facultyError"></span>
+            </div>
+            <div class="form-group">
+              <label>Program / Course</label>
+              <input type="text" id="program" class="form-control" placeholder="e.g. BSc Computer Science">
+            </div>
+          </div>
+
+          <!-- Church - Now plain text field -->
+          <div class="form-group">
+            <label>Church You Attend</label>
+            <div class="input-group-cep">
+              <i class="fas fa-church input-icon"></i>
+              <input type="text" id="churchName" class="form-control" 
+                     placeholder="e.g. ADEPR Kimihurura, EERN Kacyiru, etc.">
+            </div>
+            <small style="color:#888; font-size:12px; margin-top:4px; display:block;">
+              Type the name of your local church (leave blank if not applicable)
+            </small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Are you Born Again?</label>
+              <select id="isBornAgain" class="form-control">
+                <option value="Prefer not to say">Prefer not to say</option>
+                <option value="Yes">Yes</option>
+                <option value="No">Not yet</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Are you Baptized?</label>
+              <select id="isBaptized" class="form-control">
+                <option value="Prefer not to say">Prefer not to say</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-nav">
+            <button class="btn-outline-cep" onclick="goToStep(1)">
+              <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <button class="btn-primary-cep" onclick="goToStep(3)">
+              Next: Gifts & Bio <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Talents & Bio -->
+        <div class="form-section" id="regStep3" style="display:none;">
+          <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-star me-2"></i>Gifts, Talents & Bio</h2>
+            <p class="section-subtitle">Share your gifts and a little about yourself</p>
+          </div>
+
+          <!-- Talents -->
+          <div class="form-group">
+            <label>Gifts & Talents <small style="font-weight:400; color:#888;">(Select all that apply)</small></label>
+            <div id="talentsContainer" class="talent-grid">
+              <div style="color:#aaa; font-size:14px; padding:12px;">
+                <i class="fas fa-spinner fa-spin"></i> Loading talents...
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile Photo -->
+          <div class="form-group">
+            <label>Profile Photo <small style="font-weight:400; color:#888;">(Optional, max 2MB)</small></label>
+            <input type="file" id="profilePhoto" class="form-control" accept="image/jpeg,image/png,image/jpg">
+            <div id="photoPreview" style="margin-top:10px; display:none;">
+              <img id="photoImg" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--cep-orange);">
+            </div>
+          </div>
+
+          <!-- Bio -->
+          <div class="form-group">
+            <label>Brief Introduction / Bio <small style="font-weight:400; color:#888;">(Optional)</small></label>
+            <textarea id="bio" class="form-control" rows="4" 
+                      placeholder="Tell us something about yourself, your testimony, or why you joined CEP..."></textarea>
+          </div>
+
+          <div class="info-note">
+            <i class="fas fa-info-circle"></i>
+            By submitting, you confirm that all information provided is accurate. Your application will be reviewed by CEP leadership within 2-3 days.
+          </div>
+
+          <div class="form-nav">
+            <button class="btn-outline-cep" onclick="goToStep(2)">
+              <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <button class="btn-primary-cep" id="submitRegBtn" onclick="submitRegistration()">
+              <i class="fas fa-paper-plane"></i> Submit Application
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Success State (hidden) -->
+      <div id="registrationSuccess" style="display:none;">
+        <div class="form-section">
+          <div class="success-card">
+            <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+            <h2 class="success-title">Application Submitted!</h2>
+            <p class="success-text">
+              Thank you for registering with <strong>CEP UoK</strong>!<br>
+              Your membership application is now under review by our leadership team.<br>
+              You will receive a notification within <strong>2-3 days</strong>.
+            </p>
+            <p style="color:#999; font-size:14px;">Registered for: <strong id="successSession"></strong></p>
+            <a href="<?= BASE_URL ?>/" class="btn-primary-cep" style="text-decoration:none; display:inline-flex;">
+              <i class="fas fa-home"></i> Back to Homepage
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ========== END REGISTER TAB ========== -->
+
+    <!-- ========== LOGIN TAB ========== -->
+    <div class="tab-content" id="tab-login">
+      <div class="login-card">
+        <div class="login-logo">
+          <img src="<?= img_url('logo-dark.png') ?>" alt="CEP UoK Logo" onerror="this.style.display='none'">
+        </div>
+        <h2 class="login-heading">Leadership Portal</h2>
+        <p class="login-subheading">Sign in to access the CEP Management Portal</p>
+
+        <div id="loginAlert" class="alert-box"></div>
+
+        <div class="form-group">
+          <label>Email or Phone <span class="required">*</span></label>
+          <div class="input-group-cep">
+            <i class="fas fa-user input-icon"></i>
+            <input type="text" id="loginIdentifier" class="form-control" placeholder="Email or phone number">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label style="display:flex; justify-content:space-between;">
+            <span>Password <span class="required">*</span></span>
+            <a href="#" class="forgot-link" id="forgotPasswordLink">Forgot password?</a>
+          </label>
+          <div class="input-group-cep">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" id="loginPassword" class="form-control" placeholder="Enter your password">
+            <button class="toggle-password" type="button" id="togglePwd">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:400;">
+            <input type="checkbox" id="rememberMe" style="accent-color: var(--cep-orange);">
+            Remember me for 7 days
+          </label>
+        </div>
+
+        <button class="btn-primary-cep w-100" id="loginBtn" onclick="doLogin()" style="width:100%; justify-content:center; padding:14px;">
+          <i class="fas fa-sign-in-alt"></i> Sign In to Portal
+        </button>
+
+        <div class="login-divider"><span>or</span></div>
+
+        <p style="text-align:center; font-size:14px; color:#888; margin:0;">
+          Not a leader? <a href="#" style="color: var(--cep-orange);" onclick="switchToTab('register')">Register as a member</a>
+        </p>
+
+        <div class="info-note" style="margin-top:20px; margin-bottom:0;">
+          <i class="fas fa-shield-alt"></i>
+          Portal access is restricted to active CEP committee members. Contact your session President if you need access.
+        </div>
+      </div>
+    </div>
+    <!-- ========== END LOGIN TAB ========== -->
+
+  </div><!-- .content-container -->
+</section>
+
+<!-- FORGOT PASSWORD MODAL -->
+<div class="modal-overlay" id="forgotPasswordModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitle">Reset Password</h3>
+      <button class="modal-close" onclick="closeForgotModal()">&times;</button>
+    </div>
+    <div id="fpAlert" class="alert-box"></div>
+
+    <!-- Step 1: Enter email -->
+    <div class="modal-step active" id="fpStep1">
+      <p style="color:#666; font-size:14px; margin:0 0 20px;">Enter your registered email address and we'll send a verification code.</p>
+      <div class="form-group">
+        <label>Email Address <span class="required">*</span></label>
+        <div class="input-group-cep">
+          <i class="fas fa-envelope input-icon"></i>
+          <input type="email" id="fpEmail" class="form-control" placeholder="your.email@example.com">
+        </div>
+      </div>
+      <button class="btn-primary-cep w-100" onclick="sendOTP()" id="sendOtpBtn" style="width:100%;justify-content:center;">
+        <i class="fas fa-paper-plane"></i> Send Verification Code
+      </button>
     </div>
 
-    <?php include get_layout('scripts'); ?>
+    <!-- Step 2: Enter OTP -->
+    <div class="modal-step" id="fpStep2">
+      <p style="color:#666; font-size:14px; margin:0 0 20px;">A 6-digit code has been sent to <strong id="fpEmailDisplay"></strong></p>
+      <div class="form-group">
+        <label>Verification Code <span class="required">*</span></label>
+        <input type="text" id="fpOtp" class="form-control" placeholder="Enter 6-digit code" maxlength="6"
+               style="text-align:center; font-size:24px; letter-spacing:8px; font-weight:700;">
+      </div>
+      <button class="btn-primary-cep w-100" onclick="verifyOTP()" id="verifyOtpBtn" style="width:100%;justify-content:center;">
+        <i class="fas fa-check"></i> Verify Code
+      </button>
+      <p style="text-align:center; margin-top:12px; font-size:13px; color:#aaa;">
+        Didn't receive it? <a href="#" style="color:var(--cep-orange);" onclick="sendOTP()">Resend</a>
+      </p>
+    </div>
 
-    <script>
-        jQuery(document).ready(function($) {
-            const BASE_URL = '<?= BASE_URL ?>';
-            let resetEmail = '';
-            
-            // Tab switching
-            $('.tab-btn').on('click', function() {
-                const targetTab = $(this).data('tab');
-                
-                $('.tab-btn').removeClass('active');
-                $(this).addClass('active');
-                
-                $('.tab-content').removeClass('active');
-                $(`#${targetTab}Tab`).addClass('active');
-                
-                // Clear any alerts
-                $('.alert').removeClass('show').html('');
-            });
+    <!-- Step 3: New password -->
+    <div class="modal-step" id="fpStep3">
+      <div class="form-group">
+        <label>New Password <span class="required">*</span></label>
+        <div class="input-group-cep">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" id="fpNewPassword" class="form-control" placeholder="Min. 8 characters">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Confirm Password <span class="required">*</span></label>
+        <div class="input-group-cep">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" id="fpConfirmPassword" class="form-control" placeholder="Repeat your password">
+        </div>
+      </div>
+      <button class="btn-primary-cep w-100" onclick="resetPassword()" id="resetPwdBtn" style="width:100%;justify-content:center;">
+        <i class="fas fa-save"></i> Save New Password
+      </button>
+    </div>
+  </div>
+</div>
 
-            // Load form data
-            loadMembershipTypes();
-            loadChurches();
-            loadTalents();
+<?php include get_layout('footer'); ?>
+</div></div>
 
-            // Church selection handler
-            $('#church').on('change', function() {
-                const selectedText = $(this).find('option:selected').text();
-                if (selectedText.toLowerCase().includes('other')) {
-                    $('#otherChurchGroup').show();
-                    $('#otherChurch').attr('required', true);
-                } else {
-                    $('#otherChurchGroup').hide();
-                    $('#otherChurch').attr('required', false);
-                }
-            });
+<?php include get_layout('scripts'); ?>
 
-            // Email validation on blur
-            $('#email').on('blur', function() {
-                const email = $(this).val();
-                if (email && isValidEmail(email)) {
-                    checkEmailAvailability(email);
-                }
-            });
+<script>
+const BASE_URL = '<?= BASE_URL ?>';
+let fpResetEmail = '';
+let fpOtpVerified = '';
+let currentRegStep = 1;
 
-            // Profile photo preview
-            $('#profilePhoto').on('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    if (file.size > 5 * 1024 * 1024) {
-                        showAlert('registrationAlert', 'error', 'File size exceeds 5MB limit');
-                        $(this).val('');
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        $('#photoPreview').html(`<img src="${e.target.result}" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px;">`);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchToTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+  document.getElementById(`tab-${tabName}`).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-            // Registration form submission
-            $('#registrationForm').on('submit', function(e) {
-                e.preventDefault();
-                
-                if (!validateRegistrationForm()) {
-                    return;
-                }
-                
-                const formData = new FormData(this);
-                
-                // Get selected talents
-                const selectedTalents = [];
-                $('input[name="talents[]"]:checked').each(function() {
-                    selectedTalents.push($(this).val());
-                });
-                formData.append('talents', JSON.stringify(selectedTalents));
-                
-                $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
-                $('#registrationLoading').addClass('show');
-                
-                $.ajax({
-                    url: `${BASE_URL}/api/membership?action=register`,
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        $('#registrationLoading').removeClass('show');
-                        $('#submitBtn').prop('disabled', false).html('<i class="fas fa-check-circle"></i> Submit Registration');
-                        
-                        if (response.success) {
-                            showAlert('registrationAlert', 'success', response.message);
-                            $('#registrationForm')[0].reset();
-                            $('#photoPreview').html('');
-                            $('input[name="talents[]"]').prop('checked', false);
-                            
-                            // Scroll to top
-                            $('html, body').animate({ scrollTop: $('.tab-navigation').offset().top }, 500);
-                        } else {
-                            showAlert('registrationAlert', 'error', response.message);
-                        }
-                    },
-                    error: function(xhr) {
-                        $('#registrationLoading').removeClass('show');
-                        $('#submitBtn').prop('disabled', false).html('<i class="fas fa-check-circle"></i> Submit Registration');
-                        
-                        let message = 'An error occurred. Please try again.';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            message = xhr.responseJSON.message;
-                        }
-                        showAlert('registrationAlert', 'error', message);
-                    }
-                });
-            });
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchToTab(btn.dataset.tab));
+});
 
-            // Login form submission
-            $('#loginForm').on('submit', function(e) {
-                e.preventDefault();
-                
-                const identifier = $('#loginIdentifier').val().trim();
-                const password = $('#loginPassword').val().trim();
-                
-                if (!identifier || !password) {
-                    showAlert('loginAlert', 'error', 'Please fill in all fields');
-                    return;
-                }
-                
-                $('#loginBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Logging in...');
-                $('#loginLoading').addClass('show');
-                
-                $.ajax({
-                    url: `${BASE_URL}/api/auth?action=login`,
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        identifier: identifier,
-                        password: password
-                    }),
-                    success: function(response) {
-                        $('#loginLoading').removeClass('show');
-                        
-                        if (response.success) {
-                            showAlert('loginAlert', 'success', 'Login successful! Redirecting...');
-                            
-                            // Store token in cookie
-                            document.cookie = `auth_token=${response.token}; path=/; max-age=86400; SameSite=Strict`;
-                            
-                            // Redirect based on role
-                            setTimeout(function() {
-                                if (response.user.is_super_admin) {
-                                    window.location.href = `${BASE_URL}/admin/dashboard`;
-                                } else if (response.user.role_name === 'Admin' || response.user.role_name === 'Leader') {
-                                    window.location.href = `${BASE_URL}/admin/welcome`;
-                                } else {
-                                    window.location.href = `${BASE_URL}/dashboard`;
-                                }
-                            }, 1500);
-                        } else {
-                            $('#loginBtn').prop('disabled', false).html('<i class="fas fa-sign-in-alt"></i> Login to Portal');
-                            showAlert('loginAlert', 'error', response.message);
-                        }
-                    },
-                    error: function(xhr) {
-                        $('#loginLoading').removeClass('show');
-                        $('#loginBtn').prop('disabled', false).html('<i class="fas fa-sign-in-alt"></i> Login to Portal');
-                        
-                        let message = 'An error occurred. Please try again.';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            message = xhr.responseJSON.message;
-                        }
-                        showAlert('loginAlert', 'error', message);
-                    }
-                });
-            });
+// ============================================================
+// MULTI-STEP FORM
+// ============================================================
+function goToStep(step) {
+  // Validate before proceeding
+  if (step > currentRegStep) {
+    if (!validateStep(currentRegStep)) return;
+  }
 
-            // Forgot Password Modal
-            $('#forgotPasswordLink').on('click', function(e) {
-                e.preventDefault();
-                $('#forgotPasswordModal').addClass('show');
-                resetModal();
-            });
+  [1,2,3].forEach(s => {
+    const el = document.getElementById(`regStep${s}`);
+    if (el) el.style.display = s === step ? 'block' : 'none';
+    const ind = document.getElementById(`step-indicator-${s}`);
+    if (ind) {
+      ind.classList.remove('active', 'completed');
+      if (s < step) ind.classList.add('completed');
+      else if (s === step) ind.classList.add('active');
+    }
+  });
 
-            $('.modal-close').on('click', function() {
-                $('#forgotPasswordModal').removeClass('show');
-                resetModal();
-            });
+  currentRegStep = step;
+  window.scrollTo({ top: 300, behavior: 'smooth' });
+}
 
-            $(window).on('click', function(e) {
-                if ($(e.target).is('#forgotPasswordModal')) {
-                    $('#forgotPasswordModal').removeClass('show');
-                    resetModal();
-                }
-            });
+function validateStep(step) {
+  clearErrors();
+  let valid = true;
 
-            function resetModal() {
-                $('#forgotStep1, #forgotStep2, #forgotStep3').removeClass('active');
-                $('#forgotStep1').addClass('active');
-                $('#resetEmail, #otpCode, #newPassword, #confirmPassword').val('');
-                $('#forgotAlert, #otpAlert, #passwordAlert').removeClass('show').html('');
-                resetEmail = '';
-            }
+  if (step === 1) {
+    valid = required('firstname', 'First name is required') && valid;
+    valid = required('lastname', 'Last name is required') && valid;
+    valid = required('gender', 'Please select gender') && valid;
+    const email = val('email');
+    if (!email) { showFieldError('email', 'Email is required'); valid = false; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showFieldError('email', 'Invalid email format'); valid = false; }
+    const phone = val('phone');
+    if (!phone) { showFieldError('phone', 'Phone is required'); valid = false; }
+    else if (!/^\+?[0-9]{10,15}$/.test(phone.replace(/\s/g,''))) { showFieldError('phone', 'Invalid phone format'); valid = false; }
+  }
 
-            // Send OTP
-            $('#sendOtpBtn').on('click', function() {
-                const email = $('#resetEmail').val().trim();
-                
-                if (!email || !isValidEmail(email)) {
-                    showAlert('forgotAlert', 'error', 'Please enter a valid email address');
-                    return;
-                }
-                
-                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
-                
-                $.ajax({
-                    url: `${BASE_URL}/api/auth?action=forgot-password`,
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ email: email }),
-                    success: function(response) {
-                        $('#sendOtpBtn').prop('disabled', false).html('Send OTP');
-                        
-                        if (response.success) {
-                            resetEmail = email;
-                            $('#forgotStep1').removeClass('active');
-                            $('#forgotStep2').addClass('active');
-                            showAlert('otpAlert', 'success', 'OTP sent to your email. Please check your inbox.');
-                        } else {
-                            showAlert('forgotAlert', 'error', response.message);
-                        }
-                    },
-                    error: function() {
-                        $('#sendOtpBtn').prop('disabled', false).html('Send OTP');
-                        showAlert('forgotAlert', 'error', 'Failed to send OTP. Please try again.');
-                    }
-                });
-            });
+  if (step === 2) {
+    valid = required('membershipType', 'Please select membership type') && valid;
+    valid = required('yearJoined', 'Please select year joined') && valid;
+    valid = required('faculty', 'Please select your faculty') && valid;
+    // Check session is selected
+    if (!document.querySelector('input[name="cep_session"]:checked')) {
+      showFieldError('cep_session', 'Please select your CEP session'); valid = false;
+    }
+  }
 
-            // Back to email step
-            $('#backToEmailBtn').on('click', function() {
-                $('#forgotStep2').removeClass('active');
-                $('#forgotStep1').addClass('active');
-                $('#otpAlert').removeClass('show').html('');
-            });
+  return valid;
+}
 
-            // Verify OTP
-            $('#verifyOtpBtn').on('click', function() {
-                const otp = $('#otpCode').val().trim();
-                
-                if (!otp || otp.length !== 6) {
-                    showAlert('otpAlert', 'error', 'Please enter a valid 6-digit OTP');
-                    return;
-                }
-                
-                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Verifying...');
-                
-                $.ajax({
-                    url: `${BASE_URL}/api/auth?action=verify-otp`,
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ 
-                        email: resetEmail,
-                        otp: otp 
-                    }),
-                    success: function(response) {
-                        $('#verifyOtpBtn').prop('disabled', false).html('Verify OTP');
-                        
-                        if (response.success) {
-                            $('#forgotStep2').removeClass('active');
-                            $('#forgotStep3').addClass('active');
-                        } else {
-                            showAlert('otpAlert', 'error', response.message);
-                        }
-                    },
-                    error: function() {
-                        $('#verifyOtpBtn').prop('disabled', false).html('Verify OTP');
-                        showAlert('otpAlert', 'error', 'Failed to verify OTP. Please try again.');
-                    }
-                });
-            });
+function required(id, msg) {
+  if (!val(id)) { showFieldError(id, msg); return false; }
+  return true;
+}
+function val(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+function showFieldError(id, msg) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('error');
+  const err = document.getElementById(id + 'Error');
+  if (err) { err.textContent = msg; err.classList.add('show'); }
+}
+function clearErrors() {
+  document.querySelectorAll('.form-control').forEach(e => e.classList.remove('error'));
+  document.querySelectorAll('.error-message').forEach(e => { e.textContent=''; e.classList.remove('show'); });
+}
 
-            // Reset Password
-            $('#resetPasswordBtn').on('click', function() {
-                const newPassword = $('#newPassword').val().trim();
-                const confirmPassword = $('#confirmPassword').val().trim();
-                
-                if (!newPassword || newPassword.length < 6) {
-                    showAlert('passwordAlert', 'error', 'Password must be at least 6 characters long');
-                    return;
-                }
-                
-                if (newPassword !== confirmPassword) {
-                    showAlert('passwordAlert', 'error', 'Passwords do not match');
-                    return;
-                }
-                
-                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Resetting...');
-                
-                $.ajax({
-                    url: `${BASE_URL}/api/auth?action=reset-password`,
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ 
-                        email: resetEmail,
-                        otp: $('#otpCode').val().trim(),
-                        password: newPassword 
-                    }),
-                    success: function(response) {
-                        $('#resetPasswordBtn').prop('disabled', false).html('Reset Password');
-                        
-                        if (response.success) {
-                            showAlert('passwordAlert', 'success', 'Password reset successfully! You can now login.');
-                            setTimeout(function() {
-                                $('#forgotPasswordModal').removeClass('show');
-                                resetModal();
-                                // Switch to login tab
-                                $('.tab-btn[data-tab="login"]').click();
-                            }, 2000);
-                        } else {
-                            showAlert('passwordAlert', 'error', response.message);
-                        }
-                    },
-                    error: function() {
-                        $('#resetPasswordBtn').prop('disabled', false).html('Reset Password');
-                        showAlert('passwordAlert', 'error', 'Failed to reset password. Please try again.');
-                    }
-                });
-            });
+// ============================================================
+// LOAD FORM DATA
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  loadMembershipTypes();
+  loadTalents();
 
-            // Load membership types
-            function loadMembershipTypes() {
-                $.ajax({
-                    url: `${BASE_URL}/api/membership?action=getMembershipTypes`,
-                    type: 'GET',
-                    success: function(response) {
-                        if (response.success && response.data) {
-                            response.data.forEach(function(type) {
-                                $('#membershipType').append(
-                                    `<option value="${type.id}">${type.type_name}</option>`
-                                );
-                            });
-                        }
-                    }
-                });
-            }
+  // Toggle password visibility
+  const togglePwd = document.querySelector('#togglePwd');
+  const loginPassword = document.querySelector('#loginPassword');
 
-            // Load churches
-            function loadChurches() {
-                $.ajax({
-                    url: `${BASE_URL}/api/membership?action=getChurches`,
-                    type: 'GET',
-                    success: function(response) {
-                        if (response.success && response.data) {
-                            response.data.forEach(function(church) {
-                                $('#church').append(
-                                    `<option value="${church.id}">${church.church_name}</option>`
-                                );
-                            });
-                        }
-                    }
-                });
-            }
+  if (togglePwd && loginPassword) {
+    togglePwd.addEventListener('click', function() {
+      const icon = this.querySelector('i');
+      const isPassword = loginPassword.getAttribute('type') === 'password';
 
-            // Load talents
-            function loadTalents() {
-                $.ajax({
-                    url: `${BASE_URL}/api/membership?action=getTalents`,
-                    type: 'GET',
-                    success: function(response) {
-                        if (response.success && response.data) {
-                            let html = '';
-                            
-                            for (const category in response.data) {
-                                html += `<div class="talent-category">`;
-                                html += `<div class="talent-category-title">${category}</div>`;
-                                
-                                response.data[category].forEach(function(talent) {
-                                    html += `
-                                        <div class="checkbox-item">
-                                            <input type="checkbox" name="talents[]" value="${talent.id}" id="talent_${talent.id}">
-                                            <label for="talent_${talent.id}">${talent.talent_name}</label>
-                                        </div>
-                                    `;
-                                });
-                                
-                                html += `</div>`;
-                            }
-                            
-                            $('#talentsContainer').html(html);
-                        }
-                    }
-                });
-            }
+      loginPassword.setAttribute('type', isPassword ? 'text' : 'password');
 
-            // Check email availability
-            function checkEmailAvailability(email) {
-                $.ajax({
-                    url: `${BASE_URL}/api/membership?action=checkEmail&email=${encodeURIComponent(email)}`,
-                    type: 'GET',
-                    success: function(response) {
-                        if (response.exists) {
-                            $('#email').addClass('error');
-                            $('#emailError').addClass('show').text('This email is already registered');
-                        } else {
-                            $('#email').removeClass('error');
-                            $('#emailError').removeClass('show').text('');
-                        }
-                    }
-                });
-            }
+      // Toggle icon classes
+      icon.classList.toggle('fa-eye', !isPassword);
+      icon.classList.toggle('fa-eye-slash', isPassword);
+    });
+  }
 
-            // Validate registration form
-            function validateRegistrationForm() {
-                let isValid = true;
-                
-                // Reset errors
-                $('.form-control').removeClass('error');
-                $('.error-message').removeClass('show');
-                
-                // Required fields
-                const requiredFields = ['membershipType', 'firstname', 'lastname', 'email', 'phone', 
-                                       'gender', 'yearJoined', 'church'];
-                
-                requiredFields.forEach(function(field) {
-                    const $field = $(`#${field}`);
-                    if (!$field.val()) {
-                        $field.addClass('error');
-                        $(`#${field}Error`).addClass('show').text('This field is required');
-                        isValid = false;
-                    }
-                });
-                
-                // Email format
-                const email = $('#email').val();
-                if (email && !isValidEmail(email)) {
-                    $('#email').addClass('error');
-                    $('#emailError').addClass('show').text('Invalid email format');
-                    isValid = false;
-                }
-                
-                // Phone format
-                const phone = $('#phone').val();
-                if (phone && !phone.match(/^\+?[0-9]{10,15}$/)) {
-                    $('#phone').addClass('error');
-                    $('#phoneError').addClass('show').text('Invalid phone format');
-                    isValid = false;
-                }
-                
-                // Year validation
-                const year = parseInt($('#yearJoined').val());
-                const currentYear = new Date().getFullYear();
-                if (year && (year < 2000 || year > currentYear)) {
-                    $('#yearJoined').addClass('error');
-                    $('#yearJoinedError').addClass('show').text(`Year must be between 2000 and ${currentYear}`);
-                    isValid = false;
-                }
-                
-                return isValid;
-            }
+  // Email availability check on blur
+  const emailInput = document.querySelector('#email');
+  if (emailInput) {
+    emailInput.addEventListener('blur', async function() {
+      const email = this.value.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-            // Email validation helper
-            function isValidEmail(email) {
-                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-            }
+      if (!email || !emailRegex.test(email)) return;
 
-            // Show alert helper
-            function showAlert(containerId, type, message) {
-                const $alert = $(`#${containerId}`);
-                $alert.removeClass('alert-success alert-error alert-info')
-                      .addClass(`alert-${type}`)
-                      .html(`<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`)
-                      .addClass('show');
-                
-                // Auto hide after 10 seconds
-                setTimeout(function() {
-                    $alert.removeClass('show');
-                }, 10000);
-            }
+      try {
+        const response = await fetch(`${BASE_URL}/api/membership?action=checkEmail&email=${encodeURIComponent(email)}`);
+        const res = await response.json();
+
+        if (res.exists) {
+          showFieldError('email', 'This email is already registered');
+        } else {
+          this.classList.remove('error');
+        }
+      } catch (error) {
+        console.error('Error checking email:', error);
+      }
+    });
+  }
+
+  // Phone availability check
+  const phoneInput = document.querySelector('#phone');
+  if (phoneInput) {
+    phoneInput.addEventListener('blur', function() {
+      // Could add phone check here
+    });
+  }
+
+  // Photo preview
+  const profilePhoto = document.querySelector('#profilePhoto');
+  const photoImg = document.querySelector('#photoImg');
+  const photoPreview = document.querySelector('#photoPreview');
+
+  if (profilePhoto) {
+    profilePhoto.addEventListener('change', function() {
+      const file = this.files[0];
+      const maxSize = 2 * 1024 * 1024; // 2MB
+
+      if (file && file.size <= maxSize) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          photoImg.src = e.target.result;
+          photoPreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else if (file) {
+        alert('Photo must be less than 2MB');
+        this.value = '';
+      }
+    });
+  }
+
+  // Login on Enter key
+  const loginInputs = document.querySelectorAll('#loginPassword, #loginIdentifier');
+  loginInputs.forEach(input => {
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') doLogin();
+    });
+  });
+
+  // Forgot password modal
+  const forgotLink = document.querySelector('#forgotPasswordLink');
+  if (forgotLink) {
+    forgotLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openForgotModal();
+    });
+  }
+});
+
+async function loadMembershipTypes() {
+  const selectElement = document.querySelector('#membershipType');
+  
+  try {
+    const response = await fetch(`${BASE_URL}/api/membership?action=getMembershipTypes`);
+    
+    // Check if the HTTP request actually succeeded
+    if (!response.ok) throw new Error('Network response was not ok');
+
+    const result = await response.json();
+
+    if (result.success && result.data) {
+      // Clear existing options first if necessary
+      // selectElement.innerHTML = '<option value="">Select Type</option>';
+
+      result.data.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type.id;
+        option.textContent = type.type_name;
+        selectElement.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load membership types:', error);
+  }
+}
+
+async function loadTalents() {
+  const container = document.querySelector('#talentsContainer');
+  if (!container) return;
+
+  try {
+    const response = await fetch(`${BASE_URL}/api/membership?action=getTalents`);
+    if (!response.ok) throw new Error('Failed to fetch talents');
+
+    const res = await response.json();
+
+    if (res.success && res.data) {
+      let html = '';
+
+      // Loop through the object categories (e.g., "Music", "Dance")
+      for (const [category, talents] of Object.entries(res.data)) {
+        html += `
+          <div class="talent-category">
+            <div class="talent-category-title">
+              <i class="fas fa-tag me-1"></i>${category}
+            </div>`;
+
+        // Loop through each talent in that category
+        talents.forEach(t => {
+          html += `
+            <div class="checkbox-item">
+              <input type="checkbox" name="talents[]" value="${t.id}" id="t_${t.id}">
+              <label for="t_${t.id}">${t.talent_name}</label>
+            </div>`;
         });
-    </script>
+
+        html += '</div>';
+      }
+
+      // Inject the completed HTML string into the container
+      container.innerHTML = html;
+    }
+  } catch (error) {
+    console.error('Error loading talents:', error);
+  }
+}
+
+// ============================================================
+// SUBMIT REGISTRATION
+// ============================================================
+async function submitRegistration() {
+  if (!validateStep(3)) return;
+
+  // 1. Setup elements and loading state
+  const submitBtn = document.querySelector('#submitRegBtn');
+  const regForm = document.querySelector('#registrationForm');
+  const successDiv = document.querySelector('#registrationSuccess');
+  
+  const originalBtnHtml = '<i class="fas fa-paper-plane"></i> Submit Application';
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+  // 2. Gather Data
+  const sessionVal = document.querySelector('input[name="cep_session"]:checked')?.value || 'day';
+  const formData = new FormData();
+
+  // Helper to match your 'val()' function logic
+  const getVal = (id) => document.getElementById(id)?.value || '';
+
+  const fields = [
+    'membershipType', 'firstname', 'lastname', 'email', 'phone', 
+    'gender', 'dateOfBirth', 'address', 'yearJoined', 'faculty', 
+    'program', 'academicYear', 'churchName', 'isBornAgain', 
+    'isBaptized', 'bio'
+  ];
+
+  // Map local IDs to your API keys
+  fields.forEach(field => {
+    // Note: You might need to map 'membershipType' to 'membership_type_id' specifically
+    let apiKey = field.replace(/([A-Z])/g, "_$1").toLowerCase(); // simple camelToSnake helper
+    if (field === 'membershipType') apiKey = 'membership_type_id';
+    if (field === 'yearJoined') apiKey = 'year_joined_cep';
+    
+    formData.append(apiKey, getVal(field));
+  });
+
+  formData.append('cep_session', sessionVal);
+
+  // Add Talents
+  document.querySelectorAll('input[name="talents[]"]:checked').forEach(c => {
+    formData.append('talents[]', c.value);
+  });
+
+  // Add Photo
+  const photo = document.getElementById('profilePhoto').files[0];
+  if (photo) formData.append('profile_photo', photo);
+
+  // 3. The Fetch Request
+  try {
+    const response = await fetch(`${BASE_URL}/api/membership?action=register`, {
+      method: 'POST',
+      body: formData // Fetch handles Content-Type automatically for FormData
+    });
+
+    const res = await response.json();
+
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
+
+    if (res.success) {
+      const sessionLabels = { day: 'Day CEP', weekend: 'Weekend CEP' };
+      document.querySelector('#successSession').textContent = sessionLabels[sessionVal] || sessionVal;
+
+      // Vanilla JS Fade Out/In replacement
+      regForm.style.transition = 'opacity 0.3s';
+      regForm.style.opacity = '0';
+      
+      setTimeout(() => {
+        regForm.style.display = 'none';
+        successDiv.style.display = 'block';
+        successDiv.style.opacity = '0';
+        setTimeout(() => successDiv.style.opacity = '1', 10);
+        
+        window.scrollTo({ top: 200, behavior: 'smooth' });
+      }, 300);
+
+    } else {
+      showAlert('regAlert', 'error', res.message || 'Registration failed.');
+    }
+  } catch (error) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
+    showAlert('regAlert', 'error', 'Server error. Please try again.');
+  }
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+async function doLogin() {
+  const identifier = document.getElementById('loginIdentifier')?.value;
+  const password = document.getElementById('loginPassword')?.value;
+  const loginBtn = document.querySelector('#loginBtn');
+
+  // 1. Validation
+  if (!identifier || !password) {
+    showAlert('loginAlert', 'error', 'Please enter your email/phone and password.');
+    return;
+  }
+
+  // 2. Loading State
+  const originalBtnHtml = '<i class="fas fa-sign-in-alt"></i> Sign In to Portal';
+  loginBtn.disabled = true;
+  loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+
+  try {
+    // 3. The Fetch Request
+    const response = await fetch(`${BASE_URL}/api/auth?action=login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ identifier, password })
+    });
+
+    const res = await response.json();
+
+    if (res.success) {
+      showAlert('loginAlert', 'success', 'Login successful! Redirecting...');
+      
+      setTimeout(() => {
+        window.location.href = `${BASE_URL}/admin/dashboard`;
+      }, 800);
+    } else {
+      // Re-enable button on logical failure
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = originalBtnHtml;
+      showAlert('loginAlert', 'error', res.message || 'Invalid credentials.');
+    }
+
+  } catch (error) {
+    // 4. Error Handling (Connection/Server issues)
+    loginBtn.disabled = false;
+    loginBtn.innerHTML = originalBtnHtml;
+    showAlert('loginAlert', 'error', 'Connection error. Please try again.');
+    console.error('Login Error:', error);
+  }
+}
+
+// ============================================================
+// FORGOT PASSWORD MODAL
+// ============================================================
+function openForgotModal() {
+  document.getElementById('forgotPasswordModal').classList.add('show');
+  resetFpModal();
+}
+function closeForgotModal() {
+  document.getElementById('forgotPasswordModal').classList.remove('show');
+}
+function resetFpModal() {
+  ['fpStep1','fpStep2','fpStep3'].forEach((id, i) => {
+    document.getElementById(id).classList.toggle('active', i === 0);
+  });
+  document.getElementById('modalTitle').textContent = 'Reset Password';
+  $('#fpEmail,#fpOtp,#fpNewPassword,#fpConfirmPassword').val('');
+  $('#fpAlert').removeClass('show');
+  fpResetEmail = ''; fpOtpVerified = '';
+}
+
+function showFpStep(step) {
+  ['fpStep1','fpStep2','fpStep3'].forEach((id, i) => {
+    document.getElementById(id).classList.toggle('active', i === step - 1);
+  });
+}
+
+function sendOTP() {
+  const email = val('fpEmail');
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showAlert('fpAlert', 'error', 'Please enter a valid email address.'); return;
+  }
+  $('#sendOtpBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+  $.ajax({
+    url: `${BASE_URL}/api/auth?action=forgot-password`,
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({ email }),
+    success: function(res) {
+      $('#sendOtpBtn').prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Send Verification Code');
+      if (res.success) {
+        fpResetEmail = email;
+        $('#fpEmailDisplay').text(email);
+        document.getElementById('modalTitle').textContent = 'Enter Verification Code';
+        showFpStep(2);
+        showAlert('fpAlert', 'success', 'Verification code sent!');
+      } else {
+        showAlert('fpAlert', 'error', res.message || 'Email not found.');
+      }
+    },
+    error: function() {
+      $('#sendOtpBtn').prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Send Verification Code');
+      showAlert('fpAlert', 'error', 'Failed to send OTP. Please try again.');
+    }
+  });
+}
+
+function verifyOTP() {
+  const otp = val('fpOtp');
+  if (!otp || otp.length < 6) { showAlert('fpAlert', 'error', 'Enter the 6-digit code.'); return; }
+  $('#verifyOtpBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Verifying...');
+  $.ajax({
+    url: `${BASE_URL}/api/auth?action=verify-otp`,
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({ email: fpResetEmail, otp }),
+    success: function(res) {
+      $('#verifyOtpBtn').prop('disabled', false).html('<i class="fas fa-check"></i> Verify Code');
+      if (res.success) {
+        fpOtpVerified = otp;
+        document.getElementById('modalTitle').textContent = 'Set New Password';
+        showFpStep(3);
+        showAlert('fpAlert', 'success', 'Code verified! Set your new password.');
+      } else {
+        showAlert('fpAlert', 'error', res.message || 'Invalid code.');
+      }
+    },
+    error: function() {
+      $('#verifyOtpBtn').prop('disabled', false).html('<i class="fas fa-check"></i> Verify Code');
+      showAlert('fpAlert', 'error', 'Verification failed. Please try again.');
+    }
+  });
+}
+
+function resetPassword() {
+  const pwd = $('#fpNewPassword').val();
+  const confirm = $('#fpConfirmPassword').val();
+  if (!pwd || pwd.length < 8) { showAlert('fpAlert', 'error', 'Password must be at least 8 characters.'); return; }
+  if (pwd !== confirm) { showAlert('fpAlert', 'error', 'Passwords do not match.'); return; }
+  $('#resetPwdBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+  $.ajax({
+    url: `${BASE_URL}/api/auth?action=reset-password`,
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({ email: fpResetEmail, otp: fpOtpVerified, password: pwd }),
+    success: function(res) {
+      $('#resetPwdBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Save New Password');
+      if (res.success) {
+        showAlert('fpAlert', 'success', 'Password reset successfully! You can now log in.');
+        setTimeout(() => { closeForgotModal(); }, 2000);
+      } else {
+        showAlert('fpAlert', 'error', res.message || 'Reset failed.');
+      }
+    },
+    error: function() {
+      $('#resetPwdBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Save New Password');
+      showAlert('fpAlert', 'error', 'Failed to reset password. Please try again.');
+    }
+  });
+}
+
+// Close modal on overlay click
+document.getElementById('forgotPasswordModal').addEventListener('click', function(e) {
+  if (e.target === this) closeForgotModal();
+});
+
+// ============================================================
+// HELPERS
+// ============================================================
+function showAlert(containerId, type, message) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
+  el.className = `alert-box alert-${type} show`;
+  el.innerHTML = `<i class="fas fa-${icons[type] || 'info-circle'}"></i> <span>${message}</span>`;
+  setTimeout(() => el.classList.remove('show'), 8000);
+}
+</script>
 </body>
 </html>
