@@ -11,7 +11,7 @@
         <!-- Logo -->
         <a class="navbar-brand" href="<?= url('admin/dashboard') ?>" aria-label="CEP UoK">
             <img class="navbar-brand-logo" src="<?= img_url('logos/logo-long.png') ?>" alt="CEP UoK" data-hs-theme-appearance="default">
-            <img class="navbar-brand-logo" src="<?= img_url('logos/logo-long.png') ?>" data-hs-theme-appearance="dark">
+            <img class="navbar-brand-logo" src="<?= img_url('logos/logo-long.png') ?>" alt="Logo" data-hs-theme-appearance="dark">
             <img class="navbar-brand-logo-mini" src="<?= img_url('logos/logo-long.png') ?>" alt="Logo" data-hs-theme-appearance="default">
             <img class="navbar-brand-logo-mini" src="<?= img_url('logos/logo-long.png') ?>" alt="Logo" data-hs-theme-appearance="dark">
         </a>
@@ -19,8 +19,8 @@
         <div class="navbar-nav-wrap-content-start">
             <!-- Navbar Vertical Toggle -->
             <button type="button" class="js-navbar-vertical-aside-toggle-invoker navbar-aside-toggler">
-                <i class="bi-arrow-bar-left navbar-toggler-short-align"></i>
-                <i class="bi-arrow-bar-right navbar-toggler-full-align"></i>
+                <i class="bi-arrow-bar-left navbar-toggler-short-align" data-bs-template='<div class="tooltip d-none d-md-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>' data-bs-toggle="tooltip" data-bs-placement="right" title="Collapse"></i>
+                <i class="bi-arrow-bar-right navbar-toggler-full-align" data-bs-template='<div class="tooltip d-none d-md-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>' data-bs-toggle="tooltip" data-bs-placement="right" title="Expand"></i>
             </button>
         </div>
         

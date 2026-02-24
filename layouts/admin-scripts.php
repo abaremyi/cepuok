@@ -4,11 +4,14 @@
  * File: layouts/admin-scripts.php
  */
 ?>
+<!-- <script src="<?= admin_js_url('demo.js') ?>"></script> -->
 <!-- JS Implementing Plugins -->
-<script src="<?= BASE_URL ?>/dashboard-assets/js/vendor.min.js"></script>
+<script src="<?= admin_js_url('vendor.min.js') ?>"></script>
+<!-- <script src="<?= admin_vendor_url('chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js') ?>"></script> -->
 
 <!-- JS Front -->
-<script src="<?= BASE_URL ?>/dashboard-assets/js/theme.min.js"></script>
+<script src="<?= admin_js_url('theme.min.js') ?>"></script>
+<script src="<?= admin_js_url('hs.theme-appearance-charts.js') ?>"></script>
 <script src="<?= admin_js_url('toastr.min.js')?>"></script>
 
 <script>
@@ -36,32 +39,33 @@
         timeOut: 5000
     };
 
-    $(document).ready(function () {
-        // Initialize warning modal
-        warningModal = new bootstrap.Modal(document.getElementById('sessionWarningModal'));
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Initialize warning modal (Native Bootstrap JS)
+        const warningElement = document.getElementById('sessionWarningModal');
+        if (warningElement) {
+            warningModal = new bootstrap.Modal(warningElement);
+        }
 
-        // Initialize charts
+        // 2. Initialize UI & Data
         initializeCharts();
-
-        // Load dashboard data
         loadDashboardStats();
         loadRecentUsers();
         loadRecentMembers();
 
-        // Start session timeout monitoring
+        // 3. Start Background Processes
         resetSessionTimers();
-
-        // Start heartbeat
         startHeartbeat();
 
-        // Update current time every second
+        // 4. Update current time (Immediate call + Interval)
         updateCurrentTime();
         setInterval(updateCurrentTime, 1000);
 
-        // Reset timers on user activity
-        const events = ['click', 'keypress', 'scroll', 'mousemove', 'touchstart'];
-        events.forEach(event => {
-            document.addEventListener(event, resetSessionTimers);
+        // 5. Activity Monitoring
+        // We use standard DOM events to track user interaction
+        const activityEvents = ['click', 'keypress', 'scroll', 'mousemove', 'touchstart'];
+        
+        activityEvents.forEach(eventType => {
+            document.addEventListener(eventType, resetSessionTimers, { passive: true });
         });
     });
 

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 21, 2026 at 04:28 PM
+-- Generation Time: Feb 24, 2026 at 08:42 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -20,6 +20,53 @@ SET time_zone = "+00:00";
 --
 -- Database: `cep_uokdb`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `budget_lines`
+--
+
+CREATE TABLE `budget_lines` (
+  `id` int(11) NOT NULL,
+  `budget_id` int(11) NOT NULL,
+  `department` varchar(100) NOT NULL,
+  `line_item` varchar(200) NOT NULL,
+  `allocated_amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `spent_amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `notes` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cep_families`
+--
+
+CREATE TABLE `cep_families` (
+  `id` int(11) NOT NULL,
+  `family_name` varchar(100) NOT NULL,
+  `family_code` varchar(20) DEFAULT NULL,
+  `icon_class` varchar(100) DEFAULT 'bi bi-people',
+  `motto` varchar(255) DEFAULT NULL,
+  `cep_session` enum('day','weekend','both') NOT NULL DEFAULT 'day',
+  `description` text DEFAULT NULL,
+  `parent_user_id` int(11) DEFAULT NULL COMMENT 'Current family parent (user)',
+  `co_parent_user_id` int(11) DEFAULT NULL COMMENT 'Co-parent (user)',
+  `color_code` varchar(10) DEFAULT '#007bff' COMMENT 'Family color for UI',
+  `status` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `cep_families`
+--
+
+INSERT INTO `cep_families` (`id`, `family_name`, `family_code`, `icon_class`, `motto`, `cep_session`, `description`, `parent_user_id`, `co_parent_user_id`, `color_code`, `status`, `created_at`, `updated_at`) VALUES
+(1, 'Bethesda Family', 'FAM-BETH', 'bi bi-people', 'House of Mercy & Grace', 'day', NULL, NULL, NULL, '#28a745', 'active', '2026-02-22 15:12:54', '2026-02-22 15:12:54'),
+(2, 'Naioth Family', 'FAM-NAIT', 'bi bi-people', 'Dwelling of the Prophets', 'day', NULL, NULL, NULL, '#007bff', 'active', '2026-02-22 15:12:54', '2026-02-22 15:12:54'),
+(3, 'Siloam Family', 'FAM-SILO', 'bi bi-people', 'Sent to Heal & Restore', 'day', NULL, NULL, NULL, '#fd7e14', 'active', '2026-02-22 15:12:54', '2026-02-22 15:12:54');
 
 -- --------------------------------------------------------
 
@@ -55,6 +102,143 @@ INSERT INTO `cep_history_timeline` (`id`, `year`, `title`, `description`, `icon_
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `cep_sessions`
+--
+
+CREATE TABLE `cep_sessions` (
+  `id` int(11) NOT NULL,
+  `session_type` enum('day','weekend') NOT NULL,
+  `session_label` varchar(100) NOT NULL COMMENT 'e.g. Day CEP 2026-2027',
+  `academic_year` varchar(20) NOT NULL COMMENT 'e.g. 2026-2027',
+  `committee_year_id` int(11) DEFAULT NULL COMMENT 'Links to leadership_years',
+  `handover_date` date DEFAULT NULL COMMENT 'Date committee hands over',
+  `portal_enabled` tinyint(1) DEFAULT 1 COMMENT 'Whether portal is accessible',
+  `portal_locked_reason` text DEFAULT NULL COMMENT 'Reason if portal is locked',
+  `locked_by` int(11) DEFAULT NULL COMMENT 'Super admin who locked it',
+  `locked_at` timestamp NULL DEFAULT NULL,
+  `is_current` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `cep_sessions`
+--
+
+INSERT INTO `cep_sessions` (`id`, `session_type`, `session_label`, `academic_year`, `committee_year_id`, `handover_date`, `portal_enabled`, `portal_locked_reason`, `locked_by`, `locked_at`, `is_current`, `created_at`, `updated_at`) VALUES
+(1, 'day', 'Day CEP 2026-2027', '2026-2027', 1, NULL, 1, NULL, NULL, NULL, 1, '2026-02-22 15:12:54', '2026-02-22 15:12:54'),
+(2, 'weekend', 'Weekend CEP 2026-2027', '2026-2027', 1, NULL, 1, NULL, NULL, NULL, 1, '2026-02-22 15:12:54', '2026-02-22 15:12:54');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cep_supporters`
+--
+
+CREATE TABLE `cep_supporters` (
+  `id` int(11) NOT NULL,
+  `supporter_type` enum('alumni','external','choir','organization') NOT NULL DEFAULT 'external',
+  `firstname` varchar(100) NOT NULL,
+  `lastname` varchar(100) NOT NULL,
+  `organization_name` varchar(255) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `phone` varchar(30) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `cep_session` enum('day','weekend','both') DEFAULT 'both',
+  `support_area` set('financial','instruments','service','prayers','general') DEFAULT 'general',
+  `tier` enum('bronze','silver','gold','platinum') DEFAULT 'bronze',
+  `is_alumni` tinyint(1) DEFAULT 0,
+  `graduation_year` year(4) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `photo` varchar(255) DEFAULT NULL,
+  `status` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `choir_attendance`
+--
+
+CREATE TABLE `choir_attendance` (
+  `id` int(11) NOT NULL,
+  `rehearsal_id` int(11) NOT NULL,
+  `choir_member_id` int(11) NOT NULL,
+  `status` enum('present','absent','excused','late') DEFAULT 'present',
+  `notes` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `choir_members`
+--
+
+CREATE TABLE `choir_members` (
+  `id` int(11) NOT NULL,
+  `member_id` int(11) DEFAULT NULL COMMENT 'Link to members table',
+  `full_name` varchar(200) NOT NULL COMMENT 'Cached for display even if member unlinked',
+  `voice_part` enum('soprano','alto','tenor','bass','other') DEFAULT 'soprano',
+  `instrument` varchar(100) DEFAULT NULL,
+  `cep_session` enum('day','weekend','both') DEFAULT 'both',
+  `role` enum('member','section_leader','choir_president','accompanist') DEFAULT 'member',
+  `joined_date` date DEFAULT NULL,
+  `status` enum('active','inactive','on_leave') DEFAULT 'active',
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `choir_rehearsals`
+--
+
+CREATE TABLE `choir_rehearsals` (
+  `id` int(11) NOT NULL,
+  `rehearsal_date` date NOT NULL,
+  `cep_session` enum('day','weekend','both') DEFAULT 'both',
+  `location` varchar(200) DEFAULT NULL,
+  `start_time` time DEFAULT NULL,
+  `end_time` time DEFAULT NULL,
+  `conductor_id` int(11) DEFAULT NULL,
+  `songs_practiced` text DEFAULT NULL COMMENT 'CSV of song IDs or free text',
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `choir_songs`
+--
+
+CREATE TABLE `choir_songs` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `composer` varchar(200) DEFAULT NULL,
+  `arranger` varchar(200) DEFAULT NULL,
+  `language` varchar(50) DEFAULT 'Kinyarwanda',
+  `category` enum('worship','praise','anthem','christmas','easter','other') DEFAULT 'worship',
+  `key_signature` varchar(10) DEFAULT NULL COMMENT 'e.g. C major, G minor',
+  `tempo` varchar(50) DEFAULT NULL COMMENT 'e.g. 84 BPM, Andante',
+  `youtube_url` varchar(500) DEFAULT NULL,
+  `sheet_music_path` varchar(500) DEFAULT NULL,
+  `lyrics_path` varchar(500) DEFAULT NULL,
+  `lyrics` mediumtext DEFAULT NULL,
+  `times_performed` int(11) DEFAULT 0,
+  `last_performed` date DEFAULT NULL,
+  `status` enum('active','archived','learning') DEFAULT 'active',
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `churches`
 --
 
@@ -78,6 +262,28 @@ INSERT INTO `churches` (`id`, `church_name`, `location`, `denomination`, `is_act
 (3, 'ADEPR Kicukiro', 'Kicukiro, Kigali', 'ADEPR', 1, '2026-02-13 15:18:01', '2026-02-13 15:18:01'),
 (4, 'ADEPR Nyamirambo', 'Nyamirambo, Kigali', 'ADEPR', 1, '2026-02-13 15:18:01', '2026-02-13 15:18:01'),
 (5, 'Other Church', 'Various', 'Other', 1, '2026-02-13 15:18:01', '2026-02-13 15:18:01');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `committee_handovers`
+--
+
+CREATE TABLE `committee_handovers` (
+  `id` int(11) NOT NULL,
+  `cep_session` enum('day','weekend') NOT NULL,
+  `outgoing_year_id` int(11) NOT NULL COMMENT 'Outgoing committee year',
+  `incoming_year_id` int(11) DEFAULT NULL COMMENT 'Incoming committee year',
+  `handover_date` date NOT NULL,
+  `handover_summary` text DEFAULT NULL,
+  `financial_balance` decimal(15,2) DEFAULT 0.00 COMMENT 'Balance handed over',
+  `pending_issues` text DEFAULT NULL,
+  `recommendations` text DEFAULT NULL,
+  `document_path` varchar(500) DEFAULT NULL COMMENT 'PDF report path',
+  `conducted_by` int(11) DEFAULT NULL COMMENT 'Super admin or president',
+  `status` enum('draft','completed') DEFAULT 'draft',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -109,6 +315,94 @@ INSERT INTO `departments` (`id`, `title`, `subtitle`, `description`, `icon_class
 (4, 'Social Affairs', 'Care and Community', 'Caring for the social, emotional, and material needs of members while building strong community bonds.', 'fas fa-heart', '/img/departments/social-affairs.jpg', 4, 'active', '2026-01-29 15:00:45', '2026-01-29 15:00:45'),
 (5, 'Media Team', 'Digital Ministry', 'Managing CEP\'s online presence, documentation, and multimedia content to extend our reach and impact.', 'fas fa-camera', '/img/departments/media.jpg', 5, 'active', '2026-01-29 15:00:45', '2026-01-29 15:00:45'),
 (6, 'Worship Team', 'Leading Worship', 'Providing instrumental and vocal leadership in worship services, creating an atmosphere for encountering God.', 'fas fa-guitar', '/img/departments/worship.jpg', 6, 'active', '2026-01-29 15:00:45', '2026-01-29 15:00:45');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `disbursements`
+--
+
+CREATE TABLE `disbursements` (
+  `id` int(11) NOT NULL,
+  `request_id` int(11) NOT NULL,
+  `amount` decimal(15,2) NOT NULL,
+  `payment_method` enum('cash','mobile_money','bank_transfer','cheque') DEFAULT 'cash',
+  `reference_no` varchar(100) DEFAULT NULL,
+  `recipient_name` varchar(200) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `disbursed_by` int(11) DEFAULT NULL,
+  `disbursed_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `receipt_path` varchar(500) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `finance_budgets`
+--
+
+CREATE TABLE `finance_budgets` (
+  `id` int(11) NOT NULL,
+  `cep_session` enum('day','weekend') NOT NULL DEFAULT 'day',
+  `budget_name` varchar(200) NOT NULL,
+  `academic_year` varchar(20) NOT NULL COMMENT 'e.g. 2026-2027',
+  `total_amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `approved_amount` decimal(15,2) DEFAULT NULL,
+  `status` enum('draft','submitted','approved','rejected') DEFAULT 'draft',
+  `created_by` int(11) DEFAULT NULL,
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `finance_revenue`
+--
+
+CREATE TABLE `finance_revenue` (
+  `id` int(11) NOT NULL,
+  `cep_session` enum('day','weekend','both') NOT NULL DEFAULT 'day',
+  `revenue_type` enum('offering','tithe','donation','project','fundraising','other') NOT NULL DEFAULT 'offering',
+  `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `description` text DEFAULT NULL,
+  `revenue_date` date NOT NULL,
+  `reference_no` varchar(100) DEFAULT NULL,
+  `recorded_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `fund_requests`
+--
+
+CREATE TABLE `fund_requests` (
+  `id` int(11) NOT NULL,
+  `cep_session` enum('day','weekend') NOT NULL DEFAULT 'day',
+  `request_number` varchar(30) DEFAULT NULL COMMENT 'Auto-generated: FR-2026-001',
+  `title` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `department` varchar(100) DEFAULT NULL,
+  `amount_requested` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `amount_approved` decimal(15,2) DEFAULT NULL,
+  `stage` enum('pending','reviewing','approved','rejected','disbursed') DEFAULT 'pending',
+  `requested_by` int(11) DEFAULT NULL,
+  `reviewed_by` int(11) DEFAULT NULL,
+  `reviewed_at` timestamp NULL DEFAULT NULL,
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `rejection_reason` text DEFAULT NULL,
+  `priority` enum('low','medium','high','urgent') DEFAULT 'medium',
+  `needed_by_date` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -458,7 +752,12 @@ CREATE TABLE `members` (
   `date_of_birth` date DEFAULT NULL,
   `address` text DEFAULT NULL,
   `year_joined_cep` year(4) NOT NULL,
-  `church_id` int(11) NOT NULL,
+  `cep_session` enum('day','weekend') NOT NULL DEFAULT 'day' COMMENT 'CEP session: day or weekend',
+  `faculty` varchar(100) DEFAULT NULL COMMENT 'Faculty/School at UoK',
+  `program` varchar(255) DEFAULT NULL COMMENT 'Program/Course of study',
+  `academic_year` varchar(20) DEFAULT NULL COMMENT 'e.g. Year 1, Year 2',
+  `church_name` varchar(255) DEFAULT NULL COMMENT 'Church the member attends (free text)',
+  `family_id` int(11) DEFAULT NULL COMMENT 'Spiritual family assignment',
   `other_church_name` varchar(255) DEFAULT NULL COMMENT 'If church is Other',
   `is_born_again` enum('Yes','No','Prefer not to say') DEFAULT 'Prefer not to say',
   `is_baptized` enum('Yes','No','Prefer not to say') DEFAULT 'Prefer not to say',
@@ -476,20 +775,8 @@ CREATE TABLE `members` (
 -- Dumping data for table `members`
 --
 
-INSERT INTO `members` (`id`, `user_id`, `membership_type_id`, `membership_number`, `firstname`, `lastname`, `email`, `phone`, `gender`, `date_of_birth`, `address`, `year_joined_cep`, `church_id`, `other_church_name`, `is_born_again`, `is_baptized`, `profile_photo`, `bio`, `status`, `approved_by`, `approved_at`, `created_at`, `updated_at`, `last_activity`) VALUES
-(1, NULL, 1, NULL, 'ABAYO', 'Remy', 'abaremy1997@gmail.com', '+250787254817', 'Male', '1997-08-17', 'Nyamirambo, Kigali', '2016', 1, '', 'Yes', 'Yes', 'uploads/members/member_698f4987787fd_1770998151.jpg', 'I am Courageous Enough to work with you', 'pending', NULL, NULL, '2026-02-13 15:55:51', '2026-02-13 15:55:51', NULL);
-
---
--- Triggers `members`
---
-DELIMITER $$
-CREATE TRIGGER `trg_member_approved` BEFORE UPDATE ON `members` FOR EACH ROW BEGIN
-    IF NEW.status = 'active' AND OLD.status = 'pending' AND NEW.membership_number IS NULL THEN
-        CALL generate_membership_number(NEW.id, NEW.membership_type_id, NEW.year_joined_cep);
-    END IF;
-END
-$$
-DELIMITER ;
+INSERT INTO `members` (`id`, `user_id`, `membership_type_id`, `membership_number`, `firstname`, `lastname`, `email`, `phone`, `gender`, `date_of_birth`, `address`, `year_joined_cep`, `cep_session`, `faculty`, `program`, `academic_year`, `church_name`, `family_id`, `other_church_name`, `is_born_again`, `is_baptized`, `profile_photo`, `bio`, `status`, `approved_by`, `approved_at`, `created_at`, `updated_at`, `last_activity`) VALUES
+(5, NULL, 1, NULL, 'NIYONZIMA', 'Aaron', 'aaronniyonzima52@gmail.com', '0785729794', 'Male', '2000-01-01', 'Remera, Gasabo, Kigali', '2023', 'day', 'Accounting', 'BSc in Finance and Accounting', 'Year 3', 'ADEPR Kimihurura International Service (KIS)', NULL, NULL, 'Yes', 'Yes', 'members/699b5d4edf3e3_1771789646.jpg', 'I loved the way CEP members live together and work together', 'pending', NULL, NULL, '2026-02-22 19:47:26', '2026-02-22 19:47:26', NULL);
 
 -- --------------------------------------------------------
 
@@ -508,6 +795,13 @@ CREATE TABLE `membership_applications` (
   `reviewer_notes` text DEFAULT NULL,
   `rejection_reason` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `membership_applications`
+--
+
+INSERT INTO `membership_applications` (`id`, `member_id`, `application_type`, `status`, `submission_date`, `review_date`, `reviewed_by`, `reviewer_notes`, `rejection_reason`) VALUES
+(1, 5, 'new', 'submitted', '2026-02-22 19:47:26', NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -555,7 +849,7 @@ CREATE TABLE `member_activities` (
 --
 
 INSERT INTO `member_activities` (`id`, `member_id`, `activity_type`, `activity_description`, `ip_address`, `user_agent`, `created_at`) VALUES
-(1, 1, 'registration', 'Member registered', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-13 15:55:51');
+(2, 5, 'registration', 'Member registered', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36', '2026-02-22 19:47:26');
 
 -- --------------------------------------------------------
 
@@ -571,6 +865,18 @@ CREATE TABLE `member_talents` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `member_talents`
+--
+
+INSERT INTO `member_talents` (`id`, `member_id`, `talent_id`, `proficiency_level`, `notes`, `created_at`) VALUES
+(1, 5, 11, 'Intermediate', NULL, '2026-02-22 19:47:26'),
+(2, 5, 12, 'Intermediate', NULL, '2026-02-22 19:47:26'),
+(3, 5, 13, 'Intermediate', NULL, '2026-02-22 19:47:26'),
+(4, 5, 14, 'Intermediate', NULL, '2026-02-22 19:47:26'),
+(5, 5, 17, 'Intermediate', NULL, '2026-02-22 19:47:26'),
+(6, 5, 16, 'Intermediate', NULL, '2026-02-22 19:47:26');
 
 -- --------------------------------------------------------
 
@@ -751,7 +1057,98 @@ INSERT INTO `permissions` (`id`, `module`, `action`, `description`, `created_at`
 (55, 'settings', 'edit', 'Edit settings', '2026-02-13 15:14:22'),
 (56, 'reports', 'view', 'View reports', '2026-02-13 15:14:22'),
 (57, 'reports', 'export', 'Export reports', '2026-02-13 15:14:22'),
-(58, 'reports', 'create', 'Create custom reports', '2026-02-13 15:14:22');
+(58, 'reports', 'create', 'Create custom reports', '2026-02-13 15:14:22'),
+(68, 'sessions', 'view', 'View session settings', '2026-02-22 15:12:55'),
+(69, 'sessions', 'manage', 'Manage portal sessions & access', '2026-02-22 15:12:55'),
+(70, 'sessions', 'lock', 'Lock/unlock portal sessions', '2026-02-22 15:12:55'),
+(71, 'families', 'view', 'View spiritual families', '2026-02-22 15:12:55'),
+(72, 'families', 'create', 'Create spiritual families', '2026-02-22 15:12:55'),
+(73, 'families', 'edit', 'Edit spiritual families', '2026-02-22 15:12:55'),
+(74, 'families', 'delete', 'Delete spiritual families', '2026-02-22 15:12:55'),
+(75, 'families', 'assign', 'Assign members to families', '2026-02-22 15:12:55'),
+(76, 'supporters', 'view', 'View supporters', '2026-02-22 15:12:55'),
+(77, 'supporters', 'create', 'Add new supporters', '2026-02-22 15:12:55'),
+(78, 'supporters', 'edit', 'Edit supporter information', '2026-02-22 15:12:55'),
+(79, 'supporters', 'delete', 'Delete supporters', '2026-02-22 15:12:55'),
+(80, 'supporters', 'contributions', 'Record contributions', '2026-02-22 15:12:55'),
+(81, 'finance', 'view', 'View financial records', '2026-02-22 15:12:55'),
+(82, 'finance', 'record_revenue', 'Record revenue/offerings', '2026-02-22 15:12:55'),
+(83, 'finance', 'manage_budget', 'Create and manage budgets', '2026-02-22 15:12:55'),
+(84, 'finance', 'fund_requests', 'Submit fund requests', '2026-02-22 15:12:55'),
+(85, 'finance', 'approve_funds', 'Approve fund requests', '2026-02-22 15:12:55'),
+(86, 'finance', 'disburse_funds', 'Disburse approved funds', '2026-02-22 15:12:55'),
+(87, 'finance', 'reports', 'Generate financial reports', '2026-02-22 15:12:55'),
+(88, 'departments', 'view', 'View department info', '2026-02-22 15:12:55'),
+(89, 'departments', 'manage_activities', 'Manage department activities', '2026-02-22 15:12:55'),
+(90, 'departments', 'manage_budget', 'Manage department budget', '2026-02-22 15:12:55'),
+(91, 'choir', 'view', 'View choir module', '2026-02-22 15:12:55'),
+(92, 'choir', 'manage_members', 'Manage choir members', '2026-02-22 15:12:55'),
+(93, 'choir', 'manage_songs', 'Manage choir repertoire', '2026-02-22 15:12:55'),
+(94, 'choir', 'manage_attendance', 'Track choir attendance', '2026-02-22 15:12:55'),
+(95, 'projects', 'view', 'View projects', '2026-02-22 15:12:55'),
+(96, 'projects', 'create', 'Create new projects', '2026-02-22 15:12:55'),
+(97, 'projects', 'edit', 'Edit projects', '2026-02-22 15:12:55'),
+(98, 'projects', 'manage_tasks', 'Manage project tasks', '2026-02-22 15:12:55'),
+(99, 'handover', 'view', 'View handover documents', '2026-02-22 15:12:55'),
+(100, 'handover', 'create', 'Create handover reports', '2026-02-22 15:12:55');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `projects`
+--
+
+CREATE TABLE `projects` (
+  `id` int(11) NOT NULL,
+  `cep_session` enum('day','weekend','both') NOT NULL DEFAULT 'both',
+  `project_code` varchar(30) DEFAULT NULL COMMENT 'e.g. PROJ-2026-001',
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `category` enum('evangelism','social','fundraising','infrastructure','training','other') DEFAULT 'other',
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `budget` decimal(15,2) DEFAULT 0.00,
+  `spent` decimal(15,2) DEFAULT 0.00,
+  `status` enum('planning','active','on_hold','completed','cancelled') DEFAULT 'planning',
+  `progress` tinyint(3) DEFAULT 0 COMMENT '0-100 percent',
+  `lead_user_id` int(11) DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `project_tasks`
+--
+
+CREATE TABLE `project_tasks` (
+  `id` int(11) NOT NULL,
+  `project_id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `assigned_to` int(11) DEFAULT NULL,
+  `due_date` date DEFAULT NULL,
+  `priority` enum('low','medium','high') DEFAULT 'medium',
+  `status` enum('todo','in_progress','done','blocked') DEFAULT 'todo',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `project_updates`
+--
+
+CREATE TABLE `project_updates` (
+  `id` int(11) NOT NULL,
+  `project_id` int(11) NOT NULL,
+  `update_text` text NOT NULL,
+  `progress` tinyint(3) DEFAULT NULL,
+  `posted_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -838,12 +1235,16 @@ CREATE TABLE `roles` (
 --
 
 INSERT INTO `roles` (`id`, `name`, `description`, `is_super_admin`, `created_at`, `updated_at`) VALUES
-(1, 'Super Admin', 'Full system access with all permissions', 1, '2026-02-13 15:14:22', '2026-02-13 15:14:22'),
-(2, 'Admin', 'Administrative access to manage content and members', 0, '2026-02-13 15:14:22', '2026-02-13 15:14:22'),
-(3, 'Leader', 'CEP leader with limited administrative access', 0, '2026-02-13 15:14:22', '2026-02-13 15:14:22'),
-(4, 'Teacher', 'Educational content management', 0, '2026-02-13 15:14:22', '2026-02-13 15:14:22'),
-(5, 'Student', 'Basic member access', 0, '2026-02-13 15:14:22', '2026-02-13 15:14:22'),
-(6, 'Parent', 'Parent/guardian access', 0, '2026-02-13 15:14:22', '2026-02-13 15:14:22');
+(1, 'Super Admin', 'Full system access - System Administrator', 1, '2026-02-13 15:14:22', '2026-02-22 15:12:55'),
+(2, 'President', 'CEP Session President - Full session access', 0, '2026-02-13 15:14:22', '2026-02-22 15:12:55'),
+(3, 'VP Evangelism', 'Vice President of Evangelism & Prayers', 0, '2026-02-13 15:14:22', '2026-02-22 15:12:55'),
+(4, 'VP Social Affairs', 'Vice President of Social Affairs', 0, '2026-02-13 15:14:22', '2026-02-22 15:12:55'),
+(5, 'Secretary', 'Session Secretary', 0, '2026-02-13 15:14:22', '2026-02-22 15:12:55'),
+(6, 'Accountant', 'Session Accountant', 0, '2026-02-13 15:14:22', '2026-02-22 15:12:55'),
+(7, 'Advisor', 'Session Advisor', 0, '2026-02-22 15:12:55', '2026-02-22 15:12:55'),
+(8, 'Choir President', 'Choir Department President', 0, '2026-02-22 15:12:55', '2026-02-22 15:12:55'),
+(9, 'Department Head', 'Head of a CEP Department', 0, '2026-02-22 15:12:55', '2026-02-22 15:12:55'),
+(10, 'Committee Member', 'General committee member', 0, '2026-02-22 15:12:55', '2026-02-22 15:12:55');
 
 -- --------------------------------------------------------
 
@@ -964,7 +1365,37 @@ INSERT INTO `role_permissions` (`id`, `role_id`, `permission_id`, `created_at`) 
 (118, 5, 36, '2026-02-13 15:14:23'),
 (119, 5, 28, '2026-02-13 15:14:23'),
 (120, 5, 23, '2026-02-13 15:14:23'),
-(121, 5, 32, '2026-02-13 15:14:23');
+(121, 5, 32, '2026-02-13 15:14:23'),
+(124, 1, 94, '2026-02-22 15:12:55'),
+(125, 1, 92, '2026-02-22 15:12:55'),
+(126, 1, 93, '2026-02-22 15:12:55'),
+(127, 1, 91, '2026-02-22 15:12:55'),
+(128, 1, 75, '2026-02-22 15:12:55'),
+(129, 1, 72, '2026-02-22 15:12:55'),
+(130, 1, 74, '2026-02-22 15:12:55'),
+(131, 1, 73, '2026-02-22 15:12:55'),
+(132, 1, 71, '2026-02-22 15:12:55'),
+(133, 1, 85, '2026-02-22 15:12:55'),
+(134, 1, 86, '2026-02-22 15:12:55'),
+(135, 1, 84, '2026-02-22 15:12:55'),
+(136, 1, 83, '2026-02-22 15:12:55'),
+(137, 1, 82, '2026-02-22 15:12:55'),
+(138, 1, 87, '2026-02-22 15:12:55'),
+(139, 1, 81, '2026-02-22 15:12:55'),
+(140, 1, 100, '2026-02-22 15:12:55'),
+(141, 1, 99, '2026-02-22 15:12:55'),
+(142, 1, 96, '2026-02-22 15:12:55'),
+(143, 1, 97, '2026-02-22 15:12:55'),
+(144, 1, 98, '2026-02-22 15:12:55'),
+(145, 1, 95, '2026-02-22 15:12:55'),
+(146, 1, 70, '2026-02-22 15:12:55'),
+(147, 1, 69, '2026-02-22 15:12:55'),
+(148, 1, 68, '2026-02-22 15:12:55'),
+(149, 1, 80, '2026-02-22 15:12:55'),
+(150, 1, 77, '2026-02-22 15:12:55'),
+(151, 1, 79, '2026-02-22 15:12:55'),
+(152, 1, 78, '2026-02-22 15:12:55'),
+(153, 1, 76, '2026-02-22 15:12:55');
 
 -- --------------------------------------------------------
 
@@ -998,6 +1429,26 @@ INSERT INTO `site_settings` (`id`, `setting_key`, `setting_value`, `setting_type
 (10, 'social_youtube', 'https://www.youtube.com/@cepuok9716', 'url', 'YouTube channel URL', '2026-01-29 15:00:45'),
 (11, 'footer_about', 'CEP UoK is a vibrant Christian students\' fellowship at the University of Kigali, nurturing spiritual growth, leadership development, and kingdom impact through prayer, worship, discipleship, and service.', 'text', 'Footer about text', '2026-01-29 15:00:45'),
 (12, 'footer_copyright', 'Copyright © 2026 CEP UoK. All rights reserved.', 'text', 'Footer copyright text', '2026-01-29 19:08:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `supporter_contributions`
+--
+
+CREATE TABLE `supporter_contributions` (
+  `id` int(11) NOT NULL,
+  `supporter_id` int(11) NOT NULL,
+  `cep_session` enum('day','weekend','both') DEFAULT 'both',
+  `contribution_type` enum('financial','material','service','prayer','mentorship') NOT NULL DEFAULT 'financial',
+  `contribution_subtype` varchar(100) DEFAULT NULL,
+  `amount` decimal(15,2) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `contribution_date` date NOT NULL,
+  `receipt_path` varchar(500) DEFAULT NULL,
+  `recorded_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -1106,7 +1557,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `role_id`, `member_id`, `firstname`, `lastname`, `username`, `email`, `phone`, `password`, `photo`, `bio`, `email_verified`, `email_verification_token`, `email_verification_expires`, `reset_token`, `reset_expiry`, `last_login`, `login_attempts`, `locked_until`, `status`, `is_adepr_member`, `can_manage_website`, `created_by`, `created_at`, `updated_at`, `last_activity`) VALUES
-(1, 1, NULL, 'Super', 'Admin', 'admin', 'admin@cepuok.com', '+250788000000', '$2y$10$cTKQFPz493I5.QQkU1MwzOW.YLOdQKqnHbWzpsnO13eI54jLUnCt6', NULL, NULL, 1, NULL, NULL, NULL, NULL, '2026-02-21 14:30:14', 0, NULL, 'active', 1, 1, NULL, '2026-02-13 15:14:23', '2026-02-21 14:30:14', NULL);
+(1, 1, NULL, 'Super', 'Admin', 'admin', 'admin@cepuok.com', '+250788000000', '$2y$10$cTKQFPz493I5.QQkU1MwzOW.YLOdQKqnHbWzpsnO13eI54jLUnCt6', NULL, NULL, 1, NULL, NULL, NULL, NULL, '2026-02-24 19:33:27', 0, NULL, 'active', 1, 1, NULL, '2026-02-13 15:14:23', '2026-02-24 19:33:27', NULL),
+(2, 3, 5, 'NIYONZIMA', 'Aaron', 'niyonzima.aaron', 'aaronniyonzima52@gmail.com', '0785729794', '$2y$10$ed2/5nm75Rd.7pie5UiNuOJWdtUnuwMEFoh0.oKz7Yr14lbpjJofa', 'users/699c5f8a848f6_1771855754.jpg', 'Boy to Christ', 1, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'pending', 1, 0, 1, '2026-02-23 14:09:14', '2026-02-23 14:09:14', NULL);
 
 --
 -- Triggers `users`
@@ -1150,6 +1602,13 @@ CREATE TABLE `user_activity_log` (
   `user_agent` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `user_activity_log`
+--
+
+INSERT INTO `user_activity_log` (`id`, `user_id`, `action`, `module`, `record_id`, `description`, `ip_address`, `user_agent`, `created_at`) VALUES
+(1, 1, 'create', 'users', 2, 'User created: aaronniyonzima52@gmail.com', NULL, NULL, '2026-02-23 14:09:14');
 
 -- --------------------------------------------------------
 
@@ -1218,6 +1677,15 @@ CREATE TABLE `v_active_users_summary` (
 -- --------------------------------------------------------
 
 --
+-- Stand-in structure for view `v_members_with_session`
+-- (See below for the actual view)
+--
+CREATE TABLE `v_members_with_session` (
+);
+
+-- --------------------------------------------------------
+
+--
 -- Stand-in structure for view `v_member_statistics`
 -- (See below for the actual view)
 --
@@ -1268,6 +1736,15 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 -- --------------------------------------------------------
 
 --
+-- Structure for view `v_members_with_session`
+--
+DROP TABLE IF EXISTS `v_members_with_session`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_members_with_session`  AS SELECT `m`.`id` AS `id`, `m`.`user_id` AS `user_id`, `m`.`membership_type_id` AS `membership_type_id`, `m`.`membership_number` AS `membership_number`, `m`.`firstname` AS `firstname`, `m`.`lastname` AS `lastname`, `m`.`email` AS `email`, `m`.`phone` AS `phone`, `m`.`gender` AS `gender`, `m`.`date_of_birth` AS `date_of_birth`, `m`.`address` AS `address`, `m`.`year_joined_cep` AS `year_joined_cep`, `m`.`cep_session` AS `cep_session`, `m`.`faculty` AS `faculty`, `m`.`program` AS `program`, `m`.`academic_year` AS `academic_year`, `m`.`church_name` AS `church_name`, `m`.`family_id` AS `family_id`, `m`.`church_id` AS `church_id`, `m`.`other_church_name` AS `other_church_name`, `m`.`is_born_again` AS `is_born_again`, `m`.`is_baptized` AS `is_baptized`, `m`.`profile_photo` AS `profile_photo`, `m`.`bio` AS `bio`, `m`.`status` AS `status`, `m`.`approved_by` AS `approved_by`, `m`.`approved_at` AS `approved_at`, `m`.`created_at` AS `created_at`, `m`.`updated_at` AS `updated_at`, `m`.`last_activity` AS `last_activity`, `mt`.`type_name` AS `membership_type_name`, `cf`.`family_name` AS `family_name`, `cf`.`family_code` AS `family_code`, `cf`.`color_code` AS `family_color`, `u`.`email` AS `user_email`, `u`.`status` AS `user_status`, `r`.`name` AS `user_role` FROM ((((`members` `m` left join `membership_types` `mt` on(`m`.`membership_type_id` = `mt`.`id`)) left join `cep_families` `cf` on(`m`.`family_id` = `cf`.`id`)) left join `users` `u` on(`m`.`user_id` = `u`.`id`)) left join `roles` `r` on(`u`.`role_id` = `r`.`id`)) ;
+
+-- --------------------------------------------------------
+
+--
 -- Structure for view `v_member_statistics`
 --
 DROP TABLE IF EXISTS `v_member_statistics`;
@@ -1288,10 +1765,73 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 
 --
+-- Indexes for table `budget_lines`
+--
+ALTER TABLE `budget_lines`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_budget` (`budget_id`);
+
+--
+-- Indexes for table `cep_families`
+--
+ALTER TABLE `cep_families`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_family_name_session` (`family_name`,`cep_session`);
+
+--
 -- Indexes for table `cep_history_timeline`
 --
 ALTER TABLE `cep_history_timeline`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `cep_sessions`
+--
+ALTER TABLE `cep_sessions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_session_type` (`session_type`),
+  ADD KEY `idx_is_current` (`is_current`);
+
+--
+-- Indexes for table `cep_supporters`
+--
+ALTER TABLE `cep_supporters`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_supporter_type` (`supporter_type`),
+  ADD KEY `idx_tier` (`tier`);
+
+--
+-- Indexes for table `choir_attendance`
+--
+ALTER TABLE `choir_attendance`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_rehearsal_member` (`rehearsal_id`,`choir_member_id`),
+  ADD KEY `idx_rehearsal` (`rehearsal_id`),
+  ADD KEY `idx_member` (`choir_member_id`);
+
+--
+-- Indexes for table `choir_members`
+--
+ALTER TABLE `choir_members`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_member` (`member_id`),
+  ADD KEY `idx_session` (`cep_session`);
+
+--
+-- Indexes for table `choir_rehearsals`
+--
+ALTER TABLE `choir_rehearsals`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_date` (`rehearsal_date`),
+  ADD KEY `fk_rehearsal_conductor` (`conductor_id`);
+
+--
+-- Indexes for table `choir_songs`
+--
+ALTER TABLE `choir_songs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_category` (`category`),
+  ADD KEY `idx_status` (`status`);
 
 --
 -- Indexes for table `churches`
@@ -1301,10 +1841,56 @@ ALTER TABLE `churches`
   ADD KEY `idx_church_name` (`church_name`);
 
 --
+-- Indexes for table `committee_handovers`
+--
+ALTER TABLE `committee_handovers`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `departments`
 --
 ALTER TABLE `departments`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `disbursements`
+--
+ALTER TABLE `disbursements`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_request` (`request_id`),
+  ADD KEY `idx_disbursed` (`disbursed_by`);
+
+--
+-- Indexes for table `finance_budgets`
+--
+ALTER TABLE `finance_budgets`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_session` (`cep_session`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `fk_budget_creator` (`created_by`),
+  ADD KEY `fk_budget_approver` (`approved_by`);
+
+--
+-- Indexes for table `finance_revenue`
+--
+ALTER TABLE `finance_revenue`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_session` (`cep_session`),
+  ADD KEY `idx_type` (`revenue_type`),
+  ADD KEY `idx_date` (`revenue_date`),
+  ADD KEY `idx_recorded` (`recorded_by`);
+
+--
+-- Indexes for table `fund_requests`
+--
+ALTER TABLE `fund_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_request_number` (`request_number`),
+  ADD KEY `idx_session` (`cep_session`),
+  ADD KEY `idx_stage` (`stage`),
+  ADD KEY `idx_requester` (`requested_by`),
+  ADD KEY `fk_fr_reviewer` (`reviewed_by`),
+  ADD KEY `fk_fr_approver` (`approved_by`);
 
 --
 -- Indexes for table `gallery_images`
@@ -1368,14 +1954,16 @@ ALTER TABLE `members`
   ADD UNIQUE KEY `unique_phone` (`phone`),
   ADD UNIQUE KEY `membership_number` (`membership_number`),
   ADD KEY `idx_membership_type` (`membership_type_id`),
-  ADD KEY `idx_church` (`church_id`),
   ADD KEY `idx_user_id` (`user_id`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_year_joined` (`year_joined_cep`),
   ADD KEY `fk_member_approver` (`approved_by`),
   ADD KEY `idx_member_email` (`email`),
   ADD KEY `idx_member_status_year` (`status`,`year_joined_cep`),
-  ADD KEY `idx_member_created` (`created_at`);
+  ADD KEY `idx_member_created` (`created_at`),
+  ADD KEY `idx_cep_session` (`cep_session`),
+  ADD KEY `idx_faculty` (`faculty`),
+  ADD KEY `idx_family_id` (`family_id`);
 
 --
 -- Indexes for table `membership_applications`
@@ -1443,6 +2031,33 @@ ALTER TABLE `permissions`
   ADD UNIQUE KEY `unique_module_action` (`module`,`action`);
 
 --
+-- Indexes for table `projects`
+--
+ALTER TABLE `projects`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_project_code` (`project_code`),
+  ADD KEY `idx_session` (`cep_session`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `fk_proj_lead` (`lead_user_id`),
+  ADD KEY `fk_proj_creator` (`created_by`);
+
+--
+-- Indexes for table `project_tasks`
+--
+ALTER TABLE `project_tasks`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_project` (`project_id`),
+  ADD KEY `idx_assigned` (`assigned_to`);
+
+--
+-- Indexes for table `project_updates`
+--
+ALTER TABLE `project_updates`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_project` (`project_id`),
+  ADD KEY `fk_update_user` (`posted_by`);
+
+--
 -- Indexes for table `quick_stats`
 --
 ALTER TABLE `quick_stats`
@@ -1479,6 +2094,13 @@ ALTER TABLE `role_permissions`
 ALTER TABLE `site_settings`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `setting_key` (`setting_key`);
+
+--
+-- Indexes for table `supporter_contributions`
+--
+ALTER TABLE `supporter_contributions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_supporter_id` (`supporter_id`);
 
 --
 -- Indexes for table `talents_gifts`
@@ -1548,10 +2170,58 @@ ALTER TABLE `videos`
 --
 
 --
+-- AUTO_INCREMENT for table `budget_lines`
+--
+ALTER TABLE `budget_lines`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `cep_families`
+--
+ALTER TABLE `cep_families`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `cep_history_timeline`
 --
 ALTER TABLE `cep_history_timeline`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `cep_sessions`
+--
+ALTER TABLE `cep_sessions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `cep_supporters`
+--
+ALTER TABLE `cep_supporters`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `choir_attendance`
+--
+ALTER TABLE `choir_attendance`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `choir_members`
+--
+ALTER TABLE `choir_members`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `choir_rehearsals`
+--
+ALTER TABLE `choir_rehearsals`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `choir_songs`
+--
+ALTER TABLE `choir_songs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `churches`
@@ -1560,10 +2230,40 @@ ALTER TABLE `churches`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
+-- AUTO_INCREMENT for table `committee_handovers`
+--
+ALTER TABLE `committee_handovers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `departments`
 --
 ALTER TABLE `departments`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `disbursements`
+--
+ALTER TABLE `disbursements`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `finance_budgets`
+--
+ALTER TABLE `finance_budgets`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `finance_revenue`
+--
+ALTER TABLE `finance_revenue`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `fund_requests`
+--
+ALTER TABLE `fund_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `gallery_images`
@@ -1611,13 +2311,13 @@ ALTER TABLE `leadership_years`
 -- AUTO_INCREMENT for table `members`
 --
 ALTER TABLE `members`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `membership_applications`
 --
 ALTER TABLE `membership_applications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `membership_types`
@@ -1629,13 +2329,13 @@ ALTER TABLE `membership_types`
 -- AUTO_INCREMENT for table `member_activities`
 --
 ALTER TABLE `member_activities`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `member_talents`
 --
 ALTER TABLE `member_talents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `news_events`
@@ -1659,7 +2359,25 @@ ALTER TABLE `password_reset_tokens`
 -- AUTO_INCREMENT for table `permissions`
 --
 ALTER TABLE `permissions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
+
+--
+-- AUTO_INCREMENT for table `projects`
+--
+ALTER TABLE `projects`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `project_tasks`
+--
+ALTER TABLE `project_tasks`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `project_updates`
+--
+ALTER TABLE `project_updates`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `quick_stats`
@@ -1677,19 +2395,25 @@ ALTER TABLE `recurring_events`
 -- AUTO_INCREMENT for table `roles`
 --
 ALTER TABLE `roles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `role_permissions`
 --
 ALTER TABLE `role_permissions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=124;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=154;
 
 --
 -- AUTO_INCREMENT for table `site_settings`
 --
 ALTER TABLE `site_settings`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
+-- AUTO_INCREMENT for table `supporter_contributions`
+--
+ALTER TABLE `supporter_contributions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `talents_gifts`
@@ -1707,13 +2431,13 @@ ALTER TABLE `testimonials`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `user_activity_log`
 --
 ALTER TABLE `user_activity_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `user_sessions`
@@ -1732,11 +2456,64 @@ ALTER TABLE `videos`
 --
 
 --
+-- Constraints for table `budget_lines`
+--
+ALTER TABLE `budget_lines`
+  ADD CONSTRAINT `fk_line_budget` FOREIGN KEY (`budget_id`) REFERENCES `finance_budgets` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `choir_attendance`
+--
+ALTER TABLE `choir_attendance`
+  ADD CONSTRAINT `fk_att_member` FOREIGN KEY (`choir_member_id`) REFERENCES `choir_members` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_att_rehearsal` FOREIGN KEY (`rehearsal_id`) REFERENCES `choir_rehearsals` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `choir_members`
+--
+ALTER TABLE `choir_members`
+  ADD CONSTRAINT `fk_choir_member` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `choir_rehearsals`
+--
+ALTER TABLE `choir_rehearsals`
+  ADD CONSTRAINT `fk_rehearsal_conductor` FOREIGN KEY (`conductor_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `disbursements`
+--
+ALTER TABLE `disbursements`
+  ADD CONSTRAINT `fk_disb_by_user` FOREIGN KEY (`disbursed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_disb_request` FOREIGN KEY (`request_id`) REFERENCES `fund_requests` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `finance_budgets`
+--
+ALTER TABLE `finance_budgets`
+  ADD CONSTRAINT `fk_budget_approver` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_budget_creator` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `finance_revenue`
+--
+ALTER TABLE `finance_revenue`
+  ADD CONSTRAINT `fk_revenue_user` FOREIGN KEY (`recorded_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `fund_requests`
+--
+ALTER TABLE `fund_requests`
+  ADD CONSTRAINT `fk_fr_approver` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_fr_requester` FOREIGN KEY (`requested_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_fr_reviewer` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
 -- Constraints for table `members`
 --
 ALTER TABLE `members`
   ADD CONSTRAINT `fk_member_approver` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `fk_member_church` FOREIGN KEY (`church_id`) REFERENCES `churches` (`id`),
+  ADD CONSTRAINT `fk_member_family` FOREIGN KEY (`family_id`) REFERENCES `cep_families` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_member_membership_type` FOREIGN KEY (`membership_type_id`) REFERENCES `membership_types` (`id`),
   ADD CONSTRAINT `fk_member_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
@@ -1767,11 +2544,38 @@ ALTER TABLE `password_reset_tokens`
   ADD CONSTRAINT `fk_reset_token_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `projects`
+--
+ALTER TABLE `projects`
+  ADD CONSTRAINT `fk_proj_creator` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_proj_lead` FOREIGN KEY (`lead_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `project_tasks`
+--
+ALTER TABLE `project_tasks`
+  ADD CONSTRAINT `fk_task_assignee` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_task_project` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `project_updates`
+--
+ALTER TABLE `project_updates`
+  ADD CONSTRAINT `fk_update_project` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_update_user` FOREIGN KEY (`posted_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
 -- Constraints for table `role_permissions`
 --
 ALTER TABLE `role_permissions`
   ADD CONSTRAINT `fk_role_permission_permission` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_role_permission_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `supporter_contributions`
+--
+ALTER TABLE `supporter_contributions`
+  ADD CONSTRAINT `fk_contribution_supporter` FOREIGN KEY (`supporter_id`) REFERENCES `cep_supporters` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `users`

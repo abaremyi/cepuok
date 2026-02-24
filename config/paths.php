@@ -4,6 +4,7 @@
 // Define absolute paths
 define('ROOT_PATH', dirname(dirname(__FILE__)));
 define('LAYOUTS_PATH', ROOT_PATH . '/layouts');
+define('HELPERS_PATH', ROOT_PATH . '/helpers');
 define('DB_PATH', ROOT_PATH . '/config');
 define('MODULES_PATH', ROOT_PATH . '/modules');
 define('IMG_PATH', ROOT_PATH . '/img');
@@ -53,6 +54,10 @@ define('ADMIN_VENDOR_URL', BASE_URL . '/dashboard-assets/vendor');
 // Helper functions
 function get_layout($layout_name) {
     return LAYOUTS_PATH . '/' . $layout_name . '.php';
+}
+
+function get_helper($helper_name) {
+    return HELPERS_PATH . '/' . $helper_name . '.php';
 }
 
 function get_db($db_conn_name) {

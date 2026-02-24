@@ -55,8 +55,11 @@ if (!defined('ROOT_PATH')) {
     }
 }
 
-require_once ROOT_PATH . '/helpers/AuthMiddleware.php';
-require_once ROOT_PATH . '/helpers/PermissionHelper.php';
+require_once get_helper('AuthMiddleware');
+require_once get_helper('PermissionHelper');
+
+// require_once ROOT_PATH . '/helpers/AuthMiddleware.php';
+// require_once ROOT_PATH . '/helpers/PermissionHelper.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
