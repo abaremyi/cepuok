@@ -1,7 +1,3 @@
-
-<!doctype html>
-<html lang="en">
-
 <?php
 /**
  * Membership Applications
@@ -42,8 +38,6 @@ $families       = $familiesResult['data'] ?? [];
 
 <body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
 
-  <script src="<?= admin_js_url('hs.theme-appearance.js') ?>"></script>
-  <script src="<?= admin_vendor_url('hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js') ?>"></script>
   
   <?php include get_layout('admin-lock-screen'); ?>
 
@@ -329,27 +323,50 @@ $families       = $familiesResult['data'] ?? [];
     // ── Load Applications from API ────────────────────────────────────────
     async function loadApplications() {
         const sess = document.getElementById('sessSwitch')?.value || USER_SESSION;
-        const params = new URLSearchParams({ action: 'applications', session: sess });
-
+        console.log('Loading applications for session:', sess);
+        console.log('Is Super Admin:', IS_SUPER);
+        console.log('User Session:', USER_SESSION);
+        const params = new URLSearchParams({ 
+            action: 'applications', 
+            session: sess,
+            _: Date.now() // Cache bust
+        });
+    
         try {
-            const res  = await fetch(API + '?' + params, { credentials: 'include' });
+            const res = await fetch(API + '?' + params, { 
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
             const data = await res.json();
-            if (!data.success) { showAlert('danger', data.message || 'Failed to load applications.'); return; }
-            apps = data.data || [];
+            
+            console.log('API Response:', data);
+            
+            if (!data.success) {
+                showAlert('danger', data.message || 'Failed to load applications.');
+                apps = [];
+            } else {
+                apps = Array.isArray(data.data) ? data.data : [];
+            }
         } catch (e) {
+            console.error('Load error:', e);
             showAlert('danger', 'Network error loading applications.');
             apps = [];
         }
-
+    
         updateCounts();
         renderList();
     }
-
+        
     // ── Pipeline counts ───────────────────────────────────────────────────
     function updateCounts() {
         ['pending','reviewing','approved','rejected'].forEach(function (s) {
             const el = document.getElementById('cnt-' + s);
-            if (el) el.textContent = apps.filter(function (a) { return a.status === s; }).length;
+            if (el) {
+                const count = apps.filter(function (a) { return a.status === s; }).length;
+                el.textContent = count;
+            }
         });
     }
 
@@ -375,17 +392,25 @@ $families       = $familiesResult['data'] ?? [];
         let list = apps.filter(function (a) {
             if (a.status !== currentStage) return false;
             if (faculty && a.faculty !== faculty) return false;
-            if (gender  && a.gender  !== gender)  return false;
+            if (gender && a.gender !== gender) return false;
             if (search) {
                 const fullName = ((a.firstname || '') + ' ' + (a.lastname || '')).toLowerCase();
-                if (!fullName.includes(search) && !(a.email || '').toLowerCase().includes(search) && !(a.phone || '').includes(search)) return false;
+                const email = (a.email || '').toLowerCase();
+                const phone = a.phone || '';
+                if (!fullName.includes(search) && !email.includes(search) && !phone.includes(search)) return false;
             }
             return true;
         });
 
-        if (sort === 'oldest') list.sort(function (a, b) { return new Date(a.applied) - new Date(b.applied); });
-        else if (sort === 'name') list.sort(function (a, b) { return (a.firstname + a.lastname).localeCompare(b.firstname + b.lastname); });
-        else list.sort(function (a, b) { return new Date(b.applied) - new Date(a.applied); });
+        if (sort === 'oldest') {
+            list.sort(function (a, b) { return new Date(a.applied) - new Date(b.applied); });
+        } else if (sort === 'name') {
+            list.sort(function (a, b) { 
+                return (a.firstname + a.lastname).localeCompare(b.firstname + b.lastname); 
+            });
+        } else {
+            list.sort(function (a, b) { return new Date(b.applied) - new Date(a.applied); });
+        }
 
         return list;
     }
@@ -397,7 +422,7 @@ $families       = $familiesResult['data'] ?? [];
         const page   = list.slice(start, start + perPage);
 
         document.getElementById('pageInfo').textContent =
-            'Showing ' + Math.min(start + 1, total) + '–' + Math.min(start + perPage, total) + ' of ' + total + ' applications';
+            'Showing ' + (total > 0 ? start + 1 : 0) + '–' + Math.min(start + perPage, total) + ' of ' + total + ' applications';
         document.getElementById('btnPrev').disabled = currentPage <= 1;
         document.getElementById('btnNext').disabled = start + perPage >= total;
 
@@ -490,41 +515,102 @@ $families       = $familiesResult['data'] ?? [];
 
     // ── Approve / Reviewing / Reject ──────────────────────────────────────
     window.approveApp = function (id) {
-        apiPost({ action: 'approve', id: id }).then(function (res) {
-            if (res.success) { updateAppStatus(id, 'approved'); showAlert('success', 'Application approved!'); }
-            else showAlert('danger', res.message);
+        apiPost('approve', { id: id }).then(function (res) {
+            if (res.success) { 
+                updateAppStatus(id, 'approved'); 
+                showAlert('success', 'Application approved!'); 
+            } else {
+                showAlert('danger', res.message || 'Failed to approve');
+            }
         });
     };
 
     window.markReviewing = function (id) {
-        apiPost({ action: 'reviewing', id: id }).then(function (res) {
-            if (res.success) { updateAppStatus(id, 'reviewing'); showAlert('success', 'Marked for review.'); }
-            else showAlert('danger', res.message);
+        apiPost('reviewing', { id: id }).then(function (res) {
+            if (res.success) { 
+                updateAppStatus(id, 'reviewing'); 
+                showAlert('success', 'Marked for review.'); 
+            } else {
+                showAlert('danger', res.message || 'Failed to mark for review');
+            }
         });
     };
 
+    // Alternative: Fixed Modal Version
     window.openReject = function (id) {
+        // Set the ID in the hidden input
         document.getElementById('rejectTargetId').value = id;
-        document.getElementById('rejectReason').value   = '';
-        document.querySelectorAll('.reason-chip').forEach(function (c) { c.classList.remove('btn-primary'); c.classList.add('btn-outline-secondary'); });
+        document.getElementById('rejectReason').value = '';
+        
+        // Reset reason chips
+        document.querySelectorAll('.reason-chip').forEach(function (c) { 
+            c.classList.remove('btn-primary'); 
+            c.classList.add('btn-outline-secondary'); 
+        });
+        
+        // Show the modal
         new bootstrap.Modal(document.getElementById('rejectModal')).show();
     };
 
     window.confirmReject = function () {
-        const id     = document.getElementById('rejectTargetId').value;
+        const id = document.getElementById('rejectTargetId').value;
         const reason = document.getElementById('rejectReason').value.trim();
-        if (!reason) { alert('Please provide a rejection reason.'); return; }
+        
+        if (!reason) { 
+            // Use SweetAlert for validation error
+            Swal.fire({
+                icon: 'warning',
+                title: 'Reason Required',
+                text: 'Please provide a rejection reason.'
+            });
+            return; 
+        }
 
-        apiPost({ action: 'reject', id: id, reason: reason }).then(function (res) {
+        // Show loading state
+        Swal.fire({
+            title: 'Rejecting Application...',
+            text: 'Please wait',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        apiPost('reject', { id: id, reason: reason }).then(function (res) {
+            // Hide modal
             bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
-            if (res.success) { updateAppStatus(id, 'rejected', reason); showAlert('success', 'Application rejected.'); }
-            else showAlert('danger', res.message);
+            
+            if (res.success) { 
+                updateAppStatus(id, 'rejected', reason); 
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Rejected!',
+                    text: 'Application has been rejected.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed!',
+                    text: res.message || 'Failed to reject application'
+                });
+            }
+        }).catch(() => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: 'Network error. Please try again.'
+            });
         });
     };
 
     function updateAppStatus(id, status, reason) {
         const a = apps.find(function (x) { return x.id === parseInt(id); });
-        if (a) { a.status = status; if (reason) a.reject_reason = reason; }
+        if (a) { 
+            a.status = status; 
+            if (reason) a.reject_reason = reason; 
+        }
         updateCounts();
         renderList();
     }
@@ -533,24 +619,54 @@ $families       = $familiesResult['data'] ?? [];
     window.bulkAction = function (action) {
         const ids = Array.from(selected);
         if (!ids.length) return;
-        if (!confirm(action.charAt(0).toUpperCase() + action.slice(1) + ' ' + ids.length + ' selected application(s)?')) return;
+        
+        Swal.fire({
+            title: 'Confirm Bulk Action',
+            text: action.charAt(0).toUpperCase() + action.slice(1) + ' ' + ids.length + ' selected application(s)?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, proceed!'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
 
-        if (action === 'reject') {
-            const reason = prompt('Rejection reason (applied to all):');
-            if (!reason) return;
-            apiPost({ action: 'bulkReject', ids: ids, reason: reason }).then(function (res) {
-                if (res.success) { ids.forEach(function (id) { updateAppStatus(id, 'rejected', reason); }); showAlert('success', ids.length + ' applications rejected.'); }
-                else showAlert('danger', res.message);
-            });
-        } else {
-            const status  = action === 'approve' ? 'approved' : 'reviewing';
-            const apiAct  = action === 'approve' ? 'bulkApprove' : 'bulkReviewing';
-            apiPost({ action: apiAct, ids: ids }).then(function (res) {
-                if (res.success) { ids.forEach(function (id) { updateAppStatus(id, status); }); showAlert('success', ids.length + ' applications updated.'); }
-                else showAlert('danger', res.message);
-            });
-        }
-        clearSelection();
+            if (action === 'reject') {
+                Swal.fire({
+                    title: 'Rejection Reason',
+                    input: 'textarea',
+                    inputLabel: 'Rejection reason (applied to all)',
+                    inputPlaceholder: 'Enter rejection reason...',
+                    inputAttributes: {
+                        'aria-label': 'Enter rejection reason'
+                    },
+                    showCancelButton: true
+                }).then((result) => {
+                    if (result.isConfirmed && result.value) {
+                        apiPost('bulkReject', { ids: ids, reason: result.value }).then(function (res) {
+                            if (res.success) { 
+                                ids.forEach(function (id) { updateAppStatus(id, 'rejected', result.value); }); 
+                                showAlert('success', ids.length + ' applications rejected.'); 
+                            } else {
+                                showAlert('danger', res.message || 'Failed to reject');
+                            }
+                        });
+                    }
+                });
+            } else {
+                const status  = action === 'approve' ? 'approved' : 'reviewing';
+                const apiAct  = action === 'approve' ? 'bulkApprove' : 'bulkReviewing';
+                apiPost(apiAct, { ids: ids }).then(function (res) {
+                    if (res.success) { 
+                        ids.forEach(function (id) { updateAppStatus(id, status); }); 
+                        showAlert('success', ids.length + ' applications updated.'); 
+                    } else {
+                        showAlert('danger', res.message || 'Failed to update');
+                    }
+                });
+            }
+            clearSelection();
+        });
     };
 
     // ── View Profile ──────────────────────────────────────────────────────
@@ -591,8 +707,8 @@ $families       = $familiesResult['data'] ?? [];
             '</div>' +
             '<h6 class="text-muted text-uppercase small fw-bold mb-3">Spiritual Background</h6>' +
             '<div class="row g-3 mb-4">' +
-                '<div class="col-6"><div class="p-3 rounded" style="background:#f8fafc;"><div class="text-muted small text-uppercase">Born Again</div><div class="fw-semibold ' + (a.born_again ? 'text-success' : 'text-muted') + '">' + (a.born_again ? '&#10003; Yes' : '&#215; No') + '</div></div></div>' +
-                '<div class="col-6"><div class="p-3 rounded" style="background:#f8fafc;"><div class="text-muted small text-uppercase">Water Baptism</div><div class="fw-semibold ' + (a.baptized ? 'text-success' : 'text-muted') + '">' + (a.baptized ? '&#10003; Yes' : '&#215; No') + '</div></div></div>' +
+                '<div class="col-6"><div class="p-3 rounded" style="background:#f8fafc;"><div class="text-muted small text-uppercase">Born Again</div><div class="fw-semibold ' + (a.born_again === 'Yes' ? 'text-success' : 'text-muted') + '">' + (a.born_again === 'Yes' ? '&#10003; Yes' : '&#215; No') + '</div></div></div>' +
+                '<div class="col-6"><div class="p-3 rounded" style="background:#f8fafc;"><div class="text-muted small text-uppercase">Water Baptism</div><div class="fw-semibold ' + (a.baptized === 'Yes' ? 'text-success' : 'text-muted') + '">' + (a.baptized === 'Yes' ? '&#10003; Yes' : '&#215; No') + '</div></div></div>' +
             '</div>' +
             '<h6 class="text-muted text-uppercase small fw-bold mb-2">Talents &amp; Gifts</h6>' +
             '<div class="d-flex flex-wrap gap-2 mb-3">' +
@@ -625,84 +741,135 @@ $families       = $familiesResult['data'] ?? [];
         const id     = document.getElementById('familyTargetId').value;
         const family = document.getElementById('familySelect').value;
 
-        if (!family) { bootstrap.Modal.getInstance(document.getElementById('familyModal')).hide(); return; }
+        if (!family) { 
+            bootstrap.Modal.getInstance(document.getElementById('familyModal')).hide(); 
+            return; 
+        }
 
-        apiPost({ action: 'assignFamily', id: id, family_id: family }).then(function (res) {
+        apiPost('assignFamily', { id: id, family_id: family }).then(function (res) {
             bootstrap.Modal.getInstance(document.getElementById('familyModal')).hide();
-            if (res.success) showAlert('success', 'Family assigned successfully!');
-            else showAlert('danger', res.message);
+            if (res.success) {
+                showAlert('success', 'Family assigned successfully!');
+            } else {
+                showAlert('danger', res.message || 'Failed to assign family');
+            }
         });
     };
 
     // ── Pagination ────────────────────────────────────────────────────────
-    document.getElementById('btnPrev').addEventListener('click', function () { currentPage = Math.max(1, currentPage - 1); renderList(); });
-    document.getElementById('btnNext').addEventListener('click', function () { currentPage++; renderList(); });
+    document.getElementById('btnPrev').addEventListener('click', function () { 
+        currentPage = Math.max(1, currentPage - 1); 
+        renderList(); 
+    });
+    
+    document.getElementById('btnNext').addEventListener('click', function () { 
+        currentPage++; 
+        renderList(); 
+    });
 
     // ── Filters ───────────────────────────────────────────────────────────
     ['searchInput', 'fFaculty', 'fGender', 'fSort'].forEach(function (id) {
-        document.getElementById(id).addEventListener(id === 'searchInput' ? 'input' : 'change', function () {
-            currentPage = 1;
-            renderList();
-        });
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener(id === 'searchInput' ? 'input' : 'change', function () {
+                currentPage = 1;
+                renderList();
+            });
+        }
     });
 
-    document.getElementById('selectAll').addEventListener('change', function () {
-        const checked = this.checked;
-        document.querySelectorAll('.app-check').forEach(function (c) {
-            c.checked = checked;
-            const id = parseInt(c.value);
-            checked ? selected.add(id) : selected.delete(id);
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            const checked = this.checked;
+            document.querySelectorAll('.app-check').forEach(function (c) {
+                c.checked = checked;
+                const id = parseInt(c.value);
+                checked ? selected.add(id) : selected.delete(id);
+            });
+            updateBulkBar();
         });
-        updateBulkBar();
-    });
+    }
 
-    if (document.getElementById('sessSwitch')) {
-        document.getElementById('sessSwitch').addEventListener('change', loadApplications);
+    const sessSwitch = document.getElementById('sessSwitch');
+    if (sessSwitch) {
+        sessSwitch.addEventListener('change', loadApplications);
     }
 
     // ── Reason chips ──────────────────────────────────────────────────────
     document.querySelectorAll('.reason-chip').forEach(function (chip) {
         chip.addEventListener('click', function () {
-            document.querySelectorAll('.reason-chip').forEach(function (c) { c.classList.remove('btn-primary'); c.classList.add('btn-outline-secondary'); });
-            chip.classList.add('btn-primary'); chip.classList.remove('btn-outline-secondary');
+            document.querySelectorAll('.reason-chip').forEach(function (c) { 
+                c.classList.remove('btn-primary'); 
+                c.classList.add('btn-outline-secondary'); 
+            });
+            chip.classList.add('btn-primary'); 
+            chip.classList.remove('btn-outline-secondary');
             document.getElementById('rejectReason').value = chip.dataset.reason;
         });
     });
 
     // ── Export ────────────────────────────────────────────────────────────
-    document.getElementById('exportBtn').addEventListener('click', function () {
-        const sess   = document.getElementById('sessSwitch')?.value || USER_SESSION;
-        const params = new URLSearchParams({ action: 'exportApplications', session: sess, stage: currentStage });
-        window.location.href = API + '?' + params.toString();
-    });
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function () {
+            const sess   = document.getElementById('sessSwitch')?.value || USER_SESSION;
+            const params = new URLSearchParams({ 
+                action: 'exportApplications', 
+                session: sess, 
+                stage: currentStage 
+            });
+            window.location.href = API + '?' + params.toString();
+        });
+    }
 
     // ── API helpers ───────────────────────────────────────────────────────
-    async function apiPost(data) {
+    async function apiPost(action, data) {
         try {
-            const res  = await fetch(API, {
-                method: 'POST', credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
+            console.log(`API Post to ${action} with data:`, data);
+            // Create URL with action parameter
+            const url = API + '?action=' + action;
+            
+            const res = await fetch(url, {
+                method: 'POST', 
+                credentials: 'include',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify(data)
             });
-            return await res.json();
+            
+            const responseData = await res.json();
+            console.log('API Response for ' + action + ':', responseData);
+            return responseData;
         } catch (e) {
-            return { success: false, message: 'Network error.' };
+            console.error('API Error for ' + action + ':', e);
+            showAlert('danger', 'Network error. Please try again.');
+            return { success: false, message: 'Network error' };
         }
     }
 
     // ── Utility ───────────────────────────────────────────────────────────
     function showAlert(type, msg) {
         const el = document.getElementById('pageAlert');
+        if (!el) return;
+        
         el.className  = 'alert alert-' + type + ' d-flex align-items-center gap-2';
         el.innerHTML  = '<i class="bi-' + (type === 'success' ? 'check-circle' : 'exclamation-triangle') + '-fill"></i><span>' + msg + '</span>';
         el.style.display = 'flex';
-        setTimeout(function () { el.style.display = 'none'; }, 5000);
+        setTimeout(function () { 
+            if (el) el.style.display = 'none'; 
+        }, 5000);
     }
 
     function escHtml(str) {
         return String(str === null || str === undefined ? '' : str)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     // ── Init ──────────────────────────────────────────────────────────────

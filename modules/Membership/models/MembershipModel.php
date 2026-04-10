@@ -2,7 +2,6 @@
 /**
  * Membership Model
  * File: modules/Membership/models/MembershipModel.php
- * Handles all member data operations with session awareness
  */
 
 require_once ROOT_PATH . '/config/database.php';
@@ -39,9 +38,6 @@ class MembershipModel {
     public function register($data) {
         try {
             $this->db->beginTransaction();
-
-            // Generate unique membership number stub (full number assigned on approval)
-            $membershipNumber = null;
 
             $sql = "INSERT INTO members (
                 membership_type_id, firstname, lastname, email, phone, gender,
@@ -112,6 +108,112 @@ class MembershipModel {
             $this->db->rollBack();
             error_log("MembershipModel::register - " . $e->getMessage());
             throw $e;
+        }
+    }
+
+    /**
+     * Admin-initiated member creation (sets status to chosen value, generates membership number)
+     */
+    public function adminCreateMember($data) {
+        try {
+            // Validate required fields
+            $required = ['firstname','lastname','email','phone','gender','cep_session','year_joined_cep'];
+            foreach ($required as $f) {
+                if (empty($data[$f])) {
+                    return ['success'=>false, 'message'=>"Field '$f' is required"];
+                }
+            }
+
+            if ($this->emailExists(strtolower(trim($data['email'])))) {
+                return ['success'=>false, 'message'=>'A member with this email already exists'];
+            }
+
+            if ($this->phoneExists($data['phone'])) {
+                return ['success'=>false, 'message'=>'A member with this phone number already exists'];
+            }
+
+            $this->db->beginTransaction();
+
+            $status = $data['status'] ?? 'active';
+
+            $sql = "INSERT INTO members (
+                membership_type_id, firstname, lastname, email, phone, gender,
+                date_of_birth, address, year_joined_cep, cep_session, faculty,
+                program, academic_year, church_name, is_born_again, is_baptized,
+                bio, status, approved_by, approved_at, created_at
+            ) VALUES (
+                :membership_type_id, :firstname, :lastname, :email, :phone, :gender,
+                :date_of_birth, :address, :year_joined_cep, :cep_session, :faculty,
+                :program, :academic_year, :church_name, :is_born_again, :is_baptized,
+                :bio, :status, :approved_by, :approved_at, NOW()
+            )";
+
+            $approvedBy = ($status === 'active') ? ($data['created_by'] ?? null) : null;
+            $approvedAt = ($status === 'active') ? date('Y-m-d H:i:s') : null;
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':membership_type_id' => $data['membership_type_id'] ?? 1,
+                ':firstname'          => trim($data['firstname']),
+                ':lastname'           => trim($data['lastname']),
+                ':email'              => strtolower(trim($data['email'])),
+                ':phone'              => trim($data['phone']),
+                ':gender'             => $data['gender'],
+                ':date_of_birth'      => !empty($data['date_of_birth']) ? $data['date_of_birth'] : null,
+                ':address'            => $data['address'] ?? null,
+                ':year_joined_cep'    => $data['year_joined_cep'],
+                ':cep_session'        => $data['cep_session'],
+                ':faculty'            => $data['faculty'] ?? null,
+                ':program'            => !empty($data['program']) ? trim($data['program']) : null,
+                ':academic_year'      => $data['academic_year'] ?? null,
+                ':church_name'        => !empty($data['church_name']) ? trim($data['church_name']) : null,
+                ':is_born_again'      => $data['is_born_again'] ?? 'Prefer not to say',
+                ':is_baptized'        => $data['is_baptized']   ?? 'Prefer not to say',
+                ':bio'                => !empty($data['bio']) ? trim($data['bio']) : null,
+                ':status'             => $status,
+                ':approved_by'        => $approvedBy,
+                ':approved_at'        => $approvedAt,
+            ]);
+
+            $memberId = $this->db->lastInsertId();
+
+            // Generate membership number
+            $session  = strtoupper(substr($data['cep_session'], 0, 1)); // D or W
+            $year     = date('Y');
+            $num      = str_pad($memberId, 4, '0', STR_PAD_LEFT);
+            $memNum   = "CEP-{$session}-{$year}-{$num}";
+            $this->db->prepare("UPDATE members SET membership_number=:n WHERE id=:id")
+                     ->execute([':n'=>$memNum, ':id'=>$memberId]);
+
+            // Insert application record
+            $appStatus = ($status === 'active') ? 'approved' : 'submitted';
+            $this->db->prepare("INSERT INTO membership_applications (member_id, application_type, status, submission_date)
+                                VALUES (:mid, 'new', :st, NOW())")
+                     ->execute([':mid'=>$memberId, ':st'=>$appStatus]);
+
+            // Insert talents if provided
+            if (!empty($data['talents']) && is_array($data['talents'])) {
+                $talentSql = "INSERT IGNORE INTO member_talents (member_id, talent_id) VALUES (:member_id, :talent_id)";
+                $talentStmt = $this->db->prepare($talentSql);
+                foreach ($data['talents'] as $talentId) {
+                    if (is_numeric($talentId)) {
+                        $talentStmt->execute([':member_id' => $memberId, ':talent_id' => (int)$talentId]);
+                    }
+                }
+            }
+
+            // Activity log
+            $this->db->prepare("INSERT INTO member_activities (member_id, activity_type, activity_description, ip_address)
+                                VALUES (:mid, 'admin_create', 'Member created by admin', :ip)")
+                     ->execute([':mid'=>$memberId, ':ip'=>$_SERVER['REMOTE_ADDR']??null]);
+
+            $this->db->commit();
+            return ['success'=>true, 'member_id'=>$memberId, 'membership_number'=>$memNum];
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("MembershipModel::adminCreateMember - " . $e->getMessage());
+            return ['success'=>false, 'message'=>'Database error: '.$e->getMessage()];
         }
     }
 
@@ -257,6 +359,11 @@ class MembershipModel {
             $params[':family_id'] = (int)$filters['family_id'];
         }
 
+        // Unassigned-family filter (set by API when family_id='unassigned')
+        if (!empty($filters['family_unassigned'])) {
+            $where[] = "m.family_id IS NULL";
+        }
+
         if (!empty($filters['gender'])) {
             $where[] = "m.gender = :gender";
             $params[':gender'] = $filters['gender'];
@@ -280,9 +387,9 @@ class MembershipModel {
 
         $sql = "SELECT m.id, m.membership_number, m.firstname, m.lastname, m.email, m.phone,
                        m.gender, m.cep_session, m.faculty, m.program, m.academic_year,
-                       m.church_name, m.status, m.year_joined_cep, m.profile_photo,
+                       m.church_name, m.status, m.year_joined_cep, m.profile_photo, m.family_id,
                        m.is_born_again, m.is_baptized, m.created_at, m.approved_at,
-                       mt.type_name AS membership_type_name,
+                       mt.type_name AS membership_type,
                        cf.family_name, cf.color_code AS family_color
                 FROM members m
                 LEFT JOIN membership_types mt ON m.membership_type_id = mt.id
@@ -450,8 +557,8 @@ class MembershipModel {
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
             SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive,
             SUM(CASE WHEN status = 'suspended' THEN 1 ELSE 0 END) as suspended,
-            SUM(CASE WHEN gender = 'Male' $sessionWhere THEN 1 ELSE 0 END) as male,
-            SUM(CASE WHEN gender = 'Female' $sessionWhere THEN 1 ELSE 0 END) as female,
+            SUM(CASE WHEN gender = 'Male' THEN 1 ELSE 0 END) as male,
+            SUM(CASE WHEN gender = 'Female' THEN 1 ELSE 0 END) as female,
             SUM(CASE WHEN cep_session = 'day' THEN 1 ELSE 0 END) as day_session,
             SUM(CASE WHEN cep_session = 'weekend' THEN 1 ELSE 0 END) as weekend_session,
             SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as new_30_days
@@ -472,6 +579,71 @@ class MembershipModel {
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get all applications
+     */
+    public function getApplications($sessionFilter = null) {
+        $where = "(m.status IN ('pending','inactive') OR ma.status IN ('submitted','reviewing','approved','rejected'))";
+        $params = [];
+
+        if ($sessionFilter && $sessionFilter !== 'all') {
+            $where .= " AND m.cep_session = :session";
+            $params[':session'] = $sessionFilter;
+        }
+
+        $sql = "SELECT
+                    m.id, m.firstname, m.lastname, m.email, m.phone, m.gender,
+                    m.date_of_birth        AS dob,
+                    m.faculty, m.program, m.academic_year,
+                    m.church_name          AS church,
+                    m.is_born_again        AS born_again,
+                    m.is_baptized          AS baptized,
+                    m.year_joined_cep      AS year_joined,
+                    m.cep_session, m.bio, m.profile_photo,
+                    COALESCE(ma.submission_date, m.created_at) AS applied,
+                    CASE COALESCE(ma.status,'submitted')
+                        WHEN 'submitted'  THEN 'pending'
+                        WHEN 'reviewing'  THEN 'reviewing'
+                        WHEN 'approved'   THEN 'approved'
+                        WHEN 'rejected'   THEN 'rejected'
+                        ELSE 'pending'
+                    END AS status,
+                    ma.rejection_reason AS reject_reason,
+                    (SELECT GROUP_CONCAT(tg.talent_name ORDER BY tg.talent_name SEPARATOR '||')
+                     FROM member_talents mt2
+                     JOIN talents_gifts tg ON tg.id = mt2.talent_id
+                     WHERE mt2.member_id = m.id) AS talents_csv
+                FROM members m
+                LEFT JOIN membership_applications ma ON ma.member_id = m.id
+                WHERE $where
+                ORDER BY COALESCE(ma.submission_date, m.created_at) DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows as &$row) {
+            $row['talents'] = $row['talents_csv']
+                ? explode('||', $row['talents_csv'])
+                : [];
+            unset($row['talents_csv']);
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * Mark an application as 'reviewing' (does NOT change members.status)
+     */
+    public function markReviewing($memberId, $reviewedBy) {
+        $sql = "UPDATE membership_applications
+                SET status = 'reviewing', reviewed_by = :reviewer, review_date = NOW()
+                WHERE member_id = :member_id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([':reviewer' => $reviewedBy, ':member_id' => $memberId]);
     }
 
     // ============================================================

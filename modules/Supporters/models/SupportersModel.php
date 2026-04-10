@@ -58,17 +58,25 @@ class SupportersModel
             $stmt->execute([':id' => $id]);
             $s = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($s) {
+                // Fixed query to properly get recorded_by_name
                 $c = $this->db->prepare(
-                    "SELECT c.*, CONCAT(u.firstname,' ',u.lastname) AS recorded_by_name
-                     FROM supporter_contributions c LEFT JOIN users u ON u.id=c.recorded_by
-                     WHERE c.supporter_id=:id ORDER BY c.contribution_date DESC"
+                    "SELECT c.*, 
+                            CONCAT(u.firstname, ' ', u.lastname) AS recorded_by_name,
+                            u.email AS recorded_by_email
+                    FROM supporter_contributions c 
+                    LEFT JOIN users u ON u.id = c.recorded_by
+                    WHERE c.supporter_id = :id 
+                    ORDER BY c.contribution_date DESC"
                 );
                 $c->execute([':id' => $id]);
                 $s['contributions'] = $c->fetchAll(PDO::FETCH_ASSOC);
                 $s['total_contributed'] = array_sum(array_column($s['contributions'], 'amount'));
             }
             return $s;
-        } catch (Exception $e) { return null; }
+        } catch (Exception $e) { 
+            error_log("Error in getSupporterById: " . $e->getMessage());
+            return null; 
+        }
     }
 
     public function createSupporter($data)
@@ -76,8 +84,8 @@ class SupportersModel
         try {
             $stmt = $this->db->prepare(
                 "INSERT INTO cep_supporters (supporter_type,firstname,lastname,organization_name,email,phone,address,
-                                             cep_session,support_area,tier,is_alumni,graduation_year,notes,status)
-                 VALUES (:type,:fn,:ln,:org,:email,:phone,:addr,:session,:area,:tier,:alumni,:grad,:notes,:status)"
+                                            cep_session,support_area,tier,is_alumni,graduation_year,notes,status,photo)
+                    VALUES (:type,:fn,:ln,:org,:email,:phone,:addr,:session,:area,:tier,:alumni,:grad,:notes,:status,:photo)"
             );
             $stmt->execute([
                 ':type'    => $data['supporter_type'] ?? 'external',
@@ -94,6 +102,7 @@ class SupportersModel
                 ':grad'    => $data['graduation_year'] ?? null,
                 ':notes'   => $data['notes'] ?? null,
                 ':status'  => $data['status'] ?? 'active',
+                ':photo'   => $data['photo'] ?? null,
             ]);
             return ['success' => true, 'id' => $this->db->lastInsertId()];
         } catch (Exception $e) {
@@ -104,17 +113,23 @@ class SupportersModel
     public function updateSupporter($id, $data)
     {
         try {
-            $fields = []; $params = [':id' => $id];
+            $fields = []; 
+            $params = [':id' => $id];
             $allowed = ['supporter_type','firstname','lastname','organization_name','email','phone','address',
-                        'cep_session','support_area','tier','is_alumni','graduation_year','notes','status'];
+                        'cep_session','support_area','tier','is_alumni','graduation_year','notes','status','photo'];
             foreach ($allowed as $f) {
-                if (array_key_exists($f, $data)) { $fields[] = "$f=:$f"; $params[":$f"] = $data[$f]; }
+                if (array_key_exists($f, $data)) { 
+                    $fields[] = "$f=:$f"; 
+                    $params[":$f"] = $data[$f]; 
+                }
             }
             if (!$fields) return ['success' => false, 'message' => 'Nothing to update'];
             $stmt = $this->db->prepare("UPDATE cep_supporters SET " . implode(',', $fields) . " WHERE id=:id");
             $stmt->execute($params);
             return ['success' => true];
-        } catch (Exception $e) { return ['success' => false, 'message' => $e->getMessage()]; }
+        } catch (Exception $e) { 
+            return ['success' => false, 'message' => $e->getMessage()]; 
+        }
     }
 
     public function deleteSupporter($id)
@@ -144,6 +159,29 @@ class SupportersModel
             ]);
             return ['success' => true, 'id' => $this->db->lastInsertId()];
         } catch (Exception $e) { return ['success' => false, 'message' => $e->getMessage()]; }
+    }
+
+    public function deleteContribution($supporterId, $contributionId)
+    {
+        try {
+            // Verify the contribution belongs to the supporter
+            $check = $this->db->prepare(
+                "SELECT id FROM supporter_contributions WHERE id = :cid AND supporter_id = :sid"
+            );
+            $check->execute([':cid' => $contributionId, ':sid' => $supporterId]);
+            
+            if (!$check->fetch()) {
+                return ['success' => false, 'message' => 'Contribution not found'];
+            }
+            
+            // Delete the contribution
+            $stmt = $this->db->prepare("DELETE FROM supporter_contributions WHERE id = :cid");
+            $stmt->execute([':cid' => $contributionId]);
+            
+            return ['success' => true, 'message' => 'Contribution deleted successfully'];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
     }
 
     public function getStats()

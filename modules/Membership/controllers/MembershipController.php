@@ -98,6 +98,62 @@ class MembershipController {
         }
     }
 
+    /**
+     * Admin-initiated member creation (NEW METHOD)
+     */
+    public function adminCreate($data) {
+        try {
+            // Validate required fields
+            $required = ['firstname','lastname','email','phone','gender','cep_session','year_joined_cep'];
+            $missing = [];
+            foreach ($required as $f) {
+                if (empty($data[$f])) $missing[] = $f;
+            }
+            if ($missing) {
+                return ['success' => false, 'message' => 'Missing required fields: ' . implode(', ', $missing)];
+            }
+
+            // Email format
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                return ['success' => false, 'message' => 'Invalid email address format'];
+            }
+
+            // Email uniqueness
+            if ($this->model->emailExists($data['email'])) {
+                return ['success' => false, 'message' => 'This email is already registered'];
+            }
+
+            // Phone format
+            if (!preg_match('/^\+?[0-9]{10,15}$/', $data['phone'])) {
+                return ['success' => false, 'message' => 'Invalid phone number format'];
+            }
+
+            // Phone uniqueness
+            if ($this->model->phoneExists($data['phone'])) {
+                return ['success' => false, 'message' => 'This phone number is already registered'];
+            }
+
+            // Session validation
+            if (!in_array($data['cep_session'], ['day', 'weekend'])) {
+                return ['success' => false, 'message' => 'Invalid CEP session selected'];
+            }
+
+            // Year validation
+            $year = (int)$data['year_joined_cep'];
+            if ($year < 2016 || $year > (int)date('Y')) {
+                return ['success' => false, 'message' => 'Year joined must be between 2016 and ' . date('Y')];
+            }
+
+            // Create member via model
+            $result = $this->model->adminCreateMember($data);
+            return $result;
+
+        } catch (Exception $e) {
+            error_log("MembershipController::adminCreate - " . $e->getMessage());
+            return ['success' => false, 'message' => 'Failed to create member: ' . $e->getMessage()];
+        }
+    }
+
     public function checkEmail($email) {
         return ['exists' => $this->model->emailExists($email)];
     }
@@ -190,5 +246,18 @@ class MembershipController {
 
     public function getFamilies($sessionFilter = null) {
         return ['success' => true, 'data' => $this->model->getFamilies($sessionFilter)];
+    }
+
+    public function getApplications($sessionFilter = null) {
+        return ['success' => true, 'data' => $this->model->getApplications($sessionFilter)];
+    }
+
+    public function markReviewing($id, $reviewedBy) {
+        try {
+            $result = $this->model->markReviewing($id, $reviewedBy);
+            return ['success' => $result, 'message' => $result ? 'Marked for review' : 'Failed'];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
     }
 }

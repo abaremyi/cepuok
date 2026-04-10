@@ -2,21 +2,14 @@
 /**
  * Users Management
  * File: modules/Dashboard/views/users-management.php
- *
- * This file demonstrates the STANDARD pattern for ALL admin pages.
- * Compare with admin-dashboard.php — the top 6 lines are identical in every page.
- * That's the whole point: zero boilerplate, one place to change auth logic.
  */
 
-// ── 1. Page config  (change these two lines per page, nothing else) ───────────
+// ── 1. Page config  ─────────────────────────────────────────────────────
 $pageTitle          = 'Users Management';
 $requiredPermission = 'users.view';
 
-// ── 2. Auth guard  (identical in every admin page) ───────────────────────────
+// ── 2. Auth guard  ──────────────────────────────────────────────────────
 require_once dirname(__DIR__, 3) . '/helpers/admin-base.php';
-
-// ── 3. Optional: page-level PHP data prep ────────────────────────────────────
-// (most data should be loaded via AJAX; only put here what's needed server-side)
 
 ?>
 <?php include LAYOUTS_PATH . '/admin-header.php'; ?>
@@ -65,7 +58,6 @@ require_once dirname(__DIR__, 3) . '/helpers/admin-base.php';
         <div class="card">
             <div class="card-header">
                 <h4 class="card-header-title">All Users</h4>
-                <!-- search / filters would go here -->
             </div>
             <div class="table-responsive">
                 <table id="usersTable"
@@ -122,12 +114,13 @@ require_once dirname(__DIR__, 3) . '/helpers/admin-base.php';
                 const avatar      = u.photo
                     ? `<img class="avatar-img" src="${BASE_URL}/uploads/${esc(u.photo)}" alt="">`
                     : `<span class="avatar-initials">${esc(initials)}</span>`;
-                const statusClass = { active:'success', pending:'warning', inactive:'secondary' }[u.status] ?? 'secondary';
-                const actions     = [
-                    `<a href="${BASE_URL}/admin/users-view?id=${esc(u.id)}" class="btn btn-xs btn-ghost-secondary" title="View"><i class="bi bi-eye"></i></a>`,
-                    CAN_EDIT   ? `<a href="${BASE_URL}/admin/users-management?edit=${esc(u.id)}" class="btn btn-xs btn-ghost-primary" title="Edit"><i class="bi bi-pencil"></i></a>` : '',
-                    CAN_DELETE ? `<button class="btn btn-xs btn-ghost-danger" onclick="deleteUser(${esc(u.id)})" title="Delete"><i class="bi bi-trash"></i></button>` : '',
-                ].join('');
+                const statusClass = u.status === 'active' ? 'success' : 
+                                    u.status === 'pending' ? 'warning' : 'secondary';
+                const actions = [
+                    `<a href="${BASE_URL}/admin/users-view?id=${esc(u.id)}" class="btn btn-sm btn-ghost-secondary" title="View"><i class="bi bi-eye"></i></a>`,
+                    CAN_EDIT   ? `<a href="${BASE_URL}/admin/users-add-user?id=${esc(u.id)}" class="btn btn-sm btn-ghost-primary" title="Edit"><i class="bi bi-pencil"></i></a>` : '',
+                    CAN_DELETE ? `<button class="btn btn-sm btn-ghost-danger" onclick="deleteUser(${esc(u.id)})" title="Delete"><i class="bi bi-trash"></i></button>` : '',
+                ].join(' ');
 
                 return `
                 <tr>
@@ -139,7 +132,7 @@ require_once dirname(__DIR__, 3) . '/helpers/admin-base.php';
                     </td>
                     <td>${esc(u.email ?? '—')}</td>
                     <td>${esc(u.phone ?? '—')}</td>
-                    <td>${esc(u.role_name ?? '—')}</td>
+                    <td><span class="badge bg-soft-dark text-dark">${esc(u.role_name ?? '—')}</span></td>
                     <td><span class="badge bg-soft-${statusClass} text-${statusClass}">${esc(u.status ?? '—')}</span></td>
                     <td>${u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>
                     <td><div class="d-flex gap-1">${actions}</div></td>
@@ -150,25 +143,46 @@ require_once dirname(__DIR__, 3) . '/helpers/admin-base.php';
         }
     }
 
-    window.deleteUser = async function (id) {
-        if (!confirm('Are you sure you want to delete this user?')) return;
-        try {
-            const res  = await fetch(`${API}?action=delete`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id }),
-            });
-            const data = await res.json();
-            if (data.success) loadUsers();
-            else alert(data.message || 'Delete failed.');
-        } catch (e) { alert('Network error.'); }
+    window.deleteUser = function (id) {
+        Swal.fire({
+            title: 'Delete User?',
+            text: "This action cannot be undone!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`${API}?action=delete`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: id }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Deleted!', 'User has been deleted.', 'success')
+                            .then(() => loadUsers());
+                    } else {
+                        Swal.fire('Error!', data.message || 'Delete failed.', 'error');
+                    }
+                })
+                .catch(() => {
+                    Swal.fire('Error!', 'Network error.', 'error');
+                });
+            }
+        });
     };
 
     function esc(str) {
         return String(str)
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;')
+            .replace(/'/g,'&#039;');
     }
 
     document.addEventListener('DOMContentLoaded', loadUsers);

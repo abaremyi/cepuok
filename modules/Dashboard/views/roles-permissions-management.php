@@ -40,9 +40,14 @@ include LAYOUTS_PATH . '/admin-header.php';
 ?>
 
 <body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
-
-  <script src="<?= admin_js_url('hs.theme-appearance.js') ?>"></script>
-  <script src="<?= ROOT_PATH ?>/dashboard-assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js"></script>
+  
+  <?php include LAYOUTS_PATH . '/admin-lock-screen.php'; ?>
+  <script>
+      (function(){
+          var el = document.getElementById('sessionLockOverlay');
+          if (el) el.dataset.email = <?= json_encode($currentUser->email ?? '') ?>;
+      })();
+  </script>
   
   <?php include LAYOUTS_PATH . '/admin-navbar.php'; ?>
   <?php include LAYOUTS_PATH . '/admin-sidebar.php'; ?>
@@ -344,15 +349,8 @@ include LAYOUTS_PATH . '/admin-header.php';
 
 <?php include LAYOUTS_PATH . '/admin-scripts.php'; ?>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 $(document).ready(function() {
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
     <?php if ($viewingRole): ?>
     // Update selected count on load and change
     updateSelectedCount();
@@ -365,6 +363,16 @@ $('#createRoleForm').submit(function(e) {
     e.preventDefault();
     const formData = new FormData(this);
 
+    // Show loading
+    Swal.fire({
+        title: 'Processing...',
+        text: 'Please wait',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
     $.ajax({
         url: '<?= BASE_URL ?>/api/roles?action=create',
         type: 'POST',
@@ -373,14 +381,18 @@ $('#createRoleForm').submit(function(e) {
         contentType: false,
         success: function(response) {
             if (response.success) {
-                Swal.fire('Success!', response.message, 'success')
-                    .then(() => location.reload());
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: response.message,
+                    timer: 2000
+                }).then(() => location.reload());
             } else {
                 Swal.fire('Error!', response.message, 'error');
             }
         },
-        error: function() {
-            Swal.fire('Error!', 'Failed to create role', 'error');
+        error: function(xhr) {
+            handleAjaxError(xhr);
         }
     });
 });
@@ -398,6 +410,16 @@ $('#editRoleForm').submit(function(e) {
     const formData = new FormData(this);
     const id = $('#editRoleId').val();
 
+    // Show loading
+    Swal.fire({
+        title: 'Processing...',
+        text: 'Please wait',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
     $.ajax({
         url: `<?= BASE_URL ?>/api/roles?action=update&id=${id}`,
         type: 'POST',
@@ -406,14 +428,18 @@ $('#editRoleForm').submit(function(e) {
         contentType: false,
         success: function(response) {
             if (response.success) {
-                Swal.fire('Success!', response.message, 'success')
-                    .then(() => location.reload());
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: response.message,
+                    timer: 2000
+                }).then(() => location.reload());
             } else {
                 Swal.fire('Error!', response.message, 'error');
             }
         },
-        error: function() {
-            Swal.fire('Error!', 'Failed to update role', 'error');
+        error: function(xhr) {
+            handleAjaxError(xhr);
         }
     });
 });
@@ -441,8 +467,8 @@ function deleteRole(id) {
                         Swal.fire('Error!', response.message, 'error');
                     }
                 },
-                error: function() {
-                    Swal.fire('Error!', 'Failed to delete role', 'error');
+                error: function(xhr) {
+                    handleAjaxError(xhr);
                 }
             });
         }
@@ -456,6 +482,16 @@ $('#permissionsForm').submit(function(e) {
     const formData = new FormData(this);
     const roleId = '<?= $viewingRole['id'] ?>';
 
+    // Show loading
+    Swal.fire({
+        title: 'Processing...',
+        text: 'Please wait',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
     $.ajax({
         url: `<?= BASE_URL ?>/api/roles?action=update-permissions&role_id=${roleId}`,
         type: 'POST',
@@ -464,14 +500,18 @@ $('#permissionsForm').submit(function(e) {
         contentType: false,
         success: function(response) {
             if (response.success) {
-                Swal.fire('Success!', response.message, 'success')
-                    .then(() => location.reload());
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: response.message,
+                    timer: 2000
+                }).then(() => location.reload());
             } else {
                 Swal.fire('Error!', response.message, 'error');
             }
         },
-        error: function() {
-            Swal.fire('Error!', 'Failed to update permissions', 'error');
+        error: function(xhr) {
+            handleAjaxError(xhr);
         }
     });
 });
@@ -492,9 +532,9 @@ function toggleModulePermissions(module) {
     updateSelectedCount();
 }
 
-// Expand all modules (if using accordion)
+// Expand all modules
 function expandAllModules() {
-    // Implementation depends on your UI
+    // Implementation if using accordion
 }
 
 // Update selected count
@@ -503,6 +543,20 @@ function updateSelectedCount() {
     $('#selectedCount').text(checked + ' permissions selected');
 }
 <?php endif; ?>
+
+// Global AJAX error handler (fallback)
+function handleAjaxError(xhr) {
+    let message = 'An error occurred';
+    if (xhr.responseJSON && xhr.responseJSON.message) {
+        message = xhr.responseJSON.message;
+    } else if (xhr.responseText) {
+        try {
+            const response = JSON.parse(xhr.responseText);
+            message = response.message || message;
+        } catch(e) {}
+    }
+    Swal.fire('Error!', message, 'error');
+}
 </script>
 
 </body>

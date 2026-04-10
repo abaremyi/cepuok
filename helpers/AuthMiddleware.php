@@ -1,4 +1,8 @@
 <?php
+/**
+ * Authentication Helper Functions
+ * File: helpers/AuthMiddleware.php
+ */
 require_once __DIR__ . '/JWTHandler.php';
 
 class AuthMiddleware {

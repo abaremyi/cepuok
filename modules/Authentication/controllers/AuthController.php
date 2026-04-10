@@ -62,12 +62,45 @@ class AuthController {
                 ];
             }
 
+            // Auto-link to member record if not linked and email matches
+            if (empty($user['member_id'])) {
+                $this->userModel->linkUserToMember($user['id'], $user['email']);
+                // Refresh user data to get updated member info
+                $user = $this->userModel->getUserByEmailOrPhone($identifier);
+            }
+
+            // Get user's session type from members table
+            $sessionType = 'both'; // Default
+            try {
+                $stmt = $this->db->prepare("SELECT cep_session FROM members WHERE user_id = ?");
+                $stmt->execute([$user['id']]);
+                $memberSession = $stmt->fetchColumn();
+                
+                if ($memberSession) {
+                    $sessionType = $memberSession;
+                }
+            } catch (Exception $e) {
+                error_log("Failed to get session type: " . $e->getMessage());
+            }
+
             // Convert permissions string to array
             $permissions = $user['permissions'] ? explode(',', $user['permissions']) : [];
-
-            // Prepare JWT payload
+            
+            // Determine redirect URL
+            $redirectUrl = '/admin/dashboard';
+            if (!$user['is_super_admin'] && $user['role_name'] !== 'President') {
+                $redirectUrl = '/admin/profile';
+            }
+            
+            // CRITICAL FIX: Ensure is_super_admin is properly set
+            $isSuperAdmin = (bool)($user['is_super_admin'] ?? false);
+            
+            error_log("AuthController: User {$user['id']} is_super_admin from DB: " . ($isSuperAdmin ? 'true' : 'false'));
+            
+            // Prepare JWT payload with explicit is_super_admin
             $payload = [
                 'user_id' => $user['id'],
+                'id' => $user['id'], // Add both for compatibility
                 'username' => $user['username'] ?: $user['email'],
                 'firstname' => $user['firstname'],
                 'lastname' => $user['lastname'],
@@ -75,11 +108,12 @@ class AuthController {
                 'phone' => $user['phone'],
                 'role_id' => $user['role_id'],
                 'role_name' => $user['role_name'],
-                'is_super_admin' => (bool)$user['is_super_admin'],
+                'is_super_admin' => $isSuperAdmin, // Explicitly set as boolean
                 'permissions' => $permissions,
                 'photo' => $user['photo'],
+                'session_type' => $sessionType,
                 'iat' => time(),
-                'exp' => time() + (int)$_ENV['JWT_EXPIRATION_TIME']
+                'exp' => time() + (int)($_ENV['JWT_EXPIRATION_TIME'] ?? 3600)
             ];
 
             // Generate JWT token
@@ -92,6 +126,7 @@ class AuthController {
                 'success' => true,
                 'message' => 'Login successful',
                 'token' => $token,
+                'redirect' => $redirectUrl,                
                 'user' => [
                     'id' => $user['id'],
                     'firstname' => $user['firstname'],
@@ -100,9 +135,10 @@ class AuthController {
                     'phone' => $user['phone'],
                     'role_id' => $user['role_id'],
                     'role_name' => $user['role_name'],
-                    'is_super_admin' => (bool)$user['is_super_admin'],
+                    'is_super_admin' => $isSuperAdmin,
                     'permissions' => $permissions,
-                    'photo' => $user['photo']
+                    'photo' => $user['photo'],
+                    'session_type' => $sessionType
                 ]
             ];
 

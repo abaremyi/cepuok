@@ -2,7 +2,6 @@
 /**
  * Membership API v2.1
  * File: modules/Membership/api/membershipApi.php
- * Handles: registration, member CRUD, family assignment, session management, handover
  */
 
 error_reporting(E_ALL);
@@ -42,7 +41,32 @@ try {
             case 'register':
                 $input = getInput();
                 if (!$input) $input = $_POST;
-                echo json_encode($mc->register($input));
+                $result = $mc->register($input);
+    
+                // If registration successful, generate membership number
+                if ($result['success']) {
+                    $memberId = $result['member_id'];
+                    
+                    // Get the member's session
+                    $db = Database::getConnection();
+                    $stmt = $db->prepare("SELECT cep_session FROM members WHERE id = ?");
+                    $stmt->execute([$memberId]);
+                    $session = $stmt->fetchColumn();
+                    
+                    // Generate membership number
+                    $sessionPrefix = strtoupper(substr($session, 0, 1)); // D or W
+                    $year = date('Y');
+                    $num = str_pad($memberId, 4, '0', STR_PAD_LEFT);
+                    $membershipNumber = "CEP-{$sessionPrefix}-{$year}-{$num}";
+                    
+                    // Update member with membership number
+                    $updateStmt = $db->prepare("UPDATE members SET membership_number = ? WHERE id = ?");
+                    $updateStmt->execute([$membershipNumber, $memberId]);
+                    
+                    $result['membership_number'] = $membershipNumber;
+                }
+                
+                echo json_encode($result);
                 break;
             case 'checkEmail':
                 $email = $_GET['email'] ?? $_POST['email'] ?? '';
@@ -100,7 +124,8 @@ try {
         // ---- Approve member ----
         case 'approve':
             $auth->requireAuth(['membership.approve']);
-            $id = (int)($_GET['id'] ?? 0);
+            $input = getInput();
+            $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
             if (!$id) { echo json_encode(['success'=>false,'message'=>'ID required']); break; }
             echo json_encode($mc->approveMember($id, $currentUser->user_id));
             break;
@@ -108,9 +133,12 @@ try {
         // ---- Reject member ----
         case 'reject':
             $auth->requireAuth(['membership.approve']);
-            $id = (int)($_GET['id'] ?? 0);
             $input = getInput();
+            $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
             $reason = $input['reason'] ?? '';
+            
+            error_log("Reject API called - ID: $id, Reason: $reason");
+
             if (!$id) { echo json_encode(['success'=>false,'message'=>'ID required']); break; }
             echo json_encode($mc->rejectMember($id, $currentUser->user_id, $reason));
             break;
@@ -183,96 +211,51 @@ try {
             echo json_encode($mc->getFamilies($session));
             break;
 
-        // ---- Toggle session portal access (super admin) ----
-        case 'toggleSession':
-            if (!$currentUser->is_super_admin) {
-                echo json_encode(['success'=>false,'message'=>'Super admin access required']); break;
-            }
-            $input = getInput();
-            $sessionType = $input['session_type'] ?? '';
-            $enabled     = (bool)($input['enabled'] ?? false);
-            $reason      = $input['reason'] ?? '';
-            if (!in_array($sessionType, ['day','weekend'])) {
-                echo json_encode(['success'=>false,'message'=>'Invalid session type']); break;
-            }
-            $model = new MembershipModel();
-            $result = $model->toggleSessionPortal($sessionType, $enabled, $currentUser->user_id, $reason);
-            echo json_encode(['success'=>$result, 'message'=>$result ? 'Session updated' : 'Failed to update session']);
+        // ---- Applications list (for membership-applications.php) ----
+        case 'applications':
+            $auth->requireAuth(['membership.approve']);
+            $session = $_GET['session'] ?? null;
+            $result = $mc->getApplications($session);
+            // The controller already returns ['success'=>true, 'data'=>...]
+            echo json_encode($result);  // Don't wrap again
+            break;
+            
+        // ---- Mark reviewing ----
+        case 'reviewing':
+            $auth->requireAuth(['membership.approve']);
+            $id = (int)($_GET['id'] ?? getInput()['id'] ?? 0);
+            if (!$id) { echo json_encode(['success'=>false,'message'=>'ID required']); break; }
+            $result = $mc->markReviewing($id, $currentUser->user_id);
+            echo json_encode(['success' => (bool)$result, 'message' => $result ? 'Marked for review' : 'Failed']);
             break;
 
-        // ---- Save/create session settings (super admin) ----
-        case 'saveSession':
-            if (!$currentUser->is_super_admin) {
-                echo json_encode(['success'=>false,'message'=>'Super admin access required']); break;
-            }
+        // ---- Bulk mark reviewing ----
+        case 'bulkReviewing':
+            $auth->requireAuth(['membership.approve']);
             $input = getInput();
-            $db = Database::getConnection();
-            $sessionType = $input['session_type'] ?? '';
-            $id = (int)($input['id'] ?? 0);
-
-            if (!in_array($sessionType, ['day','weekend'])) {
-                echo json_encode(['success'=>false,'message'=>'Invalid session type']); break;
+            $ids   = array_filter(array_map('intval', $input['ids'] ?? []));
+            if (empty($ids)) { echo json_encode(['success'=>false,'message'=>'No IDs']); break; }
+            $count = 0;
+            foreach ($ids as $id) {
+                try { $mc->markReviewing($id, $currentUser->user_id); $count++; }
+                catch(Exception $e) { /* skip */ }
             }
-
-            if ($id > 0) {
-                // Update existing
-                $sql = "UPDATE cep_sessions SET session_label=:label, academic_year=:ay, 
-                        committee_year_id=:cy, handover_date=:hd, updated_at=NOW()
-                        WHERE id=:id";
-                $stmt = $db->prepare($sql);
-                $stmt->execute([
-                    ':label' => $input['session_label'],
-                    ':ay'    => $input['academic_year'],
-                    ':cy'    => $input['committee_year_id'] ?: null,
-                    ':hd'    => $input['handover_date'] ?: null,
-                    ':id'    => $id,
-                ]);
-            } else {
-                // Create new (deactivate old)
-                $db->prepare("UPDATE cep_sessions SET is_current=0 WHERE session_type=:t")->execute([':t' => $sessionType]);
-                $sql = "INSERT INTO cep_sessions (session_type, session_label, academic_year, committee_year_id, handover_date, portal_enabled, is_current)
-                        VALUES (:type, :label, :ay, :cy, :hd, 1, 1)";
-                $stmt = $db->prepare($sql);
-                $stmt->execute([
-                    ':type'  => $sessionType,
-                    ':label' => $input['session_label'],
-                    ':ay'    => $input['academic_year'],
-                    ':cy'    => $input['committee_year_id'] ?: null,
-                    ':hd'    => $input['handover_date'] ?: null,
-                ]);
-            }
-            echo json_encode(['success'=>true,'message'=>'Session saved successfully']);
+            echo json_encode(['success'=>true,'message'=>"$count application(s) marked for review"]);
             break;
 
-        // ---- Submit committee handover ----
-        case 'submitHandover':
-            if (!$currentUser->is_super_admin) {
-                echo json_encode(['success'=>false,'message'=>'Super admin access required']); break;
+        // ---- Bulk reject ----
+        case 'bulkReject':
+            $auth->requireAuth(['membership.approve']);
+            $input  = getInput();
+            $ids    = array_filter(array_map('intval', $input['ids'] ?? []));
+            $reason = $input['reason'] ?? 'Rejected in bulk action';
+            if (empty($ids)) { echo json_encode(['success'=>false,'message'=>'No IDs']); break; }
+            $count = 0;
+            foreach ($ids as $id) {
+                try { $mc->rejectMember($id, $currentUser->user_id, $reason); $count++; }
+                catch(Exception $e) { /* skip */ }
             }
-            $input = getInput();
-            $db = Database::getConnection();
-            $sql = "INSERT INTO committee_handovers 
-                    (cep_session, outgoing_year_id, incoming_year_id, handover_date, handover_summary,
-                     financial_balance, pending_issues, recommendations, conducted_by, status)
-                    VALUES (:cs, :oy, :iy, :hd, :hs, :fb, :pi, :rec, :cb, 'completed')";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([
-                ':cs'  => $input['cep_session'],
-                ':oy'  => (int)$input['outgoing_year_id'],
-                ':iy'  => !empty($input['incoming_year_id']) ? (int)$input['incoming_year_id'] : null,
-                ':hd'  => $input['handover_date'],
-                ':hs'  => $input['handover_summary'],
-                ':fb'  => !empty($input['financial_balance']) ? (float)$input['financial_balance'] : 0,
-                ':pi'  => $input['pending_issues'] ?? null,
-                ':rec' => $input['recommendations'] ?? null,
-                ':cb'  => $currentUser->user_id,
-            ]);
-            // Update outgoing year to not current
-            if (!empty($input['incoming_year_id'])) {
-                $db->prepare("UPDATE leadership_years SET is_current=0 WHERE id=:id")->execute([':id'=>(int)$input['outgoing_year_id']]);
-                $db->prepare("UPDATE leadership_years SET is_current=1 WHERE id=:id")->execute([':id'=>(int)$input['incoming_year_id']]);
-            }
-            echo json_encode(['success'=>true,'message'=>'Handover completed successfully']);
+            echo json_encode(['success'=>true,'message'=>"$count application(s) rejected"]);
             break;
 
         // ---- Export members (CSV) ----
@@ -301,6 +284,66 @@ try {
             $i = 1;
             foreach ($members as $m) {
                 fputcsv($out, [$i++, $m['firstname'], $m['lastname'], $m['email'], $m['phone'], $m['gender'], strtoupper($m['cep_session']), $m['faculty'], $m['program'], $m['academic_year'], $m['church_name'], $m['is_born_again'], $m['is_baptized'], $m['status'], $m['year_joined_cep'], $m['family_name'], $m['created_at']]);
+            }
+            fclose($out);
+            exit;
+
+        // ---- Update profile photo ----
+        case 'updatePhoto':
+            $auth->requireAuth(['membership.edit']);
+            $id = (int)($_GET['id'] ?? 0);
+            if (!$id) { echo json_encode(['success'=>false,'message'=>'ID required']); break; }
+            if (empty($_FILES['photo']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+                echo json_encode(['success'=>false,'message'=>'No photo uploaded or upload error']); break;
+            }
+            require_once $root_path . '/helpers/UploadHelper.php';
+            $uploader = new UploadHelper();
+            $upload = $uploader->uploadFile($_FILES['photo'], 'members');
+            if (!$upload['success']) {
+                echo json_encode(['success'=>false,'message'=>$upload['message']]); break;
+            }
+            $mc->updateMember($id, ['profile_photo' => $upload['filepath']]);
+            echo json_encode(['success'=>true,'message'=>'Photo updated','path'=>$upload['filepath']]);
+            break;
+
+        // ---- Admin create member ----
+        case 'adminCreate':
+            // Check if user has membership.create permission OR is super admin
+            $hasPermission = $currentUser->is_super_admin || 
+                             (is_array($currentUser->permissions) && 
+                              in_array('membership.create', $currentUser->permissions));
+            
+            if (!$hasPermission) {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'You need membership.create permission to add members'
+                ]);
+                break;
+            }
+            
+            $input = getInput();
+            $input['created_by'] = $currentUser->user_id;
+            echo json_encode($mc->adminCreate($input));
+            break;
+            
+        // ---- Export applications CSV ----
+        case 'exportApplications':
+            $auth->requireAuth(['membership.export']);
+            $session = $_GET['session'] ?? null;
+            $stage   = $_GET['stage']   ?? null;
+            $data    = $mc->getApplications($session);
+            if ($stage) {
+                $data = array_filter($data, function($a) use ($stage) { return $a['status'] === $stage; });
+            }
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment; filename="cep_applications_' . date('Y-m-d') . '.csv"');
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['#','First Name','Last Name','Email','Phone','Gender','Session','Faculty','Year Joined','Born Again','Baptized','Status','Applied']);
+            $i = 1;
+            foreach ($data as $a) {
+                fputcsv($out, [$i++, $a['firstname'], $a['lastname'], $a['email'], $a['phone'],
+                    $a['gender'], strtoupper($a['cep_session']), $a['faculty'],
+                    $a['year_joined'], $a['born_again'], $a['baptized'], $a['status'], $a['applied']]);
             }
             fclose($out);
             exit;

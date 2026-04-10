@@ -7,7 +7,7 @@ header('Content-Type: application/json');
 header('Access-Control-Allow-Credentials: true');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
 
-$root = dirname(__DIR__, 4);
+$root = dirname(__DIR__, 3);
 require_once "$root/config/paths.php";
 require_once "$root/config/database.php";
 require_once "$root/helpers/AuthMiddleware.php";

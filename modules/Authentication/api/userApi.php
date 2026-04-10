@@ -91,6 +91,75 @@ try {
                     $members = $userController->getAvailableMembers();
                     echo json_encode(['success' => true, 'data' => $members]);
                     break;
+
+                case 'activity':
+                    $auth->requireAuth(['users.view']);
+                    $userId = (int)($_GET['user_id'] ?? $currentUser->user_id);
+                    
+                    // Get user activity log
+                    $db = Database::getConnection();
+                    $stmt = $db->prepare("
+                        SELECT * FROM user_activity_log 
+                        WHERE user_id = ? 
+                        ORDER BY created_at DESC 
+                        LIMIT 50
+                    ");
+                    $stmt->execute([$userId]);
+                    $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    echo json_encode(['success' => true, 'data' => $activities]);
+                    break;
+                
+                case 'sessions':
+                    $auth->requireAuth(['users.view']);
+                    $userId = (int)($_GET['user_id'] ?? $currentUser->user_id);
+                    
+                    // Get active sessions
+                    $db = Database::getConnection();
+                    $stmt = $db->prepare("
+                        SELECT *, 
+                                CASE 
+                                    WHEN token = :current_token THEN 1 
+                                    ELSE 0 
+                                END as is_current
+                        FROM user_sessions 
+                        WHERE user_id = ? AND expires_at > NOW()
+                        ORDER BY created_at DESC
+                    ");
+                    $currentToken = $_COOKIE['auth_token'] ?? '';
+                    $stmt->execute([$userId]);
+                    $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    echo json_encode(['success' => true, 'data' => $sessions]);
+                    break;
+                
+                case 'revoke_session':
+                    $auth->requireAuth(['users.edit']);
+                    $input = json_decode(file_get_contents('php://input'), true);
+                    $sessionId = (int)($input['session_id'] ?? 0);
+                    
+                    if (!$sessionId) {
+                        throw new Exception('Session ID required');
+                    }
+                    
+                    // Don't allow revoking current session
+                    $db = Database::getConnection();
+                    $checkStmt = $db->prepare("
+                        SELECT token FROM user_sessions WHERE id = ?
+                    ");
+                    $checkStmt->execute([$sessionId]);
+                    $session = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if ($session && $session['token'] === $_COOKIE['auth_token']) {
+                        throw new Exception('Cannot revoke current session');
+                    }
+                    
+                    $stmt = $db->prepare("DELETE FROM user_sessions WHERE id = ?");
+                    $result = $stmt->execute([$sessionId]);
+                    
+                    echo json_encode(['success' => $result, 'message' => 'Session revoked']);
+                    break;
+
                     
                 default:
                     throw new Exception('Invalid action');
@@ -173,6 +242,74 @@ try {
                     }
                     
                     echo json_encode(['success' => true, 'message' => 'Users deleted successfully']);
+                    break;
+
+                case 'activity':
+                    $auth->requireAuth(['users.view']);
+                    $userId = (int)($_GET['user_id'] ?? $currentUser->user_id);
+                    
+                    // Get user activity log
+                    $db = Database::getConnection();
+                    $stmt = $db->prepare("
+                        SELECT * FROM user_activity_log 
+                        WHERE user_id = ? 
+                        ORDER BY created_at DESC 
+                        LIMIT 50
+                    ");
+                    $stmt->execute([$userId]);
+                    $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    echo json_encode(['success' => true, 'data' => $activities]);
+                    break;
+                
+                case 'sessions':
+                    $auth->requireAuth(['users.view']);
+                    $userId = (int)($_GET['user_id'] ?? $currentUser->user_id);
+                    
+                    // Get active sessions
+                    $db = Database::getConnection();
+                    $stmt = $db->prepare("
+                        SELECT *, 
+                                CASE 
+                                    WHEN token = :current_token THEN 1 
+                                    ELSE 0 
+                                END as is_current
+                        FROM user_sessions 
+                        WHERE user_id = ? AND expires_at > NOW()
+                        ORDER BY created_at DESC
+                    ");
+                    $currentToken = $_COOKIE['auth_token'] ?? '';
+                    $stmt->execute([$userId]);
+                    $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    echo json_encode(['success' => true, 'data' => $sessions]);
+                    break;
+                
+                case 'revoke_session':
+                    $auth->requireAuth(['users.edit']);
+                    $input = json_decode(file_get_contents('php://input'), true);
+                    $sessionId = (int)($input['session_id'] ?? 0);
+                    
+                    if (!$sessionId) {
+                        throw new Exception('Session ID required');
+                    }
+                    
+                    // Don't allow revoking current session
+                    $db = Database::getConnection();
+                    $checkStmt = $db->prepare("
+                        SELECT token FROM user_sessions WHERE id = ?
+                    ");
+                    $checkStmt->execute([$sessionId]);
+                    $session = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if ($session && $session['token'] === $_COOKIE['auth_token']) {
+                        throw new Exception('Cannot revoke current session');
+                    }
+                    
+                    $stmt = $db->prepare("DELETE FROM user_sessions WHERE id = ?");
+                    $result = $stmt->execute([$sessionId]);
+                    
+                    echo json_encode(['success' => $result, 'message' => 'Session revoked']);
                     break;
                     
                 default:

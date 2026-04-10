@@ -1,532 +1,146 @@
 <?php
 /**
- * Admin Scripts Layout
+ * Admin Scripts Layout — SHARED (all admin pages)
  * File: layouts/admin-scripts.php
  */
 ?>
-<!-- <script src="<?= admin_js_url('demo.js') ?>"></script> -->
-<!-- JS Implementing Plugins -->
-<script src="<?= admin_js_url('vendor.min.js') ?>"></script>
-<!-- <script src="<?= admin_vendor_url('chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js') ?>"></script> -->
 
-<!-- JS Front -->
+<!-- Vendor / Theme JS -->
+<script src="<?= admin_js_url('vendor.min.js') ?>"></script>
 <script src="<?= admin_js_url('theme.min.js') ?>"></script>
-<script src="<?= admin_js_url('hs.theme-appearance-charts.js') ?>"></script>
-<script src="<?= admin_js_url('toastr.min.js')?>"></script>
+<script src="<?= admin_js_url('toastr.min.js') ?>"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    // Base URL for API calls
-    const BASE_URL = '<?= BASE_URL ?>';
-    const userPhoto = '<?= $userPhoto ?>';
-    const userInitials = '<?= $userInitials ?>';
-    const userFullName = '<?= $userFullName ?>';
+    /* Globals every page needs */
+    const BASE_URL     = '<?= BASE_URL ?>';
+    const userPhoto    = '<?= $userPhoto    ?? '' ?>';
+    const userInitials = '<?= $userInitials ?? '' ?>';
+    const userFullName = '<?= $userFullName ?? '' ?>';
 
-    // Session timeout configuration
-    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
-    const WARNING_TIME = 5 * 60 * 1000; // 5 minutes warning
-    const HEARTBEAT_INTERVAL = 5 * 60 * 1000; // 5 minutes heartbeat
+    /* Toastr defaults */
+    if (typeof toastr !== 'undefined') {
+        toastr.options = {
+            closeButton   : true,
+            progressBar   : true,
+            positionClass : 'toast-top-right',
+            timeOut       : 5000
+        };
+    }
 
-    let timeoutTimer;
-    let warningTimer;
-    let countdownTimer;
-    let warningModal;
-
-    // Toastr configuration
-    toastr.options = {
-        closeButton: true,
-        progressBar: true,
-        positionClass: "toast-top-right",
-        timeOut: 5000
+    /* Global SweetAlert wrapper */
+    window.showAlert = function(type, title, message, callback) {
+        Swal.fire({
+            icon: type,
+            title: title,
+            text: message,
+            confirmButtonColor: '#ff37b2'
+        }).then((result) => {
+            if (callback && typeof callback === 'function') {
+                callback(result);
+            }
+        });
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // 1. Initialize warning modal (Native Bootstrap JS)
-        const warningElement = document.getElementById('sessionWarningModal');
-        if (warningElement) {
-            warningModal = new bootstrap.Modal(warningElement);
+    window.showConfirm = function(title, text, callback) {
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, proceed!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed && callback && typeof callback === 'function') {
+                callback();
+            }
+        });
+    };
+
+    window.showToast = function (msg, type) {
+        type = type || 'success';
+        if (typeof toastr !== 'undefined') {
+            if      (type === 'success')              toastr.success(msg);
+            else if (type === 'danger' || type === 'error') toastr.error(msg);
+            else if (type === 'warning')              toastr.warning(msg);
+            else                                      toastr.info(msg);
+        } else {
+            const el = document.createElement('div');
+            el.className = 'alert alert-' + type + ' position-fixed bottom-0 end-0 m-3 shadow';
+            el.style.zIndex = 9999;
+            el.textContent  = msg;
+            document.body.appendChild(el);
+            setTimeout(function () { el.remove(); }, 4000);
         }
+    };
 
-        // 2. Initialize UI & Data
-        initializeCharts();
-        loadDashboardStats();
-        loadRecentUsers();
-        loadRecentMembers();
-
-        // 3. Start Background Processes
-        resetSessionTimers();
-        startHeartbeat();
-
-        // 4. Update current time (Immediate call + Interval)
-        updateCurrentTime();
-        setInterval(updateCurrentTime, 1000);
-
-        // 5. Activity Monitoring
-        // We use standard DOM events to track user interaction
-        const activityEvents = ['click', 'keypress', 'scroll', 'mousemove', 'touchstart'];
-        
-        activityEvents.forEach(eventType => {
-            document.addEventListener(eventType, resetSessionTimers, { passive: true });
-        });
-    });
-
-    // Update current time
-    function updateCurrentTime() {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-        document.getElementById('currentTime').textContent = timeString;
-    }
-
-    // Initialize charts
-    function initializeCharts() {
-        // Activity Chart
-        const ctx1 = document.getElementById('activityChart').getContext('2d');
-        new Chart(ctx1, {
-            type: 'line',
-            data: {
-                labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
-                datasets: [{
-                    label: 'User Logins',
-                    data: [65, 59, 80, 81, 56, 55, 40],
-                    borderColor: '#764ba2',
-                    backgroundColor: 'rgba(118, 75, 162, 0.1)',
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-
-        // User Distribution Chart
-        const ctx2 = document.getElementById('userDistributionChart').getContext('2d');
-        new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: ['Active', 'Pending', 'Inactive'],
-                datasets: [{
-                    data: [65, 25, 10],
-                    backgroundColor: ['#28a745', '#ffc107', '#dc3545']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    }
-
-    // Load dashboard statistics
-    function loadDashboardStats() {
-        $.ajax({
-            url: BASE_URL + '/api/dashboard?action=getStats',
-            type: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + getCookie('auth_token')
-            },
-            success: function (response) {
-                if (response.success) {
-                    $('#totalUsers').text(response.data.total_users || 0);
-                    $('#totalMembers').text(response.data.total_members || 0);
-                    $('#pendingMembers').text(response.data.pending_members || 0);
-                    $('#todayVisitors').text(response.data.today_visitors || 0);
-
-                    // Update growth indicators
-                    $('#userGrowth').text('+' + (response.data.new_users_30_days || 0) + ' this month');
-                    $('#membersGrowth').text('+' + (response.data.new_members_30_days || 0) + ' this month');
-                    $('#pendingGrowth').text(response.data.pending_increase || '0% increase');
-                    $('#visitorGrowth').text('+' + (response.data.visitor_increase || 0) + '% today');
-                }
-            },
-            error: function (xhr, status, error) {
-                console.error('Error loading stats:', error);
-                if (xhr.status === 401) {
-                    // Unauthorized - token expired
-                    forceLogout();
-                }
-            }
-        });
-    }
-
-    // Load recent users
-    function loadRecentUsers() {
-        $.ajax({
-            url: BASE_URL + '/api/users?action=list&limit=5',
-            type: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + getCookie('auth_token')
-            },
-            success: function (response) {
-                if (response.success && response.data && response.data.length > 0) {
-                    let html = '';
-                    response.data.forEach(function (user) {
-                        const initials = (user.firstname ? user.firstname.charAt(0) : '') +
-                            (user.lastname ? user.lastname.charAt(0) : '');
-                        const userPhoto = user.photo || '';
-
-                        html += `
-                                <tr>
-                                    <td>
-                                        <a class="d-flex align-items-center" href="${BASE_URL}/admin/users-view?id=${user.id}">
-                                            <div class="flex-shrink-0">
-                                                ${userPhoto ?
-                                `<div class="avatar avatar-sm avatar-circle">
-                                                        <img class="avatar-img" src="${BASE_URL}/uploads/${userPhoto}" alt="${user.firstname}">
-                                                    </div>` :
-                                `<div class="avatar avatar-sm avatar-soft-primary avatar-circle">
-                                                        <span class="avatar-initials">${initials || 'U'}</span>
-                                                    </div>`
-                            }
-                                            </div>
-                                            <div class="flex-grow-1 ms-3">
-                                                <h5 class="text-inherit mb-0">${user.firstname || ''} ${user.lastname || ''}</h5>
-                                                <small class="text-muted">${user.username || ''}</small>
-                                            </div>
-                                        </a>
-                                    </td>
-                                    <td>${user.email || 'N/A'}</td>
-                                    <td>
-                                        <span class="badge bg-soft-primary text-primary">${user.role_name || 'N/A'}</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge ${user.status === 'active' ? 'bg-success' : user.status === 'pending' ? 'bg-warning' : 'bg-secondary'}">
-                                            ${user.status || 'unknown'}
-                                        </span>
-                                    </td>
-                                    <td>${user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <a href="${BASE_URL}/admin/users-view?id=${user.id}" class="btn btn-sm btn-white" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="${BASE_URL}/admin/users-add-user?id=${user.id}" class="btn btn-sm btn-white" title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `;
-                    });
-                    $('#recentUsersTable').html(html);
-                } else {
-                    $('#recentUsersTable').html('<tr><td colspan="6" class="text-center">No users found</td></tr>');
-                }
-            },
-            error: function (xhr, status, error) {
-                console.error('Error loading users:', error);
-                $('#recentUsersTable').html('<tr><td colspan="6" class="text-center text-danger">Error loading users</td></tr>');
-                if (xhr.status === 401) {
-                    forceLogout();
-                }
-            }
-        });
-    }
-
-    // Load recent members
-    function loadRecentMembers() {
-        $.ajax({
-            url: BASE_URL + '/api/membership?action=recent&limit=5',
-            type: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + getCookie('auth_token')
-            },
-            success: function (response) {
-                if (response.success && response.data && response.data.length > 0) {
-                    let html = '';
-                    response.data.forEach(function (member) {
-                        html += `
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="flex-shrink-0">
-                                                <div class="avatar avatar-sm avatar-soft-primary avatar-circle">
-                                                    <span class="avatar-initials">${member.firstname ? member.firstname.charAt(0) : ''}${member.lastname ? member.lastname.charAt(0) : ''}</span>
-                                                </div>
-                                            </div>
-                                            <div class="flex-grow-1 ms-3">
-                                                <h5 class="mb-0">${member.firstname || ''} ${member.lastname || ''}</h5>
-                                                <small class="text-muted">${member.membership_number || 'No number'}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>${member.membership_type || 'N/A'}</td>
-                                    <td>
-                                        <span class="badge ${member.cep_session === 'day' ? 'bg-soft-warning text-warning' : 'bg-soft-info text-info'}">
-                                            ${member.cep_session === 'day' ? 'Day CEP' : 'Weekend CEP'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge ${member.status === 'active' ? 'bg-success' : member.status === 'pending' ? 'bg-warning' : 'bg-secondary'}">
-                                            ${member.status || 'unknown'}
-                                        </span>
-                                    </td>
-                                    <td>${member.created_at ? new Date(member.created_at).toLocaleDateString() : 'N/A'}</td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <a href="${BASE_URL}/admin/membership-management?id=${member.id}" class="btn btn-sm btn-white" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            ${member.status === 'pending' ?
-                                `<button class="btn btn-sm btn-success" onclick="approveMember(${member.id})" title="Approve">
-                                                    <i class="fas fa-check"></i>
-                                                </button>` : ''
-                            }
-                                        </div>
-                                    </td>
-                                </tr>
-                            `;
-                    });
-                    $('#recentMembersTable').html(html);
-                } else {
-                    $('#recentMembersTable').html('<tr><td colspan="6" class="text-center">No members found</td></tr>');
-                }
-            },
-            error: function (xhr, status, error) {
-                console.error('Error loading members:', error);
-                $('#recentMembersTable').html('<tr><td colspan="6" class="text-center text-danger">Error loading members</td></tr>');
-                if (xhr.status === 401) {
-                    forceLogout();
-                }
-            }
-        });
-    }
-
-    // ============================================================
-    // SESSION TIMEOUT HANDLING
-    // ============================================================
-
-    function resetSessionTimers() {
-        // Clear existing timers
-        clearTimeout(timeoutTimer);
-        clearTimeout(warningTimer);
-        clearInterval(countdownTimer);
-
-        // Hide warning modal if open
-        if (warningModal) {
-            warningModal.hide();
-        }
-
-        // Set new timers
-        warningTimer = setTimeout(showSessionWarning, SESSION_TIMEOUT - WARNING_TIME);
-        timeoutTimer = setTimeout(forceLogout, SESSION_TIMEOUT);
-    }
-
-    function showSessionWarning() {
-        let timeLeft = 300; // 5 minutes in seconds
-
-        // Show modal
-        warningModal.show();
-
-        // Update timer every second
-        countdownTimer = setInterval(function () {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            document.getElementById('sessionTimer').textContent =
-                `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-            if (timeLeft <= 0) {
-                clearInterval(countdownTimer);
-            }
-            timeLeft--;
-        }, 1000);
-    }
-
-    function extendSession() {
-        // Show loading spinner
-        document.getElementById('loadingSpinner').classList.add('show');
-
-        $.ajax({
-            url: BASE_URL + '/api/auth?action=extend-session',
-            type: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + getCookie('auth_token'),
-                'Content-Type': 'application/json'
-            },
-            success: function (response) {
-                document.getElementById('loadingSpinner').classList.remove('show');
-
-                if (response.success) {
-                    // Hide modal
-                    warningModal.hide();
-
-                    // Clear countdown timer
-                    clearInterval(countdownTimer);
-
-                    // Reset session timers
-                    resetSessionTimers();
-
-                    // Show success message
-                    toastr.success('Session extended successfully');
-
-                    // Reload stats to verify session
-                    loadDashboardStats();
-                } else {
-                    toastr.error(response.message || 'Failed to extend session');
-                }
-            },
-            error: function (xhr, status, error) {
-                document.getElementById('loadingSpinner').classList.remove('show');
-                console.error('Error extending session:', error);
-                toastr.error('Failed to extend session. You will be logged out.');
-
-                if (xhr.status === 401) {
-                    forceLogout();
-                }
-            }
-        });
-    }
-
-    function forceLogout() {
-        // Clear all timers
-        clearTimeout(timeoutTimer);
-        clearTimeout(warningTimer);
-        clearInterval(countdownTimer);
-
-        // Hide modal if open
-        if (warningModal) {
-            warningModal.hide();
-        }
-
-        // Show logout message
-        toastr.warning('Your session has expired. Redirecting to login page...');
-
-        // Redirect to logout
-        setTimeout(function () {
-            window.location.href = BASE_URL + '/logout';
-        }, 2000);
-    }
-
-    function startHeartbeat() {
-        setInterval(function () {
-            $.ajax({
-                url: BASE_URL + '/api/auth?action=heartbeat',
-                type: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + getCookie('auth_token')
-                },
-                success: function (response) {
-                    if (!response.success) {
-                        console.warn('Heartbeat failed:', response.message);
-                    }
-                },
-                error: function (xhr, status, error) {
-                    if (xhr.status === 401) {
-                        forceLogout();
-                    }
-                }
-            });
-        }, HEARTBEAT_INTERVAL);
-    }
-
-    // ============================================================
-    // HELPER FUNCTIONS
-    // ============================================================
-
-    // Get cookie value
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
+    /* Shared helper: getCookie */
+    window.getCookie = function (name) {
+        const v = '; ' + document.cookie;
+        const p = v.split('; ' + name + '=');
+        if (p.length === 2) return p.pop().split(';').shift();
         return '';
-    }
+    };
 
-    // Approve member
-    function approveMember(memberId) {
-        if (!confirm('Are you sure you want to approve this member?')) {
-            return;
+    /* DOMContentLoaded — ONLY safe, page-agnostic code here */
+    document.addEventListener('DOMContentLoaded', function () {
+        /* Running clock — only rendered on dashboard */
+        const timeEl = document.getElementById('currentTime');
+        if (timeEl) {
+            const tick = function () {
+                timeEl.textContent = new Date().toLocaleTimeString('en-US', {
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+            };
+            tick();
+            setInterval(tick, 1000);
         }
 
-        document.getElementById('loadingSpinner').classList.add('show');
-
-        $.ajax({
-            url: BASE_URL + '/api/membership?action=approve',
-            type: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + getCookie('auth_token'),
-                'Content-Type': 'application/json'
-            },
-            data: JSON.stringify({ member_id: memberId }),
-            success: function (response) {
-                document.getElementById('loadingSpinner').classList.remove('show');
-
-                if (response.success) {
-                    toastr.success('Member approved successfully');
-                    loadRecentMembers(); // Reload the list
-                } else {
-                    toastr.error(response.message || 'Failed to approve member');
-                }
-            },
-            error: function (xhr, status, error) {
-                document.getElementById('loadingSpinner').classList.remove('show');
-                console.error('Error approving member:', error);
-                toastr.error('Failed to approve member');
-            }
+        /* Initialize tooltips */
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
-    }
-
-    // Check authentication status periodically
-    setInterval(function () {
-        $.ajax({
-            url: BASE_URL + '/api/auth?action=validate',
-            type: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + getCookie('auth_token')
-            },
-            success: function (response) {
-                if (!response.success) {
-                    forceLogout();
-                }
-            },
-            error: function (xhr, status, error) {
-                if (xhr.status === 401) {
-                    forceLogout();
-                }
-            }
-        });
-    }, 60000); // Check every minute
-
-    // Handle visibility change
-    document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') {
-            // Page became visible again, check authentication
-            $.ajax({
-                url: BASE_URL + '/api/auth?action=validate',
-                type: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + getCookie('auth_token')
-                },
-                success: function (response) {
-                    if (!response.success) {
-                        forceLogout();
-                    } else {
-                        // Reset timers
-                        resetSessionTimers();
-                    }
-                },
-                error: function (xhr, status, error) {
-                    if (xhr.status === 401) {
-                        forceLogout();
-                    }
-                }
-            });
-        }
     });
 
-    // Prevent back button after logout
-    window.history.pushState(null, null, window.location.href);
-    window.onpopstate = function () {
-        window.history.go(1);
+    /* Global AJAX error handler */
+    window.handleAjaxError = function(xhr) {
+        let message = 'An error occurred';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+            message = xhr.responseJSON.message;
+        } else if (xhr.responseText) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                message = response.message || message;
+            } catch(e) {}
+        }
+        showAlert('error', 'Error!', message);
     };
 </script>
 
-
+<!-- Session Lock -->
 <script src="<?= js_url('admin/session-lock.js') ?>"></script>
 
-
-</body>
-
-</html>
+<!-- HS Theme Component Bootstrap -->
+<script>
+    (function () {
+        window.addEventListener('load', function () {
+            if (window.HSSideNav) new HSSideNav('.js-navbar-vertical-aside').init();
+            if (window.HSBsDropdown) HSBsDropdown.init();
+            if (typeof HSCore !== 'undefined') {
+                try { HSCore.components.HSTomSelect  && HSCore.components.HSTomSelect.init('.js-select');   } catch(e){}
+                try { HSCore.components.HSClipboard  && HSCore.components.HSClipboard.init('.js-clipboard');} catch(e){}
+                try { HSCore.components.HSDropzone   && HSCore.components.HSDropzone.init('.js-dropzone');  } catch(e){}
+                try {
+                    if (HSCore.components.HSDatatables) {
+                        document.querySelectorAll('.js-datatable').forEach(function (el) {
+                            HSCore.components.HSDatatables.init(el);
+                        });
+                    }
+                } catch(e){}
+            }
+        });
+    })();
+</script>

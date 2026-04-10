@@ -81,8 +81,9 @@ $routes = [
     '/api/families'      => 'modules/Families/api/familiesApi.php',   
     '/api/finance'       => 'modules/Finance/api/financeApi.php',
     '/api/projects'      => 'modules/Projects/api/projectsApi.php',
-    '/api/choir'         => 'modules/Choir/api/choirApi.php',           
-    '/api/reports'       => 'modules/Reports/api/reportsApi.php',       
+    '/api/choir'         => 'modules/Choir/api/choirApi.php',
+    '/api/reports'       => 'modules/Reports/api/reportsApi.php',
+    '/api/wallet'        => 'modules/CredentialWallet/api/credentialWalletApi.php',       
 
     // ── Authentication ────────────────────────────────────────────────────────
     '/forgot-password'   => 'modules/Authentication/views/forgot-password.php',
@@ -95,12 +96,15 @@ $routes = [
     // ── Authentication API ────────────────────────────────────────────────────
     '/api/auth'          => 'modules/Authentication/api/authApi.php',
     '/api/users'         => 'modules/Authentication/api/userApi.php',
+    '/api/roles'         => 'modules/Authentication/api/roleApi.php',
 
     // ── Admin — Dashboard ─────────────────────────────────────────────────────
     '/admin/dashboard'   => 'modules/Dashboard/views/admin-dashboard.php',
     '/admin/welcome'     => 'modules/Dashboard/views/admin-welcome.php',
     '/admin/profile'     => 'modules/Dashboard/views/profile.php',
+    '/admin/profile-settings' => 'modules/Dashboard/views/profile-settings.php',
     '/admin/settings'    => 'modules/Dashboard/views/settings.php',
+    '/admin/credentials-wallet' => 'modules/Dashboard/views/credentials-wallet.php', 
 
     // ── Admin — Dashboard API ─────────────────────────────────────────────────
     '/api/dashboard'     => 'modules/Dashboard/api/dashboardApi.php',
@@ -115,10 +119,10 @@ $routes = [
     '/admin/membership-management'   => 'modules/Dashboard/views/membership-management.php',
     '/admin/membership-applications' => 'modules/Dashboard/views/membership-applications.php',
     '/admin/member-add'              => 'modules/Dashboard/views/member-add.php',
-    '/admin/member-edit'             => 'modules/Dashboard/views/member-edit.php',
+    '/admin/member-edit'             => 'modules/Dashboard/views/member-edit.php',      // NEW
     '/admin/member-view'             => 'modules/Dashboard/views/member-view.php',
     '/admin/member-families'         => 'modules/Dashboard/views/member-families.php',     // UPDATED (card grid view)
-    '/admin/family-detail'           => 'modules/Dashboard/views/family-detail.php',        // NEW
+    '/admin/family-detail'           => 'modules/Dashboard/views/family-detail.php', 
 
     // ── Admin — Supporters ────────────────────────────────────────────────────
     '/admin/supporters-management'   => 'modules/Dashboard/views/supporters-management.php', // UPDATED
@@ -130,12 +134,14 @@ $routes = [
     '/admin/finance-transactions'=> 'modules/Dashboard/views/finance-transactions.php',
 
     // New dedicated finance pages
-    '/admin/finance-dashboard'      => 'modules/Dashboard/views/finance-dashboard.php',      // NEW
-    '/admin/finance-revenue'        => 'modules/Dashboard/views/finance-revenue.php',         // NEW
-    '/admin/finance-budget'         => 'modules/Dashboard/views/finance-budget.php',          // NEW
-    '/admin/finance-fund-requests'  => 'modules/Dashboard/views/finance-fund-requests.php',  // NEW
-    '/admin/finance-disbursements'  => 'modules/Dashboard/views/finance-disbursements.php',  // NEW
-    '/admin/finance-reports'        => 'modules/Dashboard/views/finance-reports.php',         // UPDATED
+    '/admin/finance-dashboard'      => 'modules/Dashboard/views/finance-dashboard.php',      
+    '/admin/finance-revenue'        => 'modules/Dashboard/views/finance-revenue.php',         
+    '/admin/finance-budget'         => 'modules/Dashboard/views/finance-budget.php', 
+    '/admin/finance-budget-indicators' => 'modules/Dashboard/views/finance-budget-indicators.php',        
+    '/admin/finance-fund-requests'  => 'modules/Dashboard/views/finance-fund-requests.php',  
+    '/admin/finance-disbursements'  => 'modules/Dashboard/views/finance-disbursements.php', 
+    '/admin/finance-maintenance' => 'modules/Dashboard/views/finance-maintenance.php', 
+    '/admin/finance-reports'        => 'modules/Dashboard/views/finance-reports.php',         
 
     // ── Admin — Content Management ────────────────────────────────────────────
     '/admin/departments-management'   => 'modules/Dashboard/views/departments-management.php',
@@ -171,7 +177,9 @@ $routes = [
     // ── Admin — Reports ───────────────────────────────────────────────────────
     '/admin/reports'             => 'modules/Dashboard/views/reports.php',
     '/admin/reports-overview'    => 'modules/Dashboard/views/reports-overview.php',  // NEW (tabbed overview)
-    '/admin/reports-members'     => 'modules/Dashboard/views/reports-members.php',   // NEW (→ redirects to overview)
+    '/admin/members-statistics'     => 'modules/Dashboard/views/members-statistics.php', // NEW
+    '/admin/reports-members'        => 'modules/Dashboard/views/reports-members.php',   // (→ redirects to overview)
+    '/admin/reports-members-custom' => 'modules/Dashboard/views/reports-members-custom.php', // Custom report builder
     '/admin/reports-membership'  => 'modules/Dashboard/views/reports-membership.php',
     '/admin/reports-finance'     => 'modules/Dashboard/views/reports-finance.php',   // UPDATED (→ redirects to overview)
     '/admin/reports-attendance'  => 'modules/Dashboard/views/reports-attendance.php',

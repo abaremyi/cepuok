@@ -1,26 +1,13 @@
 /**
  * Session Lock Manager
  * File: js/admin/session-lock.js
- *
- * Replaces admin-session-timeout.js + session-config.js with a single,
- * cohesive module.
- *
- * Behaviour:
- *   - Tracks user activity (click, keydown, scroll, mousemove)
- *   - Shows a countdown toast 5 minutes before timeout
- *   - On timeout: shows the lock-screen overlay (NOT a page redirect)
- *   - Unlock: re-authenticates via /api/auth?action=login, re-issues cookie
- *   - Cancel: redirects to login page
- *   - Heartbeat every 5 min so the server-side JWT stays fresh
- *   - Silent token validation every 1 min
  */
-
 (function () {
     'use strict';
-
     
-    const BASE_URL = '<?= BASE_URL ?>';
-
+    // Get BASE_URL from global variable (set in admin-scripts.php)
+    const BASE_URL = window.BASE_URL || (window.location.pathname.includes('/cepuok/') ? '/cepuok' : '');
+    
     /* ── Configuration ──────────────────────────────────────────────────── */
     const CFG = {
         timeoutMs:   30 * 60 * 1000,   // 30 min inactivity → lock
@@ -73,9 +60,15 @@
                     <strong>Session expiring soon</strong>
                     <span id="sloWarnCountdown">5:00</span>
                 </div>
-                <button class="slwt-stay" onclick="window.__sloExtend()">Stay logged in</button>
+                <button class="slwt-stay" id="sloExtendBtn">Stay logged in</button>
             `;
             document.body.appendChild(warnToastEl);
+
+            // Attach event listener
+            document.getElementById('sloExtendBtn').addEventListener('click', function() {
+                extendSession();
+                resetTimers();
+            });
 
             // Inject toast styles once
             if (!document.getElementById('sloWarnToastStyle')) {
@@ -124,12 +117,6 @@
         if (warnToastEl) warnToastEl.style.display = 'none';
     }
 
-    /* Exposed so inline onclick on the toast can call it */
-    window.__sloExtend = function () {
-        extendSession();
-        resetTimers();
-    };
-
     /* ── Lock screen ────────────────────────────────────────────────────── */
     function lockScreen() {
         isLocked = true;
@@ -151,7 +138,7 @@
         }
     }
 
-    /* ── Unlock logic (called by the lock-screen partial's button) ───────── */
+    /* ── Unlock logic ─────────────────────────────────────────────────── */
     window.sloUnlock = async function () {
         const inp = document.getElementById('sloPasswordInput');
         const errEl = document.getElementById('sloError');
@@ -166,7 +153,7 @@
             return;
         }
 
-        // Grab stored email from the page data attribute (set in admin-base.php)
+        // Grab stored email from the page data attribute
         const email = document.getElementById('sessionLockOverlay')?.dataset.email || '';
         if (!email) {
             // No email stored → full re-login
@@ -265,10 +252,14 @@
     setInterval(async function () {
         if (isLocked) return;
         try {
-            const res  = await fetch(`${CFG.authApi}?action=validate`, { credentials: 'include' });
+            const res  = await fetch(`${CFG.authApi}?action=validate`, { 
+                credentials: 'include' 
+            });
             const data = await res.json();
             if (!data.success) lockScreen();
-        } catch (e) { /* network blip, ignore */ }
+        } catch (e) { 
+            /* network blip, ignore */ 
+        }
     }, CFG.validateMs);
 
     /* ── Bootstrap ──────────────────────────────────────────────────────── */

@@ -11,9 +11,6 @@
         <!-- Logo -->
         <a class="navbar-brand" href="<?= url('admin/dashboard') ?>" aria-label="CEP UoK">
             <img class="navbar-brand-logo" src="<?= img_url('logos/logo-long.png') ?>" alt="CEP UoK" data-hs-theme-appearance="default">
-            <img class="navbar-brand-logo" src="<?= img_url('logos/logo-long.png') ?>" alt="Logo" data-hs-theme-appearance="dark">
-            <img class="navbar-brand-logo-mini" src="<?= img_url('logos/logo-long.png') ?>" alt="Logo" data-hs-theme-appearance="default">
-            <img class="navbar-brand-logo-mini" src="<?= img_url('logos/logo-long.png') ?>" alt="Logo" data-hs-theme-appearance="dark">
         </a>
         
         <div class="navbar-nav-wrap-content-start">
@@ -76,7 +73,7 @@
                             
                             <div class="dropdown-divider"></div>
                             
-                            <a class="dropdown-item" href="<?= BASE_URL ?>/logout">
+                            <a class="dropdown-item" href="javascript:void(0);" id="navbarLogoutBtn">
                                 <i class="bi-box-arrow-right dropdown-item-icon"></i> Sign out
                             </a>
                         </div>
@@ -86,3 +83,30 @@
         </div>
     </div>
 </header>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Navbar logout with SweetAlert confirmation
+    const navbarLogoutBtn = document.getElementById('navbarLogoutBtn');
+    if (navbarLogoutBtn) {
+        navbarLogoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            Swal.fire({
+                title: 'Sign Out?',
+                text: 'Are you sure you want to sign out of the portal?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d96d20',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, sign out',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '<?= BASE_URL ?>/logout';
+                }
+            });
+        });
+    }
+});
+</script>

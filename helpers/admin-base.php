@@ -10,6 +10,7 @@
  *   1. Validate the JWT cookie (redirect to login if missing/expired)
  *   2. Check the user has the required permission(s)
  *   3. Expose $currentUser and $userPermissions to the view
+ *   4. Always BASE url initialised and available as BASE_URL
  *
  * Instead of copy-pasting 40 lines of boilerplate into every page,
  * each admin view does ONE include:
@@ -36,6 +37,7 @@
  * After this file, the view has access to:
  *   $currentUser      (stdClass)  - Decoded JWT payload
  *   $userPermissions  (array)     - Flat array of permission strings
+ *   $isSuperAdmin     (bool)      - Whether user is super admin
  *   $pageTitle        (string)    - As passed in
  */
 
@@ -57,9 +59,6 @@ if (!defined('ROOT_PATH')) {
 
 require_once get_helper('AuthMiddleware');
 require_once get_helper('PermissionHelper');
-
-// require_once ROOT_PATH . '/helpers/AuthMiddleware.php';
-// require_once ROOT_PATH . '/helpers/PermissionHelper.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -83,8 +82,7 @@ if (!$_token) {
     exit;
 }
 
-// Validate + check permissions (requireAuth echoes JSON and exits on failure,
-// but we're in a page context so we catch and redirect instead)
+// Validate + check permissions
 try {
     $currentUser = $_auth->requireAuth($_adminBasePerms);
 } catch (Exception $e) {
@@ -112,6 +110,17 @@ $_SESSION['last_activity'] = time();
 // ── Expose clean variables to the view ───────────────────────────────────────
 $userPermissions = $currentUser->permissions ?? [];
 
+error_log("admin-base.php - User is_super_admin from token: " . 
+          (!empty($currentUser->is_super_admin) ? 'true' : 'false'));
+error_log("admin-base.php - User role_name: " . ($currentUser->role_name ?? 'unknown'));
+
+// Check if user is super admin - use multiple conditions
+$isSuperAdmin = !empty($currentUser->is_super_admin) || 
+                (isset($currentUser->role_name) && $currentUser->role_name === 'Super Admin') ||
+                (isset($currentUser->is_super_admin) && $currentUser->is_super_admin === true);
+
+error_log("admin-base.php - Computed isSuperAdmin: " . ($isSuperAdmin ? 'true' : 'false'));
+
 // Derived display helpers (available in every view)
 $userFullName = trim(
     htmlspecialchars(($currentUser->firstname ?? '') . ' ' . ($currentUser->lastname ?? ''))
@@ -128,6 +137,9 @@ if ($userInitials === '') $userInitials = 'U';
 
 $userPhoto = $currentUser->photo ?? '';
 
+error_log("Current User ID: " . ($currentUser->user_id ?? 'N/A'));
+error_log("Current User Session from JWT: " . ($currentUser->session_type ?? 'N/A'));
+
 // Page title fallback
 if (empty($pageTitle)) $pageTitle = 'Admin';
 
@@ -138,3 +150,7 @@ if (empty($currentPage)) {
 }
 
 unset($_adminBasePerms, $_token, $_auth, $_sessionTimeout);
+
+// Make BASE_URL available in JavaScript
+echo '<script>window.BASE_URL = "' . BASE_URL . '";</script>';
+?>

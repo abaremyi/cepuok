@@ -798,7 +798,7 @@ require_once $root_path . "/config/paths.php";
             } else if (user.role_id === 2) {
                 window.location.href = `${BASE_URL}/admin`;
             } else {
-                window.location.href = `${BASE_URL}/admin`;
+                window.location.href = `${BASE_URL}/admin/profile`;
             }
         }
 

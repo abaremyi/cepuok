@@ -29,4 +29,8 @@ class SupportersController {
             return ['success'=>false,'message'=>'Contribution date is required'];
         return $this->model->addContribution($id, $data);
     }
+
+    public function deleteContribution($supporterId, $contributionId) {
+    return $this->model->deleteContribution($supporterId, $contributionId);
+}
 }

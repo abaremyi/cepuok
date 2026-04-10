@@ -1,6 +1,6 @@
 <?php
 /**
- * User Model - Updated with all user management functions
+ * User Model - Updated with proper foreign key handling
  * File: modules/Authentication/models/UserModel.php
  */
 
@@ -87,6 +87,27 @@ class UserModel
 
         } catch (Exception $e) {
             error_log("UserModel::usernameExists - Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Validate member_id exists in members table
+     */
+    private function validateMemberId($memberId)
+    {
+        if ($memberId === null || $memberId === '') {
+            return true;
+        }
+        
+        try {
+            $sql = "SELECT COUNT(*) as count FROM members WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $memberId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'] > 0;
+        } catch (Exception $e) {
+            error_log("UserModel::validateMemberId - Error: " . $e->getMessage());
             return false;
         }
     }
@@ -229,6 +250,11 @@ class UserModel
     public function createUser($data)
     {
         try {
+            // Validate member_id if provided
+            if (!empty($data['member_id']) && !$this->validateMemberId($data['member_id'])) {
+                throw new Exception("Invalid member ID: member does not exist");
+            }
+
             $this->db->beginTransaction();
 
             $sql = "INSERT INTO {$this->table} (
@@ -245,7 +271,7 @@ class UserModel
             
             $params = [
                 ':role_id' => $data['role_id'] ?? 5,
-                ':member_id' => $data['member_id'] ?? null,
+                ':member_id' => !empty($data['member_id']) ? $data['member_id'] : null,
                 ':firstname' => $data['firstname'],
                 ':lastname' => $data['lastname'],
                 ':username' => $data['username'] ?? null,
@@ -280,6 +306,17 @@ class UserModel
     public function updateUser($id, $data)
     {
         try {
+            // Validate member_id if provided
+            if (array_key_exists('member_id', $data)) {
+                if (!empty($data['member_id']) && !$this->validateMemberId($data['member_id'])) {
+                    throw new Exception("Invalid member ID: member does not exist");
+                }
+                // If empty, set to null to remove association
+                if (empty($data['member_id'])) {
+                    $data['member_id'] = null;
+                }
+            }
+
             $this->db->beginTransaction();
 
             $updateFields = [];
@@ -431,7 +468,7 @@ class UserModel
                            m.membership_number, m.email
                     FROM members m
                     LEFT JOIN users u ON m.id = u.member_id
-                    WHERE u.id IS NULL
+                    WHERE u.id IS NULL OR u.member_id IS NULL
                     ORDER BY m.firstname, m.lastname";
             
             $stmt = $this->db->query($sql);
@@ -536,6 +573,37 @@ class UserModel
 
         } catch (PDOException $e) {
             error_log("User Model Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Link user to member record if email matches
+     */
+    public function linkUserToMember($userId, $email) {
+        try {
+            // Check if there's a member with this email that's not linked
+            $sql = "SELECT id FROM members WHERE email = :email AND user_id IS NULL LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':email' => $email]);
+            $member = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($member) {
+                // Link the member to this user
+                $updateSql = "UPDATE members SET user_id = :user_id WHERE id = :member_id";
+                $updateStmt = $this->db->prepare($updateSql);
+                $updateStmt->execute([
+                    ':user_id' => $userId,
+                    ':member_id' => $member['id']
+                ]);
+                
+                error_log("Auto-linked user ID {$userId} to member ID {$member['id']}");
+                return true;
+            }
+            
+            return false;
+        } catch (Exception $e) {
+            error_log("Error linking user to member: " . $e->getMessage());
             return false;
         }
     }

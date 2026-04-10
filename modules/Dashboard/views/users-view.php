@@ -7,6 +7,7 @@
 // Include required files
 require_once ROOT_PATH . '/helpers/AuthMiddleware.php';
 require_once ROOT_PATH . '/helpers/PermissionHelper.php';
+require_once ROOT_PATH . '/helpers/DateHelper.php'; // ADD THIS LINE
 require_once ROOT_PATH . '/modules/Authentication/controllers/UserController.php';
 
 $auth = new AuthMiddleware();
@@ -37,8 +38,15 @@ include LAYOUTS_PATH . '/admin-header.php';
 
 <body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
 
+  <?php include LAYOUTS_PATH . '/admin-lock-screen.php'; ?>
+  <script>
+      (function(){
+          var el = document.getElementById('sessionLockOverlay');
+          if (el) el.dataset.email = <?= json_encode($currentUser->email ?? '') ?>;
+      })();
+  </script>
   <script src="<?= admin_js_url('hs.theme-appearance.js') ?>"></script>
-  <script src="<?= ROOT_PATH ?>/dashboard-assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js"></script>
+  <script src="<?= admin_vendor_url('hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js') ?>"></script>
   
   <?php include LAYOUTS_PATH . '/admin-navbar.php'; ?>
   <?php include LAYOUTS_PATH . '/admin-sidebar.php'; ?>
@@ -161,7 +169,7 @@ include LAYOUTS_PATH . '/admin-header.php';
                             <dt class="col-sm-4">Member ID</dt>
                             <dd class="col-sm-8">
                                 <?php if ($user['member_id']): ?>
-                                    <a href="<?= BASE_URL ?>/admin/membership-view?id=<?= $user['member_id'] ?>">
+                                    <a href="<?= BASE_URL ?>/admin/member-view?id=<?= $user['member_id'] ?>">
                                         <?= htmlspecialchars($user['membership_number'] ?? 'View Member') ?>
                                     </a>
                                 <?php else: ?>
@@ -233,7 +241,6 @@ include LAYOUTS_PATH . '/admin-header.php';
                             <p><?= nl2br(htmlspecialchars($user['bio'])) ?></p>
                         </div>
                     </div>
-                    <!-- End Bio Card -->
                 <?php endif; ?>
             </div>
         </div>
@@ -248,32 +255,47 @@ include LAYOUTS_PATH . '/admin-header.php';
 function sendMessage(userId) {
     Swal.fire({
         title: 'Send Message',
-        html: `
-            <textarea id="messageText" class="swal2-textarea" placeholder="Type your message..."></textarea>
-        `,
+        input: 'textarea',
+        inputPlaceholder: 'Type your message...',
         showCancelButton: true,
         confirmButtonText: 'Send',
+        confirmButtonColor: '#37ff9b',
         showLoaderOnConfirm: true,
-        preConfirm: () => {
-            const message = document.getElementById('messageText').value;
+        preConfirm: (message) => {
             if (!message) {
                 Swal.showValidationMessage('Please enter a message');
                 return false;
             }
             
-            return $.ajax({
-                url: '<?= BASE_URL ?>/api/messages?action=send',
-                type: 'POST',
-                data: {
+            return fetch('<?= BASE_URL ?>/api/messages?action=send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
                     user_id: userId,
                     message: message
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to send message');
                 }
+                return data;
+            })
+            .catch(error => {
+                Swal.showValidationMessage(error.message);
             });
         },
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
-        if (result.value && result.value.success) {
-            Swal.fire('Sent!', 'Message sent successfully', 'success');
+        if (result.isConfirmed) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Sent!',
+                text: 'Message sent successfully',
+                confirmButtonColor: '#37ff9b'
+            });
         }
     });
 }

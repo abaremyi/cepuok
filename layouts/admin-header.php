@@ -1,13 +1,14 @@
-<?php
+<!DOCTYPE html>
+<html lang="en">
+  <?php
 /**
  * Admin Header Layout CEPUOK
  * File: layouts/admin-header.php
  */
 ?>
-
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $pageTitle ?? 'Admin Dashboard' ?> | CEP UoK</title>
 
   <!-- Favicon -->
@@ -20,9 +21,8 @@
   <link rel="stylesheet" href="<?= admin_css_url('vendor.min.css') ?>">
 
   <!-- CSS Front Template -->
-  <link rel="stylesheet" href="<?= admin_css_url('theme.minc619.css?v=1.0') ?>">
-  <link rel="preload" href="<?= admin_css_url('theme.min.css') ?>" data-hs-appearance="default" as="style">
-  <link rel="preload" href="<?= admin_css_url('theme-dark.min.css') ?>" data-hs-appearance="dark" as="style">
+  <link rel="stylesheet" href="<?= admin_css_url('theme-dark.min.css') ?>" data-hs-appearance="dark" as="style">
+  <link rel="stylesheet" href="<?= admin_css_url('theme.min.css') ?>" data-hs-appearance="default" as="style">
 
   
  

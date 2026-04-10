@@ -7,6 +7,7 @@
 // Include required files
 require_once ROOT_PATH . '/helpers/AuthMiddleware.php';
 require_once ROOT_PATH . '/helpers/PermissionHelper.php';
+require_once ROOT_PATH . '/helpers/DateHelper.php';
 require_once ROOT_PATH . '/modules/Authentication/controllers/UserController.php';
 
 $auth = new AuthMiddleware();
@@ -48,8 +49,15 @@ include LAYOUTS_PATH . '/admin-header.php';
 
 <body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl footer-offset">
 
+  <?php include LAYOUTS_PATH . '/admin-lock-screen.php'; ?>
+  <script>
+      (function(){
+          var el = document.getElementById('sessionLockOverlay');
+          if (el) el.dataset.email = <?= json_encode($currentUser->email ?? '') ?>;
+      })();
+  </script>
   <script src="<?= admin_js_url('hs.theme-appearance.js') ?>"></script>
-  <script src="<?= ROOT_PATH ?>/dashboard-assets/vendor/hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js"></script>
+  <script src="<?= admin_vendor_url('hs-navbar-vertical-aside/dist/hs-navbar-vertical-aside-mini-cache.js') ?>"></script>
   
   <?php include LAYOUTS_PATH . '/admin-navbar.php'; ?>
   <?php include LAYOUTS_PATH . '/admin-sidebar.php'; ?>
@@ -434,12 +442,6 @@ include LAYOUTS_PATH . '/admin-header.php';
 
 <script>
 $(document).ready(function() {
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
     // Preview uploaded image
     $('#photo').change(function(e) {
         if (this.files && this.files[0]) {
@@ -466,6 +468,16 @@ $(document).ready(function() {
             url += '?action=create';
         }
         
+        // Show loading
+        Swal.fire({
+            title: 'Processing...',
+            text: 'Please wait',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
         $.ajax({
             url: url,
             type: 'POST',
@@ -478,7 +490,8 @@ $(document).ready(function() {
                         icon: 'success',
                         title: 'Success!',
                         text: response.message,
-                        timer: 2000
+                        timer: 2000,
+                        showConfirmButton: true
                     }).then(() => {
                         window.location.href = '<?= BASE_URL ?>/admin/users-management';
                     });
@@ -487,8 +500,11 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
-                var response = xhr.responseJSON;
-                Swal.fire('Error!', response?.message || 'An error occurred', 'error');
+                let message = 'An error occurred';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    message = xhr.responseJSON.message;
+                }
+                Swal.fire('Error!', message, 'error');
             }
         });
     });
@@ -537,7 +553,7 @@ function deleteUser(userId) {
     Swal.fire({
         title: 'Delete User?',
         text: "This action cannot be undone!",
-        icon: 'error',
+        icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',

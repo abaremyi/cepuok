@@ -1234,7 +1234,7 @@ async function doLogin() {
       showAlert('loginAlert', 'success', 'Login successful! Redirecting...');
       
       setTimeout(() => {
-        window.location.href = `${BASE_URL}/admin/dashboard`;
+        window.location.href = BASE_URL + (res.redirect || '/admin/dashboard');
       }, 800);
     } else {
       // Re-enable button on logical failure

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 24, 2026 at 08:42 PM
+-- Generation Time: Mar 08, 2026 at 04:43 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -24,6 +24,44 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `budget_activities`
+--
+
+CREATE TABLE `budget_activities` (
+  `id` int(11) NOT NULL,
+  `quarter_id` int(11) NOT NULL,
+  `pool_id` int(11) NOT NULL,
+  `activity_name` varchar(255) NOT NULL,
+  `allocated_amount` decimal(15,2) DEFAULT 0.00,
+  `spent_amount` decimal(15,2) DEFAULT 0.00,
+  `is_external` tinyint(1) DEFAULT 0 COMMENT '1=Family/Choir own funds, CEP tracking only',
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `budget_indicators`
+--
+
+CREATE TABLE `budget_indicators` (
+  `id` int(11) NOT NULL,
+  `cep_session` enum('day','weekend') NOT NULL,
+  `academic_year` varchar(20) NOT NULL,
+  `base_balance` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT '100% reference balance',
+  `lock_date` date DEFAULT NULL COMMENT 'President edit deadline',
+  `status` enum('draft','confirmed','locked') DEFAULT 'draft',
+  `confirmed_by` int(11) DEFAULT NULL,
+  `confirmed_at` timestamp NULL DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `budget_lines`
 --
 
@@ -35,6 +73,30 @@ CREATE TABLE `budget_lines` (
   `allocated_amount` decimal(15,2) NOT NULL DEFAULT 0.00,
   `spent_amount` decimal(15,2) NOT NULL DEFAULT 0.00,
   `notes` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `budget_quarters`
+--
+
+CREATE TABLE `budget_quarters` (
+  `id` int(11) NOT NULL,
+  `indicator_id` int(11) NOT NULL,
+  `cep_session` enum('day','weekend') NOT NULL,
+  `academic_year` varchar(20) NOT NULL,
+  `quarter` enum('Q1','Q2','Q3') NOT NULL,
+  `budget_name` varchar(200) NOT NULL,
+  `total_allocated` decimal(15,2) DEFAULT 0.00,
+  `status` enum('draft','suspended','approved') DEFAULT 'draft',
+  `draft_created_at` timestamp NULL DEFAULT NULL,
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -85,7 +147,7 @@ CREATE TABLE `cep_history_timeline` (
   `status` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `cep_history_timeline`
@@ -155,6 +217,13 @@ CREATE TABLE `cep_supporters` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `cep_supporters`
+--
+
+INSERT INTO `cep_supporters` (`id`, `supporter_type`, `firstname`, `lastname`, `organization_name`, `email`, `phone`, `address`, `cep_session`, `support_area`, `tier`, `is_alumni`, `graduation_year`, `notes`, `photo`, `status`, `created_at`, `updated_at`) VALUES
+(1, 'external', 'MUTABAZI', 'Josue', 'Global Kwik Koders', 'mutabazijosue1@gmail.com', '0786055919', '1 KN 78 ST. Kigali', 'day', 'general', 'platinum', 1, '2019', 'Josue Yahoze aririmba muri Penuel Choir guher 2017 kugeza 2020. \nNyuma aza kujya munshingano aba n\' umuterankunga ushobora kugira icyo akora bitewe nuwamuganirije cyane cyane Remy cg Wiclef nabandi bake bakoranye icyo gihe. \n\nAkenera cyane ko ibintu bikorwa muri plan inoze kdi itangirwa report nawe akabona umusaruro uvuye muri contribution yatanze', NULL, 'active', '2026-02-28 09:08:34', '2026-03-05 00:26:19');
 
 -- --------------------------------------------------------
 
@@ -288,6 +357,51 @@ CREATE TABLE `committee_handovers` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `credential_wallet`
+--
+
+CREATE TABLE `credential_wallet` (
+  `id` int(11) NOT NULL,
+  `category` enum('social_media','email','api_key','hosting','domain','analytics','payment','other') NOT NULL DEFAULT 'other' COMMENT 'Credential category',
+  `platform` varchar(100) NOT NULL COMMENT 'e.g. Gmail, YouTube, Instagram, cPanel, AWS',
+  `account_label` varchar(255) NOT NULL COMMENT 'Human-friendly label, e.g. CEP Photos Gmail',
+  `username` varchar(255) DEFAULT NULL COMMENT 'Username or email used to log in',
+  `password_encrypted` text DEFAULT NULL COMMENT 'AES-256-CBC encrypted password (iv:cipher)',
+  `account_url` varchar(500) DEFAULT NULL COMMENT 'Login URL if applicable',
+  `verification_phone` varchar(50) DEFAULT NULL COMMENT '2FA / recovery phone number',
+  `verification_email` varchar(255) DEFAULT NULL COMMENT '2FA / recovery email address',
+  `creator_name` varchar(255) DEFAULT NULL COMMENT 'Name of person who created this account',
+  `creator_phone` varchar(50) DEFAULT NULL COMMENT 'Contact phone of account creator',
+  `creator_email` varchar(255) DEFAULT NULL COMMENT 'Contact email of account creator',
+  `purpose` text DEFAULT NULL COMMENT 'What this account is used for',
+  `notes` text DEFAULT NULL COMMENT 'Additional notes, API scopes, plan details, etc.',
+  `expiry_date` date DEFAULT NULL COMMENT 'Subscription / domain / API key expiry (nullable)',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `added_by` int(11) DEFAULT NULL COMMENT 'admin user_id who added the record',
+  `updated_by` int(11) DEFAULT NULL COMMENT 'admin user_id who last updated the record',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Encrypted credentials vault for CEP social/digital accounts';
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `credential_wallet_audit`
+--
+
+CREATE TABLE `credential_wallet_audit` (
+  `id` int(11) NOT NULL,
+  `credential_id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `action` enum('viewed','copied_password','created','updated','deleted','toggled_status') NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(500) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Audit trail for every action on the credentials wallet';
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `departments`
 --
 
@@ -389,9 +503,12 @@ CREATE TABLE `fund_requests` (
   `title` varchar(255) NOT NULL,
   `description` text NOT NULL,
   `department` varchar(100) DEFAULT NULL,
+  `indicator_id` int(11) DEFAULT NULL,
+  `budget_quarter_id` int(11) DEFAULT NULL,
+  `activity_id` int(11) DEFAULT NULL,
   `amount_requested` decimal(15,2) NOT NULL DEFAULT 0.00,
   `amount_approved` decimal(15,2) DEFAULT NULL,
-  `stage` enum('pending','reviewing','approved','rejected','disbursed') DEFAULT 'pending',
+  `stage` enum('draft','to_president','rejected_by_president','to_finance','completed') NOT NULL DEFAULT 'draft',
   `requested_by` int(11) DEFAULT NULL,
   `reviewed_by` int(11) DEFAULT NULL,
   `reviewed_at` timestamp NULL DEFAULT NULL,
@@ -400,8 +517,23 @@ CREATE TABLE `fund_requests` (
   `rejection_reason` text DEFAULT NULL,
   `priority` enum('low','medium','high','urgent') DEFAULT 'medium',
   `needed_by_date` date DEFAULT NULL,
+  `submitted_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `fund_request_comments`
+--
+
+CREATE TABLE `fund_request_comments` (
+  `id` int(11) NOT NULL,
+  `request_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `comment` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -523,6 +655,25 @@ INSERT INTO `hero_sliders` (`id`, `title`, `subtitle`, `description`, `image_url
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `indicator_pools`
+--
+
+CREATE TABLE `indicator_pools` (
+  `id` int(11) NOT NULL,
+  `indicator_id` int(11) NOT NULL,
+  `pool_name` varchar(100) NOT NULL,
+  `pool_slug` varchar(50) NOT NULL,
+  `pool_type` enum('department','internal','reserve','other') DEFAULT 'department',
+  `percentage` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `allocated_amount` decimal(15,2) DEFAULT 0.00,
+  `color` varchar(20) DEFAULT '#377dff',
+  `display_order` tinyint(4) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `leadership_achievements`
 --
 
@@ -554,7 +705,7 @@ CREATE TABLE `leadership_members` (
   `display_order` int(11) DEFAULT 0,
   `status` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `leadership_members`
@@ -716,7 +867,7 @@ CREATE TABLE `leadership_years` (
   `status` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `leadership_years`
@@ -776,7 +927,12 @@ CREATE TABLE `members` (
 --
 
 INSERT INTO `members` (`id`, `user_id`, `membership_type_id`, `membership_number`, `firstname`, `lastname`, `email`, `phone`, `gender`, `date_of_birth`, `address`, `year_joined_cep`, `cep_session`, `faculty`, `program`, `academic_year`, `church_name`, `family_id`, `other_church_name`, `is_born_again`, `is_baptized`, `profile_photo`, `bio`, `status`, `approved_by`, `approved_at`, `created_at`, `updated_at`, `last_activity`) VALUES
-(5, NULL, 1, NULL, 'NIYONZIMA', 'Aaron', 'aaronniyonzima52@gmail.com', '0785729794', 'Male', '2000-01-01', 'Remera, Gasabo, Kigali', '2023', 'day', 'Accounting', 'BSc in Finance and Accounting', 'Year 3', 'ADEPR Kimihurura International Service (KIS)', NULL, NULL, 'Yes', 'Yes', 'members/699b5d4edf3e3_1771789646.jpg', 'I loved the way CEP members live together and work together', 'pending', NULL, NULL, '2026-02-22 19:47:26', '2026-02-22 19:47:26', NULL);
+(5, 2, 1, NULL, 'NIYONZIMA', 'Aaron', 'aaronniyonzima52@gmail.com', '0785729794', 'Male', '2000-01-01', 'Remera, Gasabo, Kigali', '2023', 'day', 'Accounting', 'BSc in Finance and Accounting', 'Year 3', 'ADEPR Kimihurura International Service', 1, NULL, 'Yes', 'Yes', 'members/699b5d4edf3e3_1771789646.jpg', 'I loved the way CEP members live together and work together', 'active', 1, '2026-02-27 07:17:16', '2026-02-22 19:47:26', '2026-03-04 22:19:33', NULL),
+(6, NULL, 1, NULL, 'MUKASHEMA', 'Alice', 'alicemukashema@gmail.com', '0787962735', 'Female', '2001-01-01', 'Kabuga, Kicukiro, Kigali', '2024', 'day', 'Accounting', 'Bsc in finance and Accounting', 'Year 3', 'ADEPR Kimihurura International Service', 2, NULL, 'Yes', 'Yes', 'members/69a0ae4b2b3d4_1772138059.png', 'Always courageous on the Work', 'active', 1, '2026-02-27 08:38:51', '2026-02-26 20:34:19', '2026-02-27 18:55:01', NULL),
+(7, 5, 1, 'CEP-D-2026-0007', 'NTAGAWA', 'David', 'david.ntagawa@gmail.com', '0791619272', 'Male', NULL, 'Karuruma, Gasabo, Kigali', '2024', 'day', 'Law', 'Law', 'Year 2', 'ADEPR Kimihurura International Service', 3, NULL, 'Yes', 'Yes', NULL, 'Always Remain Faithful to God', 'active', 1, '2026-02-27 07:17:39', '2026-02-27 08:17:39', '2026-03-04 22:03:39', NULL),
+(8, NULL, 1, 'CEP-D-2026-0008', 'IRADUKUNDA MBABAZI', 'Eric', 'iradukundaericmbabazi@gmail.com', '0784806931', 'Male', '2002-02-02', 'Gisiment, Gasabo, Kigali', '2025', 'day', 'IT ', 'Bsc in IT', 'Year 2', 'ADEPR Kimihurura International Service', 2, NULL, 'Yes', 'Yes', NULL, 'Humbleness and Knowing God Every Day', 'active', 1, '2026-02-27 07:29:27', '2026-02-27 08:29:27', '2026-02-27 09:38:16', NULL),
+(9, NULL, 1, 'CEP-D-2026-0009', 'UWUMUKIZA', 'Celine', 'celineuwumukiza@gmail.com', '0728202199', 'Female', '2004-09-05', 'Kanombe, Kicukiro, Kigali', '2024', 'day', 'Law', 'Bsc in Law', 'Year 3', 'ADEPR KACYIRU KANSEREGE', 1, NULL, 'Yes', 'Yes', NULL, 'Always eager to work hard', 'active', 1, '2026-02-27 09:32:46', '2026-02-27 08:51:18', '2026-02-27 09:33:15', NULL),
+(10, NULL, 1, NULL, 'NSHUTI', 'YVES', 'nshutiyves2015@gmail.com', '0785865752', 'Male', '2006-12-02', 'Gasabo, Kigali', '2024', 'day', 'Information Technology', 'Bsc Information Technology', 'Year 2', 'ADEPR Kimihurura International Service', 1, NULL, 'Yes', 'Yes', 'members/69a2ece0e470d_1772285152.png', 'A man on Work', 'active', 1, '2026-03-01 06:09:13', '2026-02-28 13:25:52', '2026-03-01 06:10:00', NULL);
 
 -- --------------------------------------------------------
 
@@ -801,7 +957,12 @@ CREATE TABLE `membership_applications` (
 --
 
 INSERT INTO `membership_applications` (`id`, `member_id`, `application_type`, `status`, `submission_date`, `review_date`, `reviewed_by`, `reviewer_notes`, `rejection_reason`) VALUES
-(1, 5, 'new', 'submitted', '2026-02-22 19:47:26', NULL, NULL, NULL, NULL);
+(1, 5, 'new', 'approved', '2026-02-22 19:47:26', '2026-02-27 07:17:16', 1, NULL, NULL),
+(2, 6, 'new', 'approved', '2026-02-26 20:34:19', '2026-02-27 08:38:51', 1, NULL, NULL),
+(3, 7, 'new', 'approved', '2026-02-27 08:17:39', NULL, NULL, NULL, NULL),
+(4, 8, 'new', 'approved', '2026-02-27 08:29:27', NULL, NULL, NULL, NULL),
+(5, 9, 'new', 'approved', '2026-02-27 08:51:18', NULL, NULL, NULL, NULL),
+(6, 10, 'new', 'approved', '2026-02-28 13:25:52', '2026-03-01 06:09:13', 1, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -849,7 +1010,12 @@ CREATE TABLE `member_activities` (
 --
 
 INSERT INTO `member_activities` (`id`, `member_id`, `activity_type`, `activity_description`, `ip_address`, `user_agent`, `created_at`) VALUES
-(2, 5, 'registration', 'Member registered', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36', '2026-02-22 19:47:26');
+(2, 5, 'registration', 'Member registered', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36', '2026-02-22 19:47:26'),
+(3, 6, 'registration', 'Member registered', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0', '2026-02-26 20:34:19'),
+(4, 7, '', 'Member created by admin', '::1', NULL, '2026-02-27 08:17:39'),
+(5, 8, '', 'Member created by admin', '::1', NULL, '2026-02-27 08:29:27'),
+(6, 9, '', 'Member created by admin', '::1', NULL, '2026-02-27 08:51:18'),
+(7, 10, 'registration', 'Member registered', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36', '2026-02-28 13:25:52');
 
 -- --------------------------------------------------------
 
@@ -876,7 +1042,54 @@ INSERT INTO `member_talents` (`id`, `member_id`, `talent_id`, `proficiency_level
 (3, 5, 13, 'Intermediate', NULL, '2026-02-22 19:47:26'),
 (4, 5, 14, 'Intermediate', NULL, '2026-02-22 19:47:26'),
 (5, 5, 17, 'Intermediate', NULL, '2026-02-22 19:47:26'),
-(6, 5, 16, 'Intermediate', NULL, '2026-02-22 19:47:26');
+(6, 5, 16, 'Intermediate', NULL, '2026-02-22 19:47:26'),
+(7, 6, 6, 'Intermediate', NULL, '2026-02-26 20:34:19'),
+(8, 6, 9, 'Intermediate', NULL, '2026-02-26 20:34:19'),
+(9, 6, 10, 'Intermediate', NULL, '2026-02-26 20:34:19'),
+(10, 6, 11, 'Intermediate', NULL, '2026-02-26 20:34:19'),
+(11, 6, 12, 'Intermediate', NULL, '2026-02-26 20:34:19'),
+(12, 6, 17, 'Intermediate', NULL, '2026-02-26 20:34:19'),
+(13, 6, 15, 'Intermediate', NULL, '2026-02-26 20:34:19'),
+(14, 6, 16, 'Intermediate', NULL, '2026-02-26 20:34:19'),
+(15, 7, 2, 'Intermediate', NULL, '2026-02-27 08:17:39'),
+(16, 7, 9, 'Intermediate', NULL, '2026-02-27 08:17:39'),
+(17, 7, 8, 'Intermediate', NULL, '2026-02-27 08:17:39'),
+(18, 7, 10, 'Intermediate', NULL, '2026-02-27 08:17:39'),
+(19, 7, 11, 'Intermediate', NULL, '2026-02-27 08:17:39'),
+(20, 7, 13, 'Intermediate', NULL, '2026-02-27 08:17:39'),
+(21, 7, 14, 'Intermediate', NULL, '2026-02-27 08:17:39'),
+(22, 7, 17, 'Intermediate', NULL, '2026-02-27 08:17:39'),
+(23, 7, 15, 'Intermediate', NULL, '2026-02-27 08:17:39'),
+(24, 7, 16, 'Intermediate', NULL, '2026-02-27 08:17:39'),
+(25, 8, 2, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(26, 8, 1, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(27, 8, 6, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(28, 8, 7, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(29, 8, 9, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(30, 8, 10, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(31, 8, 11, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(32, 8, 12, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(33, 8, 13, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(34, 8, 14, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(35, 8, 17, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(36, 8, 15, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(37, 8, 16, 'Intermediate', NULL, '2026-02-27 08:29:27'),
+(38, 9, 1, 'Intermediate', NULL, '2026-02-27 08:51:18'),
+(39, 9, 8, 'Intermediate', NULL, '2026-02-27 08:51:18'),
+(40, 9, 12, 'Intermediate', NULL, '2026-02-27 08:51:18'),
+(41, 9, 15, 'Intermediate', NULL, '2026-02-27 08:51:18'),
+(42, 9, 16, 'Intermediate', NULL, '2026-02-27 08:51:18'),
+(43, 10, 1, 'Intermediate', NULL, '2026-02-28 13:25:52'),
+(44, 10, 6, 'Intermediate', NULL, '2026-02-28 13:25:52'),
+(45, 10, 7, 'Intermediate', NULL, '2026-02-28 13:25:52'),
+(46, 10, 10, 'Intermediate', NULL, '2026-02-28 13:25:52'),
+(47, 10, 11, 'Intermediate', NULL, '2026-02-28 13:25:52'),
+(48, 10, 12, 'Intermediate', NULL, '2026-02-28 13:25:52'),
+(49, 10, 13, 'Intermediate', NULL, '2026-02-28 13:25:52'),
+(50, 10, 14, 'Intermediate', NULL, '2026-02-28 13:25:52'),
+(51, 10, 17, 'Intermediate', NULL, '2026-02-28 13:25:52'),
+(52, 10, 15, 'Intermediate', NULL, '2026-02-28 13:25:52'),
+(53, 10, 16, 'Intermediate', NULL, '2026-02-28 13:25:52');
 
 -- --------------------------------------------------------
 
@@ -1090,7 +1303,13 @@ INSERT INTO `permissions` (`id`, `module`, `action`, `description`, `created_at`
 (97, 'projects', 'edit', 'Edit projects', '2026-02-22 15:12:55'),
 (98, 'projects', 'manage_tasks', 'Manage project tasks', '2026-02-22 15:12:55'),
 (99, 'handover', 'view', 'View handover documents', '2026-02-22 15:12:55'),
-(100, 'handover', 'create', 'Create handover reports', '2026-02-22 15:12:55');
+(100, 'handover', 'create', 'Create handover reports', '2026-02-22 15:12:55'),
+(101, 'wallet', 'view', 'View Credentials wallet', '2026-02-28 07:56:52'),
+(102, 'wallet', 'create', 'Create new Credential in Wallet', '2026-02-28 07:56:52'),
+(103, 'wallet', 'edit', 'Edit Credential Wallet information', '2026-02-28 07:56:52'),
+(104, 'wallet', 'delete', 'Delete Credentials From Wallet', '2026-02-28 07:56:52'),
+(105, 'finance', 'edit_revenue', 'Edit revenue records', '2026-03-07 09:18:15'),
+(106, 'finance', 'delete_revenue', 'Delete revenue records', '2026-03-07 09:18:15');
 
 -- --------------------------------------------------------
 
@@ -1264,88 +1483,6 @@ CREATE TABLE `role_permissions` (
 --
 
 INSERT INTO `role_permissions` (`id`, `role_id`, `permission_id`, `created_at`) VALUES
-(1, 1, 2, '2026-02-13 15:14:22'),
-(2, 1, 1, '2026-02-13 15:14:22'),
-(3, 1, 37, '2026-02-13 15:14:22'),
-(4, 1, 39, '2026-02-13 15:14:22'),
-(5, 1, 38, '2026-02-13 15:14:22'),
-(6, 1, 36, '2026-02-13 15:14:22'),
-(7, 1, 31, '2026-02-13 15:14:22'),
-(8, 1, 30, '2026-02-13 15:14:22'),
-(9, 1, 29, '2026-02-13 15:14:22'),
-(10, 1, 28, '2026-02-13 15:14:22'),
-(11, 1, 45, '2026-02-13 15:14:22'),
-(12, 1, 44, '2026-02-13 15:14:22'),
-(13, 1, 18, '2026-02-13 15:14:22'),
-(14, 1, 15, '2026-02-13 15:14:22'),
-(15, 1, 17, '2026-02-13 15:14:22'),
-(16, 1, 16, '2026-02-13 15:14:22'),
-(17, 1, 19, '2026-02-13 15:14:22'),
-(18, 1, 21, '2026-02-13 15:14:22'),
-(19, 1, 22, '2026-02-13 15:14:22'),
-(20, 1, 20, '2026-02-13 15:14:22'),
-(21, 1, 14, '2026-02-13 15:14:22'),
-(22, 1, 53, '2026-02-13 15:14:22'),
-(23, 1, 52, '2026-02-13 15:14:22'),
-(24, 1, 51, '2026-02-13 15:14:22'),
-(25, 1, 24, '2026-02-13 15:14:22'),
-(26, 1, 26, '2026-02-13 15:14:22'),
-(27, 1, 25, '2026-02-13 15:14:22'),
-(28, 1, 27, '2026-02-13 15:14:22'),
-(29, 1, 23, '2026-02-13 15:14:22'),
-(30, 1, 41, '2026-02-13 15:14:22'),
-(31, 1, 43, '2026-02-13 15:14:22'),
-(32, 1, 42, '2026-02-13 15:14:22'),
-(33, 1, 40, '2026-02-13 15:14:22'),
-(34, 1, 58, '2026-02-13 15:14:22'),
-(35, 1, 57, '2026-02-13 15:14:22'),
-(36, 1, 56, '2026-02-13 15:14:22'),
-(37, 1, 13, '2026-02-13 15:14:22'),
-(38, 1, 10, '2026-02-13 15:14:22'),
-(39, 1, 12, '2026-02-13 15:14:22'),
-(40, 1, 11, '2026-02-13 15:14:22'),
-(41, 1, 9, '2026-02-13 15:14:22'),
-(42, 1, 55, '2026-02-13 15:14:22'),
-(43, 1, 54, '2026-02-13 15:14:22'),
-(44, 1, 50, '2026-02-13 15:14:22'),
-(45, 1, 47, '2026-02-13 15:14:22'),
-(46, 1, 49, '2026-02-13 15:14:22'),
-(47, 1, 48, '2026-02-13 15:14:22'),
-(48, 1, 46, '2026-02-13 15:14:22'),
-(49, 1, 7, '2026-02-13 15:14:22'),
-(50, 1, 4, '2026-02-13 15:14:22'),
-(51, 1, 6, '2026-02-13 15:14:22'),
-(52, 1, 5, '2026-02-13 15:14:22'),
-(53, 1, 8, '2026-02-13 15:14:22'),
-(54, 1, 3, '2026-02-13 15:14:22'),
-(55, 1, 35, '2026-02-13 15:14:22'),
-(56, 1, 34, '2026-02-13 15:14:22'),
-(57, 1, 33, '2026-02-13 15:14:22'),
-(58, 1, 32, '2026-02-13 15:14:22'),
-(64, 2, 1, '2026-02-13 15:14:22'),
-(65, 2, 37, '2026-02-13 15:14:22'),
-(66, 2, 38, '2026-02-13 15:14:22'),
-(67, 2, 36, '2026-02-13 15:14:22'),
-(68, 2, 30, '2026-02-13 15:14:22'),
-(69, 2, 28, '2026-02-13 15:14:22'),
-(70, 2, 18, '2026-02-13 15:14:22'),
-(71, 2, 15, '2026-02-13 15:14:22'),
-(72, 2, 16, '2026-02-13 15:14:22'),
-(73, 2, 14, '2026-02-13 15:14:22'),
-(74, 2, 51, '2026-02-13 15:14:22'),
-(75, 2, 24, '2026-02-13 15:14:22'),
-(76, 2, 25, '2026-02-13 15:14:22'),
-(77, 2, 27, '2026-02-13 15:14:22'),
-(78, 2, 23, '2026-02-13 15:14:22'),
-(79, 2, 41, '2026-02-13 15:14:22'),
-(80, 2, 42, '2026-02-13 15:14:22'),
-(81, 2, 40, '2026-02-13 15:14:22'),
-(82, 2, 50, '2026-02-13 15:14:22'),
-(83, 2, 47, '2026-02-13 15:14:22'),
-(84, 2, 48, '2026-02-13 15:14:22'),
-(85, 2, 46, '2026-02-13 15:14:22'),
-(86, 2, 34, '2026-02-13 15:14:22'),
-(87, 2, 32, '2026-02-13 15:14:22'),
 (95, 3, 1, '2026-02-13 15:14:22'),
 (96, 3, 37, '2026-02-13 15:14:22'),
 (97, 3, 38, '2026-02-13 15:14:22'),
@@ -1366,36 +1503,199 @@ INSERT INTO `role_permissions` (`id`, `role_id`, `permission_id`, `created_at`) 
 (119, 5, 28, '2026-02-13 15:14:23'),
 (120, 5, 23, '2026-02-13 15:14:23'),
 (121, 5, 32, '2026-02-13 15:14:23'),
-(124, 1, 94, '2026-02-22 15:12:55'),
-(125, 1, 92, '2026-02-22 15:12:55'),
-(126, 1, 93, '2026-02-22 15:12:55'),
-(127, 1, 91, '2026-02-22 15:12:55'),
-(128, 1, 75, '2026-02-22 15:12:55'),
-(129, 1, 72, '2026-02-22 15:12:55'),
-(130, 1, 74, '2026-02-22 15:12:55'),
-(131, 1, 73, '2026-02-22 15:12:55'),
-(132, 1, 71, '2026-02-22 15:12:55'),
-(133, 1, 85, '2026-02-22 15:12:55'),
-(134, 1, 86, '2026-02-22 15:12:55'),
-(135, 1, 84, '2026-02-22 15:12:55'),
-(136, 1, 83, '2026-02-22 15:12:55'),
-(137, 1, 82, '2026-02-22 15:12:55'),
-(138, 1, 87, '2026-02-22 15:12:55'),
-(139, 1, 81, '2026-02-22 15:12:55'),
-(140, 1, 100, '2026-02-22 15:12:55'),
-(141, 1, 99, '2026-02-22 15:12:55'),
-(142, 1, 96, '2026-02-22 15:12:55'),
-(143, 1, 97, '2026-02-22 15:12:55'),
-(144, 1, 98, '2026-02-22 15:12:55'),
-(145, 1, 95, '2026-02-22 15:12:55'),
-(146, 1, 70, '2026-02-22 15:12:55'),
-(147, 1, 69, '2026-02-22 15:12:55'),
-(148, 1, 68, '2026-02-22 15:12:55'),
-(149, 1, 80, '2026-02-22 15:12:55'),
-(150, 1, 77, '2026-02-22 15:12:55'),
-(151, 1, 79, '2026-02-22 15:12:55'),
-(152, 1, 78, '2026-02-22 15:12:55'),
-(153, 1, 76, '2026-02-22 15:12:55');
+(438, 2, 91, '2026-03-04 23:50:25'),
+(439, 2, 1, '2026-03-04 23:50:25'),
+(440, 2, 89, '2026-03-04 23:50:25'),
+(441, 2, 90, '2026-03-04 23:50:25'),
+(442, 2, 88, '2026-03-04 23:50:25'),
+(443, 2, 37, '2026-03-04 23:50:25'),
+(444, 2, 39, '2026-03-04 23:50:25'),
+(445, 2, 38, '2026-03-04 23:50:25'),
+(446, 2, 36, '2026-03-04 23:50:25'),
+(447, 2, 75, '2026-03-04 23:50:25'),
+(448, 2, 72, '2026-03-04 23:50:25'),
+(449, 2, 73, '2026-03-04 23:50:25'),
+(450, 2, 71, '2026-03-04 23:50:25'),
+(451, 2, 85, '2026-03-04 23:50:25'),
+(452, 2, 86, '2026-03-04 23:50:25'),
+(453, 2, 84, '2026-03-04 23:50:25'),
+(454, 2, 83, '2026-03-04 23:50:25'),
+(455, 2, 82, '2026-03-04 23:50:25'),
+(456, 2, 87, '2026-03-04 23:50:25'),
+(457, 2, 81, '2026-03-04 23:50:25'),
+(458, 2, 30, '2026-03-04 23:50:25'),
+(459, 2, 28, '2026-03-04 23:50:25'),
+(460, 2, 100, '2026-03-04 23:50:25'),
+(461, 2, 99, '2026-03-04 23:50:25'),
+(462, 2, 44, '2026-03-04 23:50:25'),
+(463, 2, 18, '2026-03-04 23:50:25'),
+(464, 2, 15, '2026-03-04 23:50:25'),
+(465, 2, 17, '2026-03-04 23:50:25'),
+(466, 2, 16, '2026-03-04 23:50:25'),
+(467, 2, 19, '2026-03-04 23:50:25'),
+(468, 2, 21, '2026-03-04 23:50:25'),
+(469, 2, 22, '2026-03-04 23:50:25'),
+(470, 2, 20, '2026-03-04 23:50:25'),
+(471, 2, 14, '2026-03-04 23:50:25'),
+(472, 2, 53, '2026-03-04 23:50:25'),
+(473, 2, 52, '2026-03-04 23:50:25'),
+(474, 2, 51, '2026-03-04 23:50:25'),
+(475, 2, 24, '2026-03-04 23:50:25'),
+(476, 2, 25, '2026-03-04 23:50:25'),
+(477, 2, 27, '2026-03-04 23:50:25'),
+(478, 2, 23, '2026-03-04 23:50:25'),
+(479, 2, 41, '2026-03-04 23:50:25'),
+(480, 2, 42, '2026-03-04 23:50:25'),
+(481, 2, 40, '2026-03-04 23:50:25'),
+(482, 2, 96, '2026-03-04 23:50:25'),
+(483, 2, 97, '2026-03-04 23:50:25'),
+(484, 2, 98, '2026-03-04 23:50:25'),
+(485, 2, 95, '2026-03-04 23:50:25'),
+(486, 2, 58, '2026-03-04 23:50:25'),
+(487, 2, 57, '2026-03-04 23:50:25'),
+(488, 2, 56, '2026-03-04 23:50:25'),
+(489, 2, 13, '2026-03-04 23:50:25'),
+(490, 2, 10, '2026-03-04 23:50:25'),
+(491, 2, 11, '2026-03-04 23:50:25'),
+(492, 2, 9, '2026-03-04 23:50:25'),
+(493, 2, 80, '2026-03-04 23:50:25'),
+(494, 2, 77, '2026-03-04 23:50:25'),
+(495, 2, 79, '2026-03-04 23:50:25'),
+(496, 2, 78, '2026-03-04 23:50:25'),
+(497, 2, 76, '2026-03-04 23:50:25'),
+(498, 2, 50, '2026-03-04 23:50:25'),
+(499, 2, 47, '2026-03-04 23:50:25'),
+(500, 2, 48, '2026-03-04 23:50:25'),
+(501, 2, 46, '2026-03-04 23:50:25'),
+(502, 2, 7, '2026-03-04 23:50:25'),
+(503, 2, 4, '2026-03-04 23:50:25'),
+(504, 2, 5, '2026-03-04 23:50:25'),
+(505, 2, 8, '2026-03-04 23:50:25'),
+(506, 2, 3, '2026-03-04 23:50:25'),
+(507, 2, 35, '2026-03-04 23:50:25'),
+(508, 2, 34, '2026-03-04 23:50:25'),
+(509, 2, 32, '2026-03-04 23:50:25'),
+(510, 2, 101, '2026-03-04 23:50:25'),
+(535, 6, 91, '2026-03-07 09:19:12'),
+(536, 6, 37, '2026-03-07 09:19:12'),
+(537, 6, 39, '2026-03-07 09:19:12'),
+(538, 6, 38, '2026-03-07 09:19:12'),
+(539, 6, 36, '2026-03-07 09:19:12'),
+(540, 6, 85, '2026-03-07 09:19:12'),
+(541, 6, 106, '2026-03-07 09:19:12'),
+(542, 6, 86, '2026-03-07 09:19:12'),
+(543, 6, 105, '2026-03-07 09:19:12'),
+(544, 6, 84, '2026-03-07 09:19:12'),
+(545, 6, 83, '2026-03-07 09:19:12'),
+(546, 6, 82, '2026-03-07 09:19:12'),
+(547, 6, 87, '2026-03-07 09:19:12'),
+(548, 6, 81, '2026-03-07 09:19:12'),
+(549, 6, 96, '2026-03-07 09:19:12'),
+(550, 6, 97, '2026-03-07 09:19:12'),
+(551, 6, 98, '2026-03-07 09:19:12'),
+(552, 6, 95, '2026-03-07 09:19:12'),
+(553, 6, 58, '2026-03-07 09:19:12'),
+(554, 6, 57, '2026-03-07 09:19:12'),
+(555, 6, 56, '2026-03-07 09:19:12'),
+(556, 6, 80, '2026-03-07 09:19:12'),
+(557, 6, 77, '2026-03-07 09:19:12'),
+(558, 6, 79, '2026-03-07 09:19:12'),
+(559, 6, 78, '2026-03-07 09:19:12'),
+(560, 6, 76, '2026-03-07 09:19:12'),
+(561, 1, 94, '2026-03-07 09:19:31'),
+(562, 1, 92, '2026-03-07 09:19:31'),
+(563, 1, 93, '2026-03-07 09:19:31'),
+(564, 1, 91, '2026-03-07 09:19:31'),
+(565, 1, 2, '2026-03-07 09:19:31'),
+(566, 1, 1, '2026-03-07 09:19:31'),
+(567, 1, 37, '2026-03-07 09:19:31'),
+(568, 1, 39, '2026-03-07 09:19:31'),
+(569, 1, 38, '2026-03-07 09:19:31'),
+(570, 1, 36, '2026-03-07 09:19:31'),
+(571, 1, 75, '2026-03-07 09:19:31'),
+(572, 1, 72, '2026-03-07 09:19:31'),
+(573, 1, 74, '2026-03-07 09:19:31'),
+(574, 1, 73, '2026-03-07 09:19:31'),
+(575, 1, 71, '2026-03-07 09:19:31'),
+(576, 1, 85, '2026-03-07 09:19:31'),
+(577, 1, 106, '2026-03-07 09:19:31'),
+(578, 1, 86, '2026-03-07 09:19:31'),
+(579, 1, 105, '2026-03-07 09:19:31'),
+(580, 1, 84, '2026-03-07 09:19:31'),
+(581, 1, 83, '2026-03-07 09:19:31'),
+(582, 1, 82, '2026-03-07 09:19:31'),
+(583, 1, 87, '2026-03-07 09:19:31'),
+(584, 1, 81, '2026-03-07 09:19:31'),
+(585, 1, 31, '2026-03-07 09:19:31'),
+(586, 1, 30, '2026-03-07 09:19:31'),
+(587, 1, 29, '2026-03-07 09:19:31'),
+(588, 1, 28, '2026-03-07 09:19:31'),
+(589, 1, 100, '2026-03-07 09:19:31'),
+(590, 1, 99, '2026-03-07 09:19:31'),
+(591, 1, 45, '2026-03-07 09:19:31'),
+(592, 1, 44, '2026-03-07 09:19:31'),
+(593, 1, 18, '2026-03-07 09:19:31'),
+(594, 1, 15, '2026-03-07 09:19:31'),
+(595, 1, 17, '2026-03-07 09:19:31'),
+(596, 1, 16, '2026-03-07 09:19:31'),
+(597, 1, 19, '2026-03-07 09:19:31'),
+(598, 1, 21, '2026-03-07 09:19:31'),
+(599, 1, 22, '2026-03-07 09:19:31'),
+(600, 1, 20, '2026-03-07 09:19:31'),
+(601, 1, 14, '2026-03-07 09:19:31'),
+(602, 1, 53, '2026-03-07 09:19:31'),
+(603, 1, 52, '2026-03-07 09:19:31'),
+(604, 1, 51, '2026-03-07 09:19:31'),
+(605, 1, 24, '2026-03-07 09:19:31'),
+(606, 1, 26, '2026-03-07 09:19:31'),
+(607, 1, 25, '2026-03-07 09:19:31'),
+(608, 1, 27, '2026-03-07 09:19:31'),
+(609, 1, 23, '2026-03-07 09:19:31'),
+(610, 1, 41, '2026-03-07 09:19:31'),
+(611, 1, 43, '2026-03-07 09:19:31'),
+(612, 1, 42, '2026-03-07 09:19:31'),
+(613, 1, 40, '2026-03-07 09:19:31'),
+(614, 1, 96, '2026-03-07 09:19:31'),
+(615, 1, 97, '2026-03-07 09:19:31'),
+(616, 1, 98, '2026-03-07 09:19:31'),
+(617, 1, 95, '2026-03-07 09:19:31'),
+(618, 1, 58, '2026-03-07 09:19:31'),
+(619, 1, 57, '2026-03-07 09:19:31'),
+(620, 1, 56, '2026-03-07 09:19:31'),
+(621, 1, 13, '2026-03-07 09:19:31'),
+(622, 1, 10, '2026-03-07 09:19:31'),
+(623, 1, 12, '2026-03-07 09:19:31'),
+(624, 1, 11, '2026-03-07 09:19:31'),
+(625, 1, 9, '2026-03-07 09:19:31'),
+(626, 1, 70, '2026-03-07 09:19:31'),
+(627, 1, 69, '2026-03-07 09:19:31'),
+(628, 1, 68, '2026-03-07 09:19:31'),
+(629, 1, 55, '2026-03-07 09:19:31'),
+(630, 1, 54, '2026-03-07 09:19:31'),
+(631, 1, 80, '2026-03-07 09:19:31'),
+(632, 1, 77, '2026-03-07 09:19:31'),
+(633, 1, 79, '2026-03-07 09:19:31'),
+(634, 1, 78, '2026-03-07 09:19:31'),
+(635, 1, 76, '2026-03-07 09:19:31'),
+(636, 1, 50, '2026-03-07 09:19:31'),
+(637, 1, 47, '2026-03-07 09:19:31'),
+(638, 1, 49, '2026-03-07 09:19:31'),
+(639, 1, 48, '2026-03-07 09:19:31'),
+(640, 1, 46, '2026-03-07 09:19:31'),
+(641, 1, 7, '2026-03-07 09:19:31'),
+(642, 1, 4, '2026-03-07 09:19:31'),
+(643, 1, 6, '2026-03-07 09:19:31'),
+(644, 1, 5, '2026-03-07 09:19:31'),
+(645, 1, 8, '2026-03-07 09:19:31'),
+(646, 1, 3, '2026-03-07 09:19:31'),
+(647, 1, 35, '2026-03-07 09:19:31'),
+(648, 1, 34, '2026-03-07 09:19:31'),
+(649, 1, 33, '2026-03-07 09:19:31'),
+(650, 1, 32, '2026-03-07 09:19:31'),
+(651, 1, 102, '2026-03-07 09:19:31'),
+(652, 1, 104, '2026-03-07 09:19:31'),
+(653, 1, 103, '2026-03-07 09:19:31'),
+(654, 1, 101, '2026-03-07 09:19:31');
 
 -- --------------------------------------------------------
 
@@ -1449,6 +1749,13 @@ CREATE TABLE `supporter_contributions` (
   `recorded_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `supporter_contributions`
+--
+
+INSERT INTO `supporter_contributions` (`id`, `supporter_id`, `cep_session`, `contribution_type`, `contribution_subtype`, `amount`, `description`, `contribution_date`, `receipt_path`, `recorded_by`, `created_at`) VALUES
+(7, 1, 'both', 'financial', NULL, 258700.00, 'Piano Buying', '2026-03-05', NULL, 1, '2026-03-05 00:39:00');
 
 -- --------------------------------------------------------
 
@@ -1557,8 +1864,10 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `role_id`, `member_id`, `firstname`, `lastname`, `username`, `email`, `phone`, `password`, `photo`, `bio`, `email_verified`, `email_verification_token`, `email_verification_expires`, `reset_token`, `reset_expiry`, `last_login`, `login_attempts`, `locked_until`, `status`, `is_adepr_member`, `can_manage_website`, `created_by`, `created_at`, `updated_at`, `last_activity`) VALUES
-(1, 1, NULL, 'Super', 'Admin', 'admin', 'admin@cepuok.com', '+250788000000', '$2y$10$cTKQFPz493I5.QQkU1MwzOW.YLOdQKqnHbWzpsnO13eI54jLUnCt6', NULL, NULL, 1, NULL, NULL, NULL, NULL, '2026-02-24 19:33:27', 0, NULL, 'active', 1, 1, NULL, '2026-02-13 15:14:23', '2026-02-24 19:33:27', NULL),
-(2, 3, 5, 'NIYONZIMA', 'Aaron', 'niyonzima.aaron', 'aaronniyonzima52@gmail.com', '0785729794', '$2y$10$ed2/5nm75Rd.7pie5UiNuOJWdtUnuwMEFoh0.oKz7Yr14lbpjJofa', 'users/699c5f8a848f6_1771855754.jpg', 'Boy to Christ', 1, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'pending', 1, 0, 1, '2026-02-23 14:09:14', '2026-02-23 14:09:14', NULL);
+(1, 1, NULL, 'Super', 'Admin', 'admin', 'admin@cepuok.com', '+250788000000', '$2y$10$cTKQFPz493I5.QQkU1MwzOW.YLOdQKqnHbWzpsnO13eI54jLUnCt6', NULL, NULL, 1, NULL, NULL, NULL, NULL, '2026-03-08 14:50:03', 0, NULL, 'active', 1, 1, NULL, '2026-02-13 15:14:23', '2026-03-08 14:50:03', NULL),
+(2, 3, 5, 'NIYONZIMA', 'Aaron', 'niyonzima.aaron', 'aaronniyonzima52@gmail.com', '0785729794', '$2y$10$ed2/5nm75Rd.7pie5UiNuOJWdtUnuwMEFoh0.oKz7Yr14lbpjJofa', 'users/699c5f8a848f6_1771855754.jpg', 'Boy to Christ', 1, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'active', 1, 0, 1, '2026-02-23 14:09:14', '2026-03-04 22:19:33', NULL),
+(3, 6, 6, 'MUKASHEMA', 'Alice', 'mukashema.alice', 'alicemukashema@gmail.com', '0 787 962 735', '$2y$10$od7IhT1Z89vfkm5T8bzUhepdlGyBA4BGmXDauohyh3HDiRFi6OaJ2', 'users/69a0aef3dab68_1772138227.png', 'Courageous enough', 0, NULL, NULL, NULL, NULL, '2026-03-07 09:20:11', 0, NULL, 'active', 1, 0, 1, '2026-02-26 20:37:08', '2026-03-07 09:20:11', NULL),
+(5, 2, 7, 'NTAGAWA', 'David', 'ntagawa.david', 'david.ntagawa@gmail.com', '0791619272', '$2y$10$od7IhT1Z89vfkm5T8bzUhepdlGyBA4BGmXDauohyh3HDiRFi6OaJ2', 'users/69a3d927778da_1772345639.png', '', 0, NULL, NULL, NULL, NULL, '2026-03-05 09:15:25', 0, NULL, 'active', 1, 0, 1, '2026-03-01 06:13:59', '2026-03-05 09:15:25', NULL);
 
 --
 -- Triggers `users`
@@ -1608,7 +1917,11 @@ CREATE TABLE `user_activity_log` (
 --
 
 INSERT INTO `user_activity_log` (`id`, `user_id`, `action`, `module`, `record_id`, `description`, `ip_address`, `user_agent`, `created_at`) VALUES
-(1, 1, 'create', 'users', 2, 'User created: aaronniyonzima52@gmail.com', NULL, NULL, '2026-02-23 14:09:14');
+(1, 1, 'create', 'users', 2, 'User created: aaronniyonzima52@gmail.com', NULL, NULL, '2026-02-23 14:09:14'),
+(2, 1, 'create', 'users', 3, 'User created: alicemukashema@gmai.com', NULL, NULL, '2026-02-26 20:37:08'),
+(3, 2, 'status_change', 'users', 2, 'Status changed from pending to active', NULL, NULL, '2026-02-27 07:40:12'),
+(4, 1, 'create', 'users', 5, 'User created: david.ntagawa@gmail.com', NULL, NULL, '2026-03-01 06:13:59'),
+(5, 1, 'create', 'users', 6, 'User created: test@cepuok.com', NULL, NULL, '2026-03-04 16:34:56');
 
 -- --------------------------------------------------------
 
@@ -1765,11 +2078,34 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 
 --
+-- Indexes for table `budget_activities`
+--
+ALTER TABLE `budget_activities`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_q` (`quarter_id`),
+  ADD KEY `idx_pool` (`pool_id`);
+
+--
+-- Indexes for table `budget_indicators`
+--
+ALTER TABLE `budget_indicators`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_session_year` (`cep_session`,`academic_year`);
+
+--
 -- Indexes for table `budget_lines`
 --
 ALTER TABLE `budget_lines`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_budget` (`budget_id`);
+
+--
+-- Indexes for table `budget_quarters`
+--
+ALTER TABLE `budget_quarters`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_quarter` (`indicator_id`,`quarter`),
+  ADD KEY `idx_sess_year` (`cep_session`,`academic_year`);
 
 --
 -- Indexes for table `cep_families`
@@ -1847,6 +2183,24 @@ ALTER TABLE `committee_handovers`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `credential_wallet`
+--
+ALTER TABLE `credential_wallet`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_category` (`category`),
+  ADD KEY `idx_platform` (`platform`),
+  ADD KEY `idx_added_by` (`added_by`);
+
+--
+-- Indexes for table `credential_wallet_audit`
+--
+ALTER TABLE `credential_wallet_audit`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_credential_id` (`credential_id`),
+  ADD KEY `idx_user_id` (`user_id`),
+  ADD KEY `idx_created_at` (`created_at`);
+
+--
 -- Indexes for table `departments`
 --
 ALTER TABLE `departments`
@@ -1893,6 +2247,13 @@ ALTER TABLE `fund_requests`
   ADD KEY `fk_fr_approver` (`approved_by`);
 
 --
+-- Indexes for table `fund_request_comments`
+--
+ALTER TABLE `fund_request_comments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_req` (`request_id`);
+
+--
 -- Indexes for table `gallery_images`
 --
 ALTER TABLE `gallery_images`
@@ -1916,6 +2277,13 @@ ALTER TABLE `gallery_years`
 --
 ALTER TABLE `hero_sliders`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `indicator_pools`
+--
+ALTER TABLE `indicator_pools`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_indicator` (`indicator_id`);
 
 --
 -- Indexes for table `leadership_achievements`
@@ -2170,9 +2538,27 @@ ALTER TABLE `videos`
 --
 
 --
+-- AUTO_INCREMENT for table `budget_activities`
+--
+ALTER TABLE `budget_activities`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `budget_indicators`
+--
+ALTER TABLE `budget_indicators`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `budget_lines`
 --
 ALTER TABLE `budget_lines`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `budget_quarters`
+--
+ALTER TABLE `budget_quarters`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -2197,7 +2583,7 @@ ALTER TABLE `cep_sessions`
 -- AUTO_INCREMENT for table `cep_supporters`
 --
 ALTER TABLE `cep_supporters`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `choir_attendance`
@@ -2236,6 +2622,18 @@ ALTER TABLE `committee_handovers`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `credential_wallet`
+--
+ALTER TABLE `credential_wallet`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `credential_wallet_audit`
+--
+ALTER TABLE `credential_wallet_audit`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `departments`
 --
 ALTER TABLE `departments`
@@ -2251,18 +2649,24 @@ ALTER TABLE `disbursements`
 -- AUTO_INCREMENT for table `finance_budgets`
 --
 ALTER TABLE `finance_budgets`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `finance_revenue`
 --
 ALTER TABLE `finance_revenue`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `fund_requests`
 --
 ALTER TABLE `fund_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `fund_request_comments`
+--
+ALTER TABLE `fund_request_comments`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -2282,6 +2686,12 @@ ALTER TABLE `gallery_years`
 --
 ALTER TABLE `hero_sliders`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `indicator_pools`
+--
+ALTER TABLE `indicator_pools`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `leadership_achievements`
@@ -2311,13 +2721,13 @@ ALTER TABLE `leadership_years`
 -- AUTO_INCREMENT for table `members`
 --
 ALTER TABLE `members`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `membership_applications`
 --
 ALTER TABLE `membership_applications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `membership_types`
@@ -2329,13 +2739,13 @@ ALTER TABLE `membership_types`
 -- AUTO_INCREMENT for table `member_activities`
 --
 ALTER TABLE `member_activities`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `member_talents`
 --
 ALTER TABLE `member_talents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
 
 --
 -- AUTO_INCREMENT for table `news_events`
@@ -2359,7 +2769,7 @@ ALTER TABLE `password_reset_tokens`
 -- AUTO_INCREMENT for table `permissions`
 --
 ALTER TABLE `permissions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
 
 --
 -- AUTO_INCREMENT for table `projects`
@@ -2395,13 +2805,13 @@ ALTER TABLE `recurring_events`
 -- AUTO_INCREMENT for table `roles`
 --
 ALTER TABLE `roles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `role_permissions`
 --
 ALTER TABLE `role_permissions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=154;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=655;
 
 --
 -- AUTO_INCREMENT for table `site_settings`
@@ -2413,7 +2823,7 @@ ALTER TABLE `site_settings`
 -- AUTO_INCREMENT for table `supporter_contributions`
 --
 ALTER TABLE `supporter_contributions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `talents_gifts`
@@ -2431,13 +2841,13 @@ ALTER TABLE `testimonials`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `user_activity_log`
 --
 ALTER TABLE `user_activity_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `user_sessions`
@@ -2456,10 +2866,23 @@ ALTER TABLE `videos`
 --
 
 --
+-- Constraints for table `budget_activities`
+--
+ALTER TABLE `budget_activities`
+  ADD CONSTRAINT `fk_act_pool` FOREIGN KEY (`pool_id`) REFERENCES `indicator_pools` (`id`),
+  ADD CONSTRAINT `fk_act_q` FOREIGN KEY (`quarter_id`) REFERENCES `budget_quarters` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `budget_lines`
 --
 ALTER TABLE `budget_lines`
   ADD CONSTRAINT `fk_line_budget` FOREIGN KEY (`budget_id`) REFERENCES `finance_budgets` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `budget_quarters`
+--
+ALTER TABLE `budget_quarters`
+  ADD CONSTRAINT `fk_q_ind` FOREIGN KEY (`indicator_id`) REFERENCES `budget_indicators` (`id`);
 
 --
 -- Constraints for table `choir_attendance`
@@ -2507,6 +2930,18 @@ ALTER TABLE `fund_requests`
   ADD CONSTRAINT `fk_fr_approver` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_fr_requester` FOREIGN KEY (`requested_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_fr_reviewer` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `fund_request_comments`
+--
+ALTER TABLE `fund_request_comments`
+  ADD CONSTRAINT `fk_comm_req` FOREIGN KEY (`request_id`) REFERENCES `fund_requests` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `indicator_pools`
+--
+ALTER TABLE `indicator_pools`
+  ADD CONSTRAINT `fk_pool_ind` FOREIGN KEY (`indicator_id`) REFERENCES `budget_indicators` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `members`
