@@ -1,0 +1,20 @@
+ADMIN CODES TO SEE THE BUDGET INDICATORS
+
+SELECT 
+    bq.id,
+    bq.quarter,
+    bq.budget_name,
+    bq.status,
+    bq.total_allocated,
+    COUNT(ba.id) as activity_count
+FROM budget_quarters bq
+LEFT JOIN budget_activities ba ON bq.id = ba.quarter_id
+WHERE bq.indicator_id = 1  -- Change to your indicator ID
+GROUP BY bq.id;
+
+
+ADMIN CODES DO DELETE INDICATORS
+
+DELETE ba FROM budget_activities ba
+INNER JOIN budget_quarters bq ON ba.quarter_id = bq.id
+WHERE bq.indicator_id = 2;
